@@ -197,6 +197,7 @@ export interface TicketInitialData {
   description?: string;
   team?: string;
   assigneeId?: string;
+  ticketId?: string;
 }
 
 interface Props { 
@@ -214,7 +215,10 @@ export function NewManualTicketModal({ onClose, initialData, onSuccess, isFromCh
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [formDataToSubmit, setFormDataToSubmit] = useState<FormData | null>(null);
   const [intendedStatus, setIntendedStatus] = useState<'resolved' | 'new' | 'pending'>('new');
-  const [createdNumber, setCreatedNumber] = useState(() => Math.floor(Math.random() * 900) + 1100);
+  const [createdNumber, setCreatedNumber] = useState(() => {
+    if (initialData?.ticketId) return Number(initialData.ticketId);
+    return Math.floor(Math.random() * 900) + 1100;
+  });
   const [attachments, setAttachments] = useState<File[]>([]);
   const { chats } = useChats();
   const { createTicket } = useTickets();

@@ -140,6 +140,7 @@ export function ContextPanel({
       category: 'Sistemas / ERP',
       assigneeId: staff?.id || '',
       team: 'N1',
+      ticketId: session?.ticketId,
     };
   };
 
