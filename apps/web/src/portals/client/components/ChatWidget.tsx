@@ -23,7 +23,7 @@ export function ChatWidget() {
     const userChats = chats.filter(c => c.clientEmail === user.email);
     if (userChats.length === 0) return null;
     const active = userChats.find(c => c.status !== 'closed');
-    return active || userChats[userChats.length - 1];
+    return active || userChats[0];
   }, [chats, user]);
 
   const messages = activeChat?.messages || [];
