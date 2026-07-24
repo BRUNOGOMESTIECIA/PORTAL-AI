@@ -257,9 +257,11 @@ export default function ChatQueuePage() {
       const chatInMock = chats.find(c => c.id === selected.id);
       if (chatInMock) {
         if (newStatus === 'active') {
+          const fallbackTicket = chatInMock.id.replace(/\D/g, '').slice(-5) || '1048';
+          const currentProtocol = chatInMock.ticketId || fallbackTicket;
           const welcomeMsg: MockChatMessage = {
             id: `m_agent_${Date.now()}`,
-            body: `Olá, bem-vindo! Tudo bem? Meu nome é ${user?.name || 'Atendente'} e eu irei seguir com o seu atendimento.`,
+            body: `Olá, bem-vindo! Tudo bem? Meu nome é ${user?.name || 'Atendente'} e eu irei seguir com o seu atendimento (Protocolo #${currentProtocol}).`,
             senderName: user?.name || 'Você',
             senderType: 'agent',
             createdAt: new Date().toISOString()
