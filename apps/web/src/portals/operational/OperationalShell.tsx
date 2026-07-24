@@ -129,22 +129,15 @@ function GlobalChatAlerts({ collapsed }: { collapsed?: boolean }) {
           const isAgentLast = lastMessage.senderType === 'agent';
           
           if (!isAgentLast && timeSinceLastMsg >= 120000) {
-            let sysCount = 0;
-            for (let i = messages.length - 1; i >= 0; i--) {
-              if (messages[i].senderType === 'system') sysCount++;
-              else break;
-            }
-
-            if (sysCount === 0) {
-              chat.messages.push({
-                id: `auto_2m_${chat.id}_${now}`,
-                body: 'ja irei te responder aguarde um pouquinho por favor',
-                senderName: 'Sistema',
-                senderType: 'system',
-                createdAt: new Date(now).toISOString()
-              });
-              hasChanges = true;
-            }
+            // Removed sysCount === 0 check to allow repeating every 2 mins
+            chat.messages.push({
+              id: `auto_2m_${chat.id}_${now}`,
+              body: 'ja irei te responder aguarde um pouquinho por favor',
+              senderName: 'Sistema',
+              senderType: 'system',
+              createdAt: new Date(now).toISOString()
+            });
+            hasChanges = true;
           }
         }
       });
@@ -173,8 +166,8 @@ function GlobalChatAlerts({ collapsed }: { collapsed?: boolean }) {
             });
           } else if (chat.status === 'active') {
             newAlerts.push({
-              id: chat.id + '_warn', chatId: chat.id,
-              title: `Atendimento ocioso`,
+              id: `${chat.id}_warn_${sysCount}`, chatId: chat.id,
+              title: `Atendimento ocioso (${sysCount}x)`,
               desc: `${chat.clientName} aguarda seu retorno.`,
               type: 'warning'
             });
