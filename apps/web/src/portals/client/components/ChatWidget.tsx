@@ -48,8 +48,11 @@ export function ChatWidget() {
   const startChat = async (initialMessage?: string) => {
     if (!user) return;
     
+    const ticketNumber = String(Math.floor(Math.random() * 90000) + 10000);
+    
     const newChat: MockChatSession = {
       id: `chat_${Date.now()}`,
+      ticketId: ticketNumber,
       clientName: user.name,
       clientEmail: user.email,
       status: 'waiting',

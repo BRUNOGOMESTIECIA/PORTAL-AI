@@ -214,7 +214,7 @@ export function NewManualTicketModal({ onClose, initialData, onSuccess, isFromCh
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [formDataToSubmit, setFormDataToSubmit] = useState<FormData | null>(null);
   const [intendedStatus, setIntendedStatus] = useState<'resolved' | 'new' | 'pending'>('new');
-  const [createdNumber] = useState(() => Math.floor(Math.random() * 900) + 1100);
+  const [createdNumber, setCreatedNumber] = useState(() => Math.floor(Math.random() * 900) + 1100);
   const [attachments, setAttachments] = useState<File[]>([]);
   const { chats } = useChats();
   const { createTicket } = useTickets();
@@ -280,6 +280,10 @@ export function NewManualTicketModal({ onClose, initialData, onSuccess, isFromCh
             setSelectedCompany({ name: activeChat.clientName, slug: activeChat.clientEmail.split('@')[1]?.split('.')[0] || 'novo' });
             setValue('companySlug', activeChat.clientEmail.split('@')[1]?.split('.')[0] || 'novo');
             setValue('requesterId', activeChat.clientEmail);
+          }
+          
+          if (activeChat.ticketId) {
+            setCreatedNumber(Number(activeChat.ticketId));
           }
           
           setValue('title', 'Atendimento via Chat - ' + activeChat.clientName);

@@ -220,7 +220,7 @@ export default function ChatQueuePage() {
           const fallbackTicket = chat.id.replace(/\D/g, '').slice(-5) || '1048';
           updateChat(chat.id, { messages: [...chat.messages, {
             id: `welcome_${Date.now()}_${Math.random()}`,
-            body: `Olá! Em que Podemos ajudar? O número do seu protocolo é #${chat.ticketId || fallbackTicket}.`,
+            body: `Olá! Em que podemos ajudar? O número do seu chamado é #${chat.ticketId || fallbackTicket}.`,
             senderName: 'Sistema',
             senderType: 'system',
             createdAt: new Date().toISOString()
@@ -261,7 +261,7 @@ export default function ChatQueuePage() {
           const currentProtocol = chatInMock.ticketId || fallbackTicket;
           const welcomeMsg: MockChatMessage = {
             id: `m_agent_${Date.now()}`,
-            body: `Olá, bem-vindo! Tudo bem? Meu nome é ${user?.name || 'Atendente'} e eu irei seguir com o seu atendimento (Protocolo #${currentProtocol}).`,
+            body: `Olá, bem-vindo! Tudo bem? Meu nome é ${user?.name || 'Atendente'} e eu irei seguir com o seu atendimento (Chamado #${currentProtocol}).`,
             senderName: user?.name || 'Você',
             senderType: 'agent',
             createdAt: new Date().toISOString()
@@ -298,7 +298,7 @@ export default function ChatQueuePage() {
               ...chatInMock.messages,
               {
                 id: `m_system_${Date.now()}`,
-                body: `Atendimento encerrado. O chamado #${ticketId} foi gerado para acompanhamento.`,
+                body: `Atendimento encerrado. O chamado #${ticketId} foi atualizado com as informações desta conversa.`,
                 senderName: 'Sistema',
                 senderType: 'system',
                 createdAt: new Date().toISOString()
