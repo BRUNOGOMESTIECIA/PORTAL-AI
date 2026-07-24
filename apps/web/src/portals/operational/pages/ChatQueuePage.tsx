@@ -289,7 +289,19 @@ export default function ChatQueuePage() {
         } else {
           setActiveTab(newStatus === 'waiting' ? 'entrada' : 'encerrados');
           const updates: any = { status: newStatus };
-          if (ticketId) updates.ticketId = ticketId;
+          if (ticketId) {
+            updates.ticketId = ticketId;
+            updates.messages = [
+              ...chatInMock.messages,
+              {
+                id: `m_system_${Date.now()}`,
+                body: `Atendimento encerrado. O chamado #${ticketId} foi gerado para acompanhamento.`,
+                senderName: 'Sistema',
+                senderType: 'system',
+                createdAt: new Date().toISOString()
+              }
+            ];
+          }
           await updateChat(chatInMock.id, updates);
         }
       }
