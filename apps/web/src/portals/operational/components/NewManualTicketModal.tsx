@@ -251,6 +251,16 @@ export function NewManualTicketModal({ onClose, initialData, onSuccess, isFromCh
     },
   });
 
+  // Ensure assigneeId defaults to the logged-in user once loaded if it's empty
+  React.useEffect(() => {
+    if (user?.id) {
+      const currentAssignee = watch('assigneeId');
+      if (!currentAssignee) {
+        setValue('assigneeId', user.id);
+      }
+    }
+  }, [user?.id, setValue, watch]);
+
   // Autofill from active chat if opened from the sidebar while viewing a chat
   React.useEffect(() => {
     if (!initialData && window.location.pathname.includes('/chat')) {

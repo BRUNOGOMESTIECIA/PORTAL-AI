@@ -133,7 +133,7 @@ export function ContextPanel({
       companyName: client?.company || session?.clientName || 'Cliente Novo',
       companySlug: client?.companySlug || session?.clientEmail.split('@')[1]?.split('.')[0] || 'novo',
       requesterId: client?.id || session?.clientEmail || '',
-      title: 'Atendimento via Chat - ' + (session?.clientName || ''),
+      title: '',
       description: chatHistory,
       priority: priorityMap[priority || 'alta'],
       type: 'Incidente',
