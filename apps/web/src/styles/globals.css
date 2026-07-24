@@ -1,0 +1,304 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* THEME: LIGHT (Standard Tailwind) */
+  :root, [data-theme='light'] {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+    --radius: 0.5rem;
+
+    /* Custom Theme Scales - Standard Light */
+    --theme-slate-50: #F8FAFC;
+    --theme-slate-100: #F1F5F9;
+    --theme-slate-200: #E2E8F0;
+    --theme-slate-300: #CBD5E1;
+    --theme-slate-400: #94A3B8;
+    --theme-slate-500: #64748B;
+    --theme-slate-600: #475569;
+    --theme-slate-700: #334155;
+    --theme-slate-800: #1E293B;
+    --theme-slate-900: #0F172A;
+    --theme-slate-950: #020617;
+
+    --theme-blue-50: #EFF6FF;
+    --theme-blue-100: #DBEAFE;
+    --theme-blue-200: #BFDBFE;
+    --theme-blue-300: #93C5FD;
+    --theme-blue-400: #60A5FA;
+    --theme-blue-500: #3B82F6;
+    --theme-blue-600: #2563EB;
+    --theme-blue-700: #1D4ED8;
+    --theme-blue-800: #1E40AF;
+    --theme-blue-900: #1E3A8A;
+    --theme-blue-950: #172554;
+
+    --theme-emerald-50: #ECFDF5;
+    --theme-emerald-100: #D1FAE5;
+    --theme-emerald-200: #A7F3D0;
+    --theme-emerald-300: #6EE7B7;
+    --theme-emerald-400: #34D399;
+    --theme-emerald-500: #10B981;
+    --theme-emerald-600: #059669;
+    --theme-emerald-700: #047857;
+    --theme-emerald-800: #065F46;
+    --theme-emerald-900: #064E3B;
+    --theme-emerald-950: #022C22;
+
+    --theme-rose-50: #FFF1F2;
+    --theme-rose-100: #FFE4E6;
+    --theme-rose-200: #FECDD3;
+    --theme-rose-300: #FDA4AF;
+    --theme-rose-400: #FB7185;
+    --theme-rose-500: #F43F5E;
+    --theme-rose-600: #E11D48;
+    --theme-rose-700: #BE123C;
+    --theme-rose-800: #9F1239;
+    --theme-rose-900: #881337;
+    --theme-rose-950: #4C0519;
+    
+    --theme-amber-50: #FFFBEB;
+    --theme-amber-100: #FEF3C7;
+    --theme-amber-200: #FDE68A;
+    --theme-amber-300: #FCD34D;
+    --theme-amber-400: #FBBF24;
+    --theme-amber-500: #F59E0B;
+    --theme-amber-600: #D97706;
+    --theme-amber-700: #B45309;
+    --theme-amber-800: #92400E;
+    --theme-amber-900: #78350F;
+    --theme-amber-950: #451A03;
+  }
+  /* THEME: DARK (Standard Tailwind) */
+  .dark, [data-theme='dark'] {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+    
+    /* Standard Tailwind dark overrides (they are actually the same hexes natively, but we define them) */
+    --theme-slate-50: #F8FAFC;
+    --theme-slate-100: #F1F5F9;
+    --theme-slate-200: #E2E8F0;
+    --theme-slate-300: #CBD5E1;
+    --theme-slate-400: #94A3B8;
+    --theme-slate-500: #64748B;
+    --theme-slate-600: #475569;
+    --theme-slate-700: #334155;
+    --theme-slate-800: #1E293B;
+    --theme-slate-900: #0F172A;
+    --theme-slate-950: #020617;
+
+    --theme-blue-50: #EFF6FF;
+    --theme-blue-100: #DBEAFE;
+    --theme-blue-200: #BFDBFE;
+    --theme-blue-300: #93C5FD;
+    --theme-blue-400: #60A5FA;
+    --theme-blue-500: #3B82F6;
+    --theme-blue-600: #2563EB;
+    --theme-blue-700: #1D4ED8;
+    --theme-blue-800: #1E40AF;
+    --theme-blue-900: #1E3A8A;
+    --theme-blue-950: #172554;
+
+    --theme-emerald-50: #ECFDF5;
+    --theme-emerald-100: #D1FAE5;
+    --theme-emerald-200: #A7F3D0;
+    --theme-emerald-300: #6EE7B7;
+    --theme-emerald-400: #34D399;
+    --theme-emerald-500: #10B981;
+    --theme-emerald-600: #059669;
+    --theme-emerald-700: #047857;
+    --theme-emerald-800: #065F46;
+    --theme-emerald-900: #064E3B;
+    --theme-emerald-950: #022C22;
+
+    --theme-rose-50: #FFF1F2;
+    --theme-rose-100: #FFE4E6;
+    --theme-rose-200: #FECDD3;
+    --theme-rose-300: #FDA4AF;
+    --theme-rose-400: #FB7185;
+    --theme-rose-500: #F43F5E;
+    --theme-rose-600: #E11D48;
+    --theme-rose-700: #BE123C;
+    --theme-rose-800: #9F1239;
+    --theme-rose-900: #881337;
+    --theme-rose-950: #4C0519;
+
+    --theme-amber-50: #FFFBEB;
+    --theme-amber-100: #FEF3C7;
+    --theme-amber-200: #FDE68A;
+    --theme-amber-300: #FCD34D;
+    --theme-amber-400: #FBBF24;
+    --theme-amber-500: #F59E0B;
+    --theme-amber-600: #D97706;
+    --theme-amber-700: #B45309;
+    --theme-amber-800: #92400E;
+    --theme-amber-900: #78350F;
+    --theme-amber-950: #451A03;
+  }
+
+  /* THEME: ORIGINAL (Premium UI) */
+  [data-theme='original'] {
+    /* Set dark mode by default for original theme background and text */
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+
+    /* Premium Navy mapping over Slate */
+    --theme-slate-50: #FFFFFF;
+    --theme-slate-100: #F4F2EE;
+    --theme-slate-200: #C8BCA6;
+    --theme-slate-300: #B5A88F;
+    --theme-slate-400: #8A7E66;
+    --theme-slate-500: #695E4A;
+    --theme-slate-600: #544A3A;
+    --theme-slate-700: #454154;
+    --theme-slate-800: #343141;
+    --theme-slate-900: #262430;
+    --theme-slate-950: #15141A;
+
+    /* Black mapping over Blue */
+    --theme-blue-50: #F5F5F5;
+    --theme-blue-100: #E0E0E0;
+    --theme-blue-200: #CCCCCC;
+    --theme-blue-300: #B8B8B8;
+    --theme-blue-400: #FFFFFF;
+    --theme-blue-500: #333333;
+    --theme-blue-600: #000000;
+    --theme-blue-700: #1A1A1A;
+    --theme-blue-800: #242424;
+    --theme-blue-900: #0A0A0A;
+    --theme-blue-950: #000000;
+
+    /* Gold mapping over Emerald */
+    --theme-emerald-50: #FDFCF8;
+    --theme-emerald-100: #F9F4E5;
+    --theme-emerald-200: #F1E4C1;
+    --theme-emerald-300: #E6D097;
+    --theme-emerald-400: #DAB866;
+    --theme-emerald-500: #D4AD54;
+    --theme-emerald-600: #C09940;
+    --theme-emerald-700: #A37F31;
+    --theme-emerald-800: #856627;
+    --theme-emerald-900: #6E5223;
+    --theme-emerald-950: #402D0F;
+
+    /* Pink mapping over Rose */
+    --theme-rose-50: #FCF7FA;
+    --theme-rose-100: #F7EBF3;
+    --theme-rose-200: #ECD0E3;
+    --theme-rose-300: #DFACCC;
+    --theme-rose-400: #CE82B0;
+    --theme-rose-500: #BE719B;
+    --theme-rose-600: #A35A80;
+    --theme-rose-700: #884668;
+    --theme-rose-800: #703A56;
+    --theme-rose-900: #5F354A;
+    --theme-rose-950: #3A1B2A;
+
+    /* Gold mapping over Amber */
+    --theme-amber-50: #FFFBEB;
+    --theme-amber-100: #FEF3C7;
+    --theme-amber-200: #FDE68A;
+    --theme-amber-300: #FCD34D;
+    --theme-amber-400: #FBBF24;
+    --theme-amber-500: #D4AD54;
+    --theme-amber-600: #D97706;
+    --theme-amber-700: #B45309;
+    --theme-amber-800: #92400E;
+    --theme-amber-900: #78350F;
+    --theme-amber-950: #451A03;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-muted;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/30 rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/50;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Priority badge colors */
+  .priority-critical { @apply bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400; }
+  .priority-high     { @apply bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400; }
+  .priority-medium   { @apply bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400; }
+  .priority-low      { @apply bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400; }
+
+  /* SLA indicator colors */
+  .sla-ok      { @apply bg-green-500; }
+  .sla-warning { @apply bg-yellow-500; }
+  .sla-breach  { @apply bg-red-500; }
+}
