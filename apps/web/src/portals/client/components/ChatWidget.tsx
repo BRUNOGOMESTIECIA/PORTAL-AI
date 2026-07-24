@@ -18,10 +18,12 @@ export function ChatWidget() {
   const [hoursTooltip, setHoursTooltip] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  // Busca o chat ativo atual do usuário
   const activeChat = useMemo(() => {
     if (!user) return null;
-    return chats.find(c => c.clientEmail === user.email && c.status !== 'closed');
+    const userChats = chats.filter(c => c.clientEmail === user.email);
+    if (userChats.length === 0) return null;
+    const active = userChats.find(c => c.status !== 'closed');
+    return active || userChats[userChats.length - 1];
   }, [chats, user]);
 
   const messages = activeChat?.messages || [];
@@ -196,30 +198,39 @@ export function ChatWidget() {
             </div>
           )}
 
-          {/* Input */}
+          {/* Input or Closed Status */}
           <div className="p-3 bg-white dark:bg-slate-800 border-t border-slate-100 dark:border-slate-700/50 rounded-b-2xl">
-            <form
-              onSubmit={(e) => { e.preventDefault(); send(input); }}
-              className="flex items-center gap-2"
-            >
-              <button type="button" className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors">
-                <Paperclip className="h-4 w-4" />
-              </button>
-              <input
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Digite sua mensagem..."
-                className="flex-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full px-4 py-2 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:text-white"
-              />
-              <button
-                type="submit"
-                disabled={!input.trim()}
-                className="p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:opacity-50 disabled:hover:bg-blue-600 transition-colors"
+            {activeChat?.status === 'closed' ? (
+              <div className="text-center py-2">
+                <p className="text-xs text-slate-500 mb-2">Este chat foi encerrado.</p>
+                <button onClick={() => startChat()} className="text-sm font-semibold text-blue-600 hover:text-blue-700 transition-colors">
+                  Iniciar novo atendimento
+                </button>
+              </div>
+            ) : (
+              <form
+                onSubmit={(e) => { e.preventDefault(); send(input); }}
+                className="flex items-center gap-2"
               >
-                <Send className="h-4 w-4 ml-0.5" />
-              </button>
-            </form>
+                <button type="button" className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors">
+                  <Paperclip className="h-4 w-4" />
+                </button>
+                <input
+                  type="text"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder="Digite sua mensagem..."
+                  className="flex-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full px-4 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                />
+                <button
+                  type="submit"
+                  disabled={!input.trim()}
+                  className="p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:opacity-50 disabled:hover:bg-blue-600 transition-colors"
+                >
+                  <Send className="h-4 w-4 ml-0.5" />
+                </button>
+              </form>
+            )}
           </div>
         </div>
       )}

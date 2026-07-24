@@ -217,9 +217,10 @@ export default function ChatQueuePage() {
       if (chat.status === 'waiting') {
         const hasWelcome = chat.messages.some(m => m.senderType === 'system' && m.body.includes('Podemos ajudar'));
         if (!hasWelcome) {
+          const fallbackTicket = chat.id.replace(/\D/g, '').slice(-5) || '1048';
           updateChat(chat.id, { messages: [...chat.messages, {
             id: `welcome_${Date.now()}_${Math.random()}`,
-            body: 'Olá! Em que Podemos ajudar?',
+            body: `Olá! Em que Podemos ajudar? O número do seu protocolo é #${chat.ticketId || fallbackTicket}.`,
             senderName: 'Sistema',
             senderType: 'system',
             createdAt: new Date().toISOString()
