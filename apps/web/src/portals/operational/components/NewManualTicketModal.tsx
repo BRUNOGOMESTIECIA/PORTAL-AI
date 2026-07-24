@@ -286,7 +286,7 @@ export function NewManualTicketModal({ onClose, initialData, onSuccess, isFromCh
             setCreatedNumber(Number(activeChat.ticketId));
           }
           
-          setValue('title', 'Atendimento via Chat - ' + activeChat.clientName);
+          setValue('title', ''); // Solicitado para deixar o título em branco
           setValue('type', 'Incidente');
           setValue('category', 'Sistemas / ERP');
           setValue('priority', 'high');
@@ -600,6 +600,9 @@ export function NewManualTicketModal({ onClose, initialData, onSuccess, isFromCh
                     <option value="">Não atribuído</option>
                     {MOCK_STAFF.map(s =>
                       <option key={s.id} value={s.id}>{s.name}</option>
+                    )}
+                    {user && !MOCK_STAFF.some(s => s.id === user.id) && (
+                      <option key={user.id} value={user.id}>{user.name} (Você)</option>
                     )}
                   </select>
                   <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
