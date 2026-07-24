@@ -302,7 +302,7 @@ export function ContextPanel({
         <section>
           <div className="flex justify-between items-center mb-3">
             <span className="text-xs text-slate-500 font-medium">Ticket</span>
-            <span className="text-xs font-bold text-slate-900 dark:text-slate-100">#{session.ticketId || '54821'}</span>
+            <span className="text-xs font-bold text-slate-900 dark:text-slate-100">#{session.ticketId || (session.id.replace(/\D/g, '').slice(-5) || '1048')}</span>
           </div>
           <div className="flex justify-between items-center mb-3">
             <span className="text-xs text-slate-500 font-medium">Status</span>

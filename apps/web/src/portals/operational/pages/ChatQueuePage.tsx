@@ -460,7 +460,7 @@ export default function ChatQueuePage() {
                       <span className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate block">{chat.clientName}</span>
                       {chat.status === 'closed' ? (
                         <div className="text-[10.5px] text-slate-500 dark:text-slate-400 mt-0.5 space-y-0.5">
-                          {chat.ticketId && <p className="truncate">Ticket: <span className="font-medium text-slate-700 dark:text-slate-300">#{chat.ticketId}</span></p>}
+                          <p className="truncate">Ticket: <span className="font-medium text-slate-700 dark:text-slate-300">#{chat.ticketId || (chat.id.replace(/\D/g, '').slice(-5) || '1048')}</span></p>
                           <p className="truncate">Empresa: <span className="font-medium text-slate-700 dark:text-slate-300">{getCompanyByEmail(chat.clientEmail)}</span></p>
                           <p className="truncate">Colab: <span className="font-medium text-slate-700 dark:text-slate-300">{chat.agentName || 'Sistema'}</span></p>
                         </div>
@@ -518,7 +518,7 @@ export default function ChatQueuePage() {
                 </div>
                 <div>
                   <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center">
-                    Ticket #{selected.ticketId || '1048'} 
+                    Ticket #{selected.ticketId || (selected.id.replace(/\D/g, '').slice(-5) || '1048')}
                     <span className={`ml-2 px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
                       (chatPriorities[selected.id] || 'alta') === 'critica' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' :
                       (chatPriorities[selected.id] || 'alta') === 'alta' ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400' :
