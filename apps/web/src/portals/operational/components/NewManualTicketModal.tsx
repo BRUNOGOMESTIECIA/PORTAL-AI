@@ -202,7 +202,7 @@ export interface TicketInitialData {
 interface Props { 
   onClose: () => void; 
   initialData?: TicketInitialData;
-  onSuccess?: () => void;
+  onSuccess?: (ticketId: string) => void;
   isFromChat?: boolean;
 }
 
@@ -398,7 +398,7 @@ export function NewManualTicketModal({ onClose, initialData, onSuccess, isFromCh
     
     setShowConfirmModal(false);
     setSubmitted(true);
-    onSuccess?.();
+    onSuccess?.(String(createdNumber));
   };
 
   // ─ Success screen ──────────────────────────────────────────────────────────

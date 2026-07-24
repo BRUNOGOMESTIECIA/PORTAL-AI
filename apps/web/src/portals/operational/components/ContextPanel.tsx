@@ -23,7 +23,7 @@ export function ContextPanel({
   onPriorityChange
 }: { 
   session: MockChatSession | null;
-  onStatusChange?: (status: 'waiting' | 'active' | 'finished' | 'closed') => void;
+  onStatusChange?: (status: 'waiting' | 'active' | 'finished' | 'closed', ticketId?: string) => void;
   priority?: string;
   onPriorityChange?: (priority: string) => void;
 }) {
@@ -475,8 +475,8 @@ export function ContextPanel({
           onClose={() => setShowTicketModal(false)} 
           initialData={getInitialTicketData()}
           isFromChat={true}
-          onSuccess={() => {
-            onStatusChange?.('closed');
+          onSuccess={(ticketId) => {
+            onStatusChange?.('closed', ticketId);
           }}
         />
       )}

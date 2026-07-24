@@ -251,7 +251,7 @@ export default function ChatQueuePage() {
     }
   }, []);
 
-  const handleStatusChange = async (newStatus: 'waiting' | 'active' | 'finished' | 'closed') => {
+  const handleStatusChange = async (newStatus: 'waiting' | 'active' | 'finished' | 'closed', ticketId?: string) => {
     if (selected) {
       const chatInMock = chats.find(c => c.id === selected.id);
       if (chatInMock) {
@@ -288,7 +288,9 @@ export default function ChatQueuePage() {
           }, 4000);
         } else {
           setActiveTab(newStatus === 'waiting' ? 'entrada' : 'encerrados');
-          await updateChat(chatInMock.id, { status: newStatus });
+          const updates: any = { status: newStatus };
+          if (ticketId) updates.ticketId = ticketId;
+          await updateChat(chatInMock.id, updates);
         }
       }
     }
