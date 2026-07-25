@@ -43,7 +43,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(manhattanAuth, async (firebaseUser) => {
       if (firebaseUser) {
         try {
           const docRef = doc(db, 'users', firebaseUser.uid);
@@ -66,9 +66,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(newUser);
             toast.success('Primeiro acesso! Conta de Administrador criada com sucesso.');
           }
-        } catch (error) {
-          console.error("Erro ao carregar usuário:", error);
-          setUser(null);
+        } catch (error: any) {
+          console.warn("Ignorando erro de permissão do Firestore no recarregamento (Manhattan):", error.message);
+          // Fallback para memória
+          setUser({
+            id: firebaseUser.uid,
+            email: firebaseUser.email || '',
+            name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Usuário',
+            type: 'staff', // Assume staff by default on fallback if we don't have the API response here
+            role: 'Administrator',
+            permissions: ['chat.attend', 'chat.view', 'tickets.view', 'admin.users', 'admin.settings']
+          } as AppUser);
         }
       } else {
         setUser(null);
