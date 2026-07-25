@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { auth, db } from '../lib/firebase';
+import { auth, db, manhattanAuth } from '../lib/firebase';
 import { 
   onAuthStateChanged, 
   signInWithEmailAndPassword, 
@@ -126,7 +126,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       googleProvider.setCustomParameters({
         prompt: 'select_account'
       });
-      const cred = await signInWithPopup(auth, googleProvider);
+      const cred = await signInWithPopup(manhattanAuth, googleProvider);
       const idToken = await cred.user.getIdToken();
 
       // Consultar o Sistema Manhattan para validar a autorização (Zero-Trust)
@@ -177,7 +177,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           } as AppUser;
         }
       } else {
-        await signOut(auth);
+        await signOut(manhattanAuth);
         throw new Error(data.mensagem || 'Acesso bloqueado pelo Sistema Manhattan.');
       }
     }
