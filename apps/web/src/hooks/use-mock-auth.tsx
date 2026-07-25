@@ -106,6 +106,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  /**
+   * Autenticação Híbrida (Google SSO + Validação Zero-Trust no Firestore)
+   * 
+   * @description 
+   * Ao invés de apenas logar o usuário, o sistema extrai o domínio do e-mail dele (ex: @empresa.com)
+   * e consulta o banco de dados 'domains' do InstaPasso. 
+   * Se o domínio possuir a role exata passada no parâmetro (expectedType) e status ACTIVE,
+   * o login prossegue. Caso contrário, a sessão é instantaneamente destruída.
+   * 
+   * @param {'google' | 'microsoft'} provider - Provedor SSO
+   * @param {'client' | 'staff'} expectedType - Qual lado do portal o usuário está tentando acessar
+   * @returns {Promise<AppUser>} Usuário montado na sessão
+   */
   const loginWithSSO = useCallback(async (provider: 'google' | 'microsoft', expectedType: 'client' | 'staff'): Promise<AppUser> => {
     if (provider === 'google') {
       const googleProvider = new GoogleAuthProvider();
