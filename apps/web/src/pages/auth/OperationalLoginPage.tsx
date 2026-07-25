@@ -45,6 +45,7 @@ export default function OperationalLoginPage() {
         toast.error('Conta não autorizada para o portal operacional.');
       }
     } catch (error: any) {
+      console.error("SSO Login Error:", error);
       toast.error(error.message || 'Falha na autenticação. Tente novamente.');
     } finally {
       setSsoLoading(null);
