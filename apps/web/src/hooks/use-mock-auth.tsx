@@ -127,21 +127,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         prompt: 'select_account'
       });
       const cred = await signInWithPopup(auth, googleProvider);
-      // Wait for onAuthStateChanged to load the document, but return a temporary object to satisfy the Promise
-      const docRef = doc(db, 'users', cred.user.uid);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        return { id: cred.user.uid, ...docSnap.data() } as AppUser;
+      const idToken = await cred.user.getIdToken();
+
+      // Consultar o Sistema Manhattan para validar a autorização (Zero-Trust)
+      const res = await fetch('https://sistema-manhattan.vercel.app/api/v1/autorizar', {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${idToken}`
+          },
+          body: JSON.stringify({
+              ipOrigem: 'IP_Navegador',
+              sistemaOrigem: navigator.userAgent
+          })
+      });
+      
+      const data = await res.json();
+
+      if (res.ok && data.autorizado) {
+        // Wait for onAuthStateChanged to load the document, but return a temporary object to satisfy the Promise
+        const docRef = doc(db, 'users', cred.user.uid);
+        const docSnap = await getDoc(docRef);
+        
+        // Define o tipo com base no retorno da API ou usa o solicitado pela tela
+        const finalType = data.usuario?.tipo || userType;
+
+        if (docSnap.exists()) {
+          return { id: cred.user.uid, ...docSnap.data() } as AppUser;
+        } else {
+          const newUser: AppUser = {
+            id: cred.user.uid,
+            email: cred.user.email || '',
+            name: data.usuario?.nome || cred.user.displayName || cred.user.email?.split('@')[0] || 'Usuário',
+            type: finalType,
+            ...(finalType === 'staff' ? { role: 'Administrator', permissions: ['chat.attend', 'chat.view', 'tickets.view', 'admin.users', 'admin.settings'] } : {})
+          };
+          await setDoc(docRef, newUser);
+          return newUser;
+        }
       } else {
-        const newUser: AppUser = {
-          id: cred.user.uid,
-          email: cred.user.email || '',
-          name: cred.user.displayName || cred.user.email?.split('@')[0] || 'Usuário',
-          type: userType,
-          ...(userType === 'staff' ? { role: 'Administrator', permissions: ['chat.attend', 'chat.view', 'tickets.view', 'admin.users', 'admin.settings'] } : {})
-        };
-        await setDoc(docRef, newUser);
-        return newUser;
+        await signOut(auth);
+        throw new Error(data.mensagem || 'Acesso bloqueado pelo Sistema Manhattan.');
       }
     }
     throw new Error('Provedor SSO não suportado ainda.');
