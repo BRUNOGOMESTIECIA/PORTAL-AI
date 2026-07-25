@@ -134,15 +134,28 @@ export default function AdminUserDetailPage() {
     navigate('/operacional/app/admin/users');
   };
 
+  const [isAnonymized, setIsAnonymized] = useState(false);
+
   const handleAnonymize = async () => {
     if (!window.confirm('ATENÇÃO: Tem certeza que deseja anonimizar este usuário? Esta ação é irreversível (LGPD). Nome, e-mail e telefone serão apagados, e o e-mail passará por hash irreversível. A conta será desativada.')) {
       return;
     }
     
     // In a real scenario: await axios.delete(`/api/v1/users/${id}/anonymize`);
+    // (A requisição bateria na Cloud Function anonymizeUser que acabamos de criar)
+
+    setFormData(prev => ({
+        ...prev,
+        name: '[USUÁRIO ANONIMIZADO]',
+        email: 'xxxxxxxx-xxxx@anonymized.local',
+        company: prev.type === 'client' ? '[EMPRESA ANONIMIZADA]' : ''
+    }));
+    setIsAnonymized(true);
+
     toast.success('Usuário anonimizado com sucesso.', {
       description: 'Todos os dados pessoais foram apagados (Direito ao Esquecimento).'
     });
+
     
     setTimeout(() => {
       navigate('/operacional/app/admin/users');
@@ -182,7 +195,7 @@ export default function AdminUserDetailPage() {
           )}
           <button 
             onClick={handleSave}
-            disabled={!formData.name.trim() || !formData.email.trim() || (formData.type === 'client' && !formData.company.trim())}
+            disabled={isAnonymized || !formData.name.trim() || !formData.email.trim() || (formData.type === 'client' && !formData.company.trim())}
             className="flex items-center gap-2 px-5 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg transition-colors shadow-sm"
           >
             <Save className="w-4 h-4" />
@@ -234,7 +247,8 @@ export default function AdminUserDetailPage() {
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full h-10 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900/30 transition"
+                  disabled={isAnonymized}
+                  className="w-full h-10 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900/30 transition disabled:opacity-50 disabled:cursor-not-allowed text-slate-900 dark:text-white"
                 />
               </div>
 
@@ -244,7 +258,8 @@ export default function AdminUserDetailPage() {
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full h-10 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900/30 transition"
+                  disabled={isAnonymized}
+                  className="w-full h-10 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900/30 transition disabled:opacity-50 disabled:cursor-not-allowed text-slate-900 dark:text-white"
                 />
               </div>
 

@@ -7,6 +7,9 @@ import {
 import { MockTicket, MOCK_TICKETS } from '../mocks/data';
 import { toast } from 'sonner';
 
+/**
+ * Valores expostos pelo Contexto de Tickets (Chamados).
+ */
 interface TicketsContextValue {
   tickets: MockTicket[];
   isLoading: boolean;
@@ -17,6 +20,14 @@ interface TicketsContextValue {
 
 const TicketsContext = createContext<TicketsContextValue | null>(null);
 
+/**
+ * Provedor Global de Tickets (Chamados).
+ * 
+ * Gerencia a comunicação com a coleção `tickets` no Firestore.
+ * Possui um sistema de "Fallback" automático: se o banco de dados falhar ou
+ * bloquear o acesso por falta de permissão, ele utiliza os dados locais em memória
+ * para que o painel continue funcionando visualmente durante testes.
+ */
 export function TicketsProvider({ children }: { children: React.ReactNode }) {
   const [tickets, setTickets] = useState<MockTicket[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -47,6 +58,12 @@ export function TicketsProvider({ children }: { children: React.ReactNode }) {
     return () => unsubscribe();
   }, [tickets.length]); // intentionally using tickets.length to avoid infinite loops on reference changes
 
+  /**
+   * Cria um novo ticket no banco de dados.
+   * Em caso de falha de conexão, adiciona o ticket apenas no mock local.
+   * 
+   * @param {MockTicket} ticket - O objeto de chamado preenchido.
+   */
   const createTicket = useCallback(async (ticket: MockTicket) => {
     if (useFallback) {
       MOCK_TICKETS.unshift(ticket);
@@ -62,6 +79,13 @@ export function TicketsProvider({ children }: { children: React.ReactNode }) {
     }
   }, [useFallback]);
 
+  /**
+   * Atualiza parcialmente os dados de um chamado.
+   * Útil para alterar status, prioridade ou atribuir um técnico.
+   * 
+   * @param {string} id - ID do chamado.
+   * @param {Partial<MockTicket>} updates - Objeto com os campos modificados.
+   */
   const updateTicket = useCallback(async (id: string, updates: Partial<MockTicket>) => {
     if (useFallback) {
       const idx = MOCK_TICKETS.findIndex(t => t.id === id);
@@ -79,6 +103,9 @@ export function TicketsProvider({ children }: { children: React.ReactNode }) {
     }
   }, [useFallback]);
 
+  /**
+   * Injeta dados de teste na base do Firebase.
+   */
   const seedMockData = useCallback(async () => {
     try {
       const snapshot = await getDocs(collection(db, 'tickets'));

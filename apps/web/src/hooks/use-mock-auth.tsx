@@ -13,6 +13,9 @@ import {
 import { doc, getDoc, setDoc, collection, getDocs } from 'firebase/firestore';
 import { toast } from 'sonner';
 
+/**
+ * Interface que define a estrutura do usuário logado na aplicação.
+ */
 export interface AppUser {
   id: string;
   name: string;
@@ -24,6 +27,9 @@ export interface AppUser {
   permissions?: string[];
 }
 
+/**
+ * Valores expostos pelo Contexto de Autenticação.
+ */
 interface AuthContextValue {
   user: AppUser | null;
   isLoading: boolean;
@@ -38,6 +44,12 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+/**
+ * Provedor Global de Autenticação.
+ * 
+ * Envolve a aplicação para fornecer o estado de sessão atual e os métodos 
+ * de login, logout e verificação de permissões para todos os componentes.
+ */
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -65,6 +77,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => unsubscribe();
   }, []);
 
+  /**
+   * Realiza login usando email e senha padrão (Firebase Auth).
+   * @param {string} email - E-mail do usuário.
+   * @param {string} password - Senha do usuário.
+   * @returns {Promise<AppUser>} Usuário logado recuperado do Firestore.
+   */
   const login = useCallback(async (email: string, password: string): Promise<AppUser> => {
     const cred = await signInWithEmailAndPassword(auth, email, password);
     const docRef = doc(db, 'users', cred.user.uid);
@@ -73,6 +91,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { id: cred.user.uid, ...docSnap.data() } as AppUser;
   }, []);
 
+  /**
+   * Envia um link de acesso direto (Magic Link) para o e-mail do cliente.
+   * @param {string} email - E-mail para envio do link.
+   */
   const sendMagicLink = useCallback(async (email: string): Promise<void> => {
     const actionCodeSettings = {
       url: window.location.origin + '/cliente/login',
@@ -82,6 +104,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     window.localStorage.setItem('emailForSignIn', email);
   }, []);
 
+  /**
+   * Função para capturar a volta do Magic Link e autenticar.
+   * @param {string} email - E-mail do usuário.
+   * @returns {Promise<AppUser>}
+   */
   const loginWithMagicLink = useCallback(async (email: string): Promise<AppUser> => {
     // Para simplificar a demonstração e desenvolvimento sem e-mail de verdade
     // Vamos apenas criar ou logar o usuário com uma senha fixa
@@ -129,13 +156,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const cred = await signInWithPopup(instaPassoAuth, googleProvider);
         const email = cred.user.email || '';
-        const emailParts = email.toLowerCase().split('@');
-        const domainName = `@${emailParts[1]}`;
+        const domainName = `@${email.split('@')[1]?.toLowerCase()}`;
 
         // Busca a lista de domínios cadastrados direto do Firestore (Nuvem)
         let validationSystemDomains: any[] = [];
         try {
-           const querySnapshot = await getDocs(collection(instaPassoDb, 'domains'));
+           const q = query(collection(instaPassoDb, 'domains'), where('domainName', '==', domainName));
+           const querySnapshot = await getDocs(q);
            querySnapshot.forEach((doc) => {
              validationSystemDomains.push({ id: doc.id, ...doc.data() });
            });
@@ -181,6 +208,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     throw new Error('Provedor SSO não suportado ainda.');
   }, []);
 
+  /**
+   * Encerra a sessão atual do usuário, forçando limpeza de RAM imediata.
+   */
   const logout = useCallback(async () => {
     try {
       await signOut(instaPassoAuth);
@@ -191,6 +221,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  /**
+   * Verifica se o usuário atual logado possui a permissão especificada.
+   * Utilizado para controle de acesso por RBAC.
+   * 
+   * @param {string} code - Código da permissão (ex: 'admin.users')
+   * @returns {boolean} Verdadeiro se o usuário tem a permissão ou é 'Administrator'.
+   */
   const hasPermission = useCallback((code: string) => {
     if (!user || user.type !== 'staff') return false;
     if (user.role === 'Administrator') return true;
