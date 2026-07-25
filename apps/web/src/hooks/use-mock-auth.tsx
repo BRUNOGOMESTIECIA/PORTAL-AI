@@ -152,8 +152,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
-    await signOut(manhattanAuth);
-    await signOut(auth);
+    try {
+      await signOut(manhattanAuth);
+      await signOut(auth);
+    } catch (e) {
+      console.error("Logout error", e);
+    } finally {
+      // Força a limpeza de sessão independente do Firebase
+      setUser(null);
+    }
   }, []);
 
   const hasPermission = useCallback((code: string) => {
