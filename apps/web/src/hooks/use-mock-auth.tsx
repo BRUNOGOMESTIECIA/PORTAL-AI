@@ -152,6 +152,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
+    await signOut(manhattanAuth);
     await signOut(auth);
   }, []);
 
