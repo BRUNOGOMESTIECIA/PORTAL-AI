@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { auth, db, manhattanAuth } from '../lib/firebase';
+import { auth, db, instaPassoDb, instaPassoAuth } from '../lib/firebase';
 import { 
   onAuthStateChanged, 
   signInWithEmailAndPassword, 
@@ -10,7 +10,7 @@ import {
   isSignInWithEmailLink,
   signInWithEmailLink
 } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, getDocs } from 'firebase/firestore';
 import { toast } from 'sonner';
 
 export interface AppUser {
@@ -43,7 +43,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(manhattanAuth, async (firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(instaPassoAuth, async (firebaseUser) => {
       if (firebaseUser) {
         // Ignoramos totalmente o banco de dados aqui para nunca dar erro de permissão.
         // Assumimos os dados do usuário direto da sessão do Google
@@ -106,46 +106,63 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const loginWithSSO = useCallback(async (provider: 'google' | 'microsoft', userType: 'client' | 'staff'): Promise<AppUser> => {
+  const loginWithSSO = useCallback(async (provider: 'google' | 'microsoft', expectedType: 'client' | 'staff'): Promise<AppUser> => {
     if (provider === 'google') {
       const googleProvider = new GoogleAuthProvider();
       googleProvider.setCustomParameters({
         prompt: 'select_account'
       });
-      const cred = await signInWithPopup(manhattanAuth, googleProvider);
-      const idToken = await cred.user.getIdToken();
-
-      // Consultar o Sistema Manhattan para validar a autorização (Zero-Trust)
-      const res = await fetch('https://sistema-manhattan.vercel.app/api/v1/autorizar', {
-          method: 'POST',
-          headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${idToken}`
-          },
-          body: JSON.stringify({
-              ipOrigem: 'IP_Navegador',
-              sistemaOrigem: navigator.userAgent
-          })
-      });
       
-      const data = await res.json();
+      try {
+        const cred = await signInWithPopup(instaPassoAuth, googleProvider);
+        const email = cred.user.email || '';
+        const emailParts = email.toLowerCase().split('@');
+        const domainName = `@${emailParts[1]}`;
 
-      if (res.ok && data.autorizado) {
-        // Define o tipo com base no retorno da API ou usa o solicitado pela tela
-        const finalType = data.usuario?.tipo || userType;
+        // Busca a lista de domínios cadastrados direto do Firestore (Nuvem)
+        let validationSystemDomains: any[] = [];
+        try {
+           const querySnapshot = await getDocs(collection(instaPassoDb, 'domains'));
+           querySnapshot.forEach((doc) => {
+             validationSystemDomains.push({ id: doc.id, ...doc.data() });
+           });
+        } catch (e: any) {
+           console.error("Erro ao buscar domínios na nuvem do Firebase:", e);
+           await signOut(instaPassoAuth);
+           throw new Error('Falha de segurança: ' + (e.message || 'Erro ao conectar com Firestore'));
+        }
+
+        const foundDomains = validationSystemDomains.filter(d => d.domainName === domainName);
+
+        if (foundDomains.length === 0) {
+           await signOut(instaPassoAuth);
+           throw new Error('Acesso bloqueado. Seu domínio corporativo não está cadastrado.');
+        }
+
+        // Verifica a permissão específica da página que tentou logar
+        const requiredPermission = expectedType === 'client' ? 'Portal Cliente' : 'Portal Operacional';
         
-        // Removemos totalmente o Firestore daqui para evitar erros de permissão do Manhattan
+        // Basta que exista pelo menos UM registro ativo com a permissão correta
+        const hasValidAccess = foundDomains.some(d => d.status === 'ACTIVE' && d.allowedPages.includes(requiredPermission));
+
+        if (!hasValidAccess) {
+           await signOut(instaPassoAuth);
+           throw new Error(`Acesso Negado: Seu domínio não tem permissão para acessar o ${requiredPermission} ou está inativo.`);
+        }
+
         const mockUser: AppUser = {
           id: cred.user.uid,
-          email: cred.user.email || '',
-          name: data.usuario?.nome || cred.user.displayName || cred.user.email?.split('@')[0] || 'Usuário',
-          type: finalType,
-          ...(finalType === 'staff' ? { role: 'Administrator', permissions: ['chat.attend', 'chat.view', 'tickets.view', 'admin.users', 'admin.settings'] } : {})
+          email: email,
+          name: cred.user.displayName || email.split('@')[0] || 'Usuário',
+          type: expectedType,
+          ...(expectedType === 'staff' ? { role: 'Administrator', permissions: ['chat.attend', 'chat.view', 'tickets.view', 'admin.users', 'admin.settings'] } : {})
         };
+        
+        setUser(mockUser);
         return mockUser;
-      } else {
-        await signOut(manhattanAuth);
-        throw new Error(data.mensagem || 'Acesso bloqueado pelo Sistema Manhattan.');
+      } catch (error: any) {
+        await signOut(instaPassoAuth);
+        throw error;
       }
     }
     throw new Error('Provedor SSO não suportado ainda.');
@@ -153,12 +170,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(async () => {
     try {
-      await signOut(manhattanAuth);
-      await signOut(auth);
+      await signOut(instaPassoAuth);
     } catch (e) {
       console.error("Logout error", e);
     } finally {
-      // Força a limpeza de sessão independente do Firebase
       setUser(null);
     }
   }, []);

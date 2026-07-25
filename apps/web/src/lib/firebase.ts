@@ -11,23 +11,24 @@ const firebaseConfig = {
   appId: "1:400935660517:web:83ea998c17cd0b3083dd0c"
 };
 
-const manhattanConfig = {
-  apiKey: "AIzaSyA4RJMcfa6z97dlzKvEawphl36gTv4Kd1M",
-  authDomain: "sistema-manhattan.firebaseapp.com",
-  projectId: "sistema-manhattan",
-  storageBucket: "sistema-manhattan.firebasestorage.app",
-  messagingSenderId: "90628524545",
-  appId: "1:90628524545:web:51d107d50cd6c8954f8e00"
+const instaPassoConfig = {
+  apiKey: "AIzaSyBZyrcBfFRjhhMOpkhxLLrzgZ5vII6Tl98",
+  authDomain: "instapasso.firebaseapp.com",
+  projectId: "instapasso",
+  storageBucket: "instapasso.firebasestorage.app",
+  messagingSenderId: "190667143384",
+  appId: "1:190667143384:web:7b97b8b82d7912dfd2bfad"
 };
 
 // Initialize Firebase (Portal Principal)
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firebase (Portal Manhattan para Login SSO)
-const manhattanApp = initializeApp(manhattanConfig, "manhattan");
+// Initialize Firebase (Portal InstaPasso para Login SSO e Permissões)
+const instaPassoApp = initializeApp(instaPassoConfig, "instapasso");
 
 // Initialize Firebase services
 export const auth = getAuth(app);
-export const manhattanAuth = getAuth(manhattanApp);
+export const instaPassoAuth = getAuth(instaPassoApp);
 export const db = getFirestore(app);
+export const instaPassoDb = getFirestore(instaPassoApp);
 export default app;
