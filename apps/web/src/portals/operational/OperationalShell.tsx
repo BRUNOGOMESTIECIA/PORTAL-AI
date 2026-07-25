@@ -17,6 +17,7 @@ import { useTheme } from '../../components/theme-provider';
 import { Sun, Moon, Palette } from 'lucide-react';
 import { UserMenu } from '../../components/layout/UserMenu';
 import { toast } from 'sonner';
+import { ErrorBoundary } from '../../components/ErrorBoundary';
 
 interface NavItem { label: string; path: string; icon: React.ComponentType<{ className?: string }>; permission?: string; badge?: number }
 
@@ -660,7 +661,9 @@ export default function OperationalShell() {
 
         {/* Page content */}
         <main className={cn('flex-1 relative', location.pathname.includes('/chat') ? 'overflow-hidden' : 'overflow-y-auto p-4 sm:p-6')}>
-          <Outlet />
+          <ErrorBoundary>
+            <Outlet />
+          </ErrorBoundary>
         </main>
       </div>
 
