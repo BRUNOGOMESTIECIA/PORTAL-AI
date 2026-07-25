@@ -74,8 +74,8 @@ export default function ClientLoginPage() {
       } else {
         toast.error('Conta não autorizada para o portal do cliente.');
       }
-    } catch {
-      toast.error('Falha na autenticação. Tente novamente.');
+    } catch (error: any) {
+      toast.error(error.message || 'Falha na autenticação. Tente novamente.');
     } finally {
       setSsoLoading(null);
     }
