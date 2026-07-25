@@ -40,11 +40,34 @@ const PRIORITY_COLORS: Record<string, string> = {
 export default function DashboardPage() {
   const { tickets, seedMockData: seedTickets } = useTickets();
   const { chats, seedMockData: seedChats } = useChats();
-  const stats = MOCK_DASHBOARD_STATS;
-  const recentTickets = tickets.filter((t) => !['closed'].includes(t.status)).slice(0, 6);
+  
   const waitingChats = chats.filter((c) => c.status === 'waiting');
   const activeChats = chats.filter((c) => c.status === 'active');
-  const total = stats.ticketsByStatus.reduce((s, t) => s + t.count, 0);
+  const recentTickets = tickets.filter((t) => !['closed'].includes(t.status)).slice(0, 6);
+  
+  const openTicketsCount = tickets.filter(t => !['closed', 'resolved'].includes(t.status)).length;
+  const criticalTicketsCount = tickets.filter(t => ['critical', 'high'].includes(t.priority) && !['closed', 'resolved'].includes(t.status)).length;
+  
+  const ticketsByStatus = [
+    { label: 'Novo', count: tickets.filter(t => t.status === 'new').length, color: '#6366f1' },
+    { label: 'Aberto', count: tickets.filter(t => t.status === 'open').length, color: '#3b82f6' },
+    { label: 'Em andamento', count: tickets.filter(t => t.status === 'in_progress').length, color: '#f59e0b' },
+    { label: 'Pendente', count: tickets.filter(t => t.status === 'pending').length, color: '#8b5cf6' },
+    { label: 'Resolvido', count: tickets.filter(t => t.status === 'resolved').length, color: '#22c55e' },
+    { label: 'Fechado', count: tickets.filter(t => t.status === 'closed').length, color: '#6b7280' },
+  ];
+
+  const total = tickets.length || 1; // Evitar divisão por zero
+
+  const recentActivity = [...tickets].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 4).map(t => ({
+    text: `${t.requesterName} abriu chamado #${t.number}`,
+    time: formatDistanceToNow(new Date(t.createdAt), { addSuffix: true, locale: ptBR })
+  }));
+
+  const stats = {
+    slaCompliance: 87,
+    avgResolutionHours: 4.2
+  };
 
   return (
     <div className="space-y-6">
@@ -65,9 +88,9 @@ export default function DashboardPage() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Chamados abertos" value={stats.openTickets} sub="Todos os status ativos" icon={Ticket} color="bg-blue-50 text-blue-600" />
-        <StatCard label="Críticos / Altos" value={stats.criticalTickets} sub="Requer atenção imediata" icon={AlertTriangle} color="bg-red-50 text-red-600" />
-        <StatCard label="Chats na fila" value={stats.chatsInQueue} sub={`${activeChats.length} em atendimento`} icon={MessageCircle} color="bg-emerald-50 text-emerald-600" />
+        <StatCard label="Chamados abertos" value={openTicketsCount} sub="Todos os status ativos" icon={Ticket} color="bg-blue-50 text-blue-600" />
+        <StatCard label="Críticos / Altos" value={criticalTicketsCount} sub="Requer atenção imediata" icon={AlertTriangle} color="bg-red-50 text-red-600" />
+        <StatCard label="Chats na fila" value={waitingChats.length} sub={`${activeChats.length} em atendimento`} icon={MessageCircle} color="bg-emerald-50 text-emerald-600" />
         <StatCard label="SLA compliance" value={`${stats.slaCompliance}%`} sub={`Média: ${stats.avgResolutionHours}h resolução`} icon={TrendingUp} color="bg-violet-50 text-violet-600" />
       </div>
 
@@ -76,7 +99,7 @@ export default function DashboardPage() {
         <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
           <h2 className="text-sm font-semibold text-slate-700 mb-4">Chamados por status</h2>
           <div className="space-y-3">
-            {stats.ticketsByStatus.map((item) => (
+            {ticketsByStatus.map((item) => (
               <div key={item.label}>
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-xs text-slate-600">{item.label}</span>
@@ -130,7 +153,7 @@ export default function DashboardPage() {
         <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
           <h2 className="text-sm font-semibold text-slate-700 mb-4">Atividade recente</h2>
           <div className="space-y-3">
-            {stats.recentActivity.map((item, i) => (
+            {recentActivity.map((item, i) => (
               <div key={i} className="flex items-start gap-3">
                 <div className="w-6 h-6 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0 mt-0.5">
                   <Clock className="h-3 w-3 text-blue-500" />

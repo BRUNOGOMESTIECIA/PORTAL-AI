@@ -10,7 +10,7 @@ import {
   isSignInWithEmailLink,
   signInWithEmailLink
 } from 'firebase/auth';
-import { doc, getDoc, setDoc, collection, getDocs } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, getDocs, query, where } from 'firebase/firestore';
 import { toast } from 'sonner';
 
 /**
@@ -164,7 +164,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
            const q = query(collection(instaPassoDb, 'domains'), where('domainName', '==', domainName));
            const querySnapshot = await getDocs(q);
            querySnapshot.forEach((doc) => {
-             validationSystemDomains.push({ id: doc.id, ...doc.data() });
+             validationSystemDomains.push({ id: doc.id, ...(doc.data() as object) });
            });
         } catch (e: any) {
            console.error("Erro ao buscar domínios na nuvem do Firebase:", e);
