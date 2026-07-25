@@ -158,6 +158,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const email = cred.user.email || '';
         const domainName = `@${email.split('@')[1]?.toLowerCase()}`;
 
+        // NOVA REGRA: Módulo Equipe Interna (TIECIA)
+        if (expectedType === 'staff' && email.endsWith('@tiecia.com.br')) {
+           const qOp = query(collection(instaPassoDb, 'operators'), where('email', '==', email.toLowerCase()));
+           const snapOp = await getDocs(qOp);
+           
+           if (snapOp.empty) {
+              await signOut(instaPassoAuth);
+              throw new Error('Acesso bloqueado. Este e-mail @tiecia.com.br não está cadastrado na Equipe Interna do InstaPasso.');
+           }
+           
+           let opData: any = null;
+           snapOp.forEach(doc => { opData = doc.data(); });
+           
+           if (opData.status !== 'ACTIVE') {
+              await signOut(instaPassoAuth);
+              throw new Error('Acesso bloqueado. Seu cadastro na Equipe Interna está inativo ou excluído.');
+           }
+           
+           const mockUser: AppUser = {
+              id: cred.user.uid,
+              email: email,
+              name: opData.fullName || cred.user.displayName || email.split('@')[0],
+              type: 'staff',
+              role: 'Administrator',
+              department: opData.role, // Guarda o cargo N1, N2, SOC, etc
+              permissions: ['chat.attend', 'chat.view', 'tickets.view', 'admin.users', 'admin.settings', 'kb.view', 'catalog.view', 'reports.view']
+           };
+           setUser(mockUser);
+           return mockUser;
+        }
+
+        // REGRA B2B (CLIENTES / OUTROS DOMÍNIOS)
         // Busca a lista de domínios cadastrados direto do Firestore (Nuvem)
         let validationSystemDomains: any[] = [];
         try {
