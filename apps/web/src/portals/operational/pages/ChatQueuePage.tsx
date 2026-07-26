@@ -631,10 +631,11 @@ export default function ChatQueuePage() {
                                 }}
                                 className="w-full flex items-center justify-between px-3 py-1.5 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
                               >
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 min-w-0">
                                   <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${staff.isOnline ? 'bg-emerald-500 shadow-[0_0_4px_rgba(16,185,129,0.5)]' : 'bg-red-500'}`} title={staff.isOnline ? 'Online' : 'Offline'} />
                                   <span className="truncate">{staff.name}</span>
                                 </div>
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-500 shrink-0 ml-2">{staff.role}</span>
                               </button>
                             ))}
                           </div>
@@ -760,6 +761,7 @@ export default function ChatQueuePage() {
                             <User className="w-3 h-3 text-slate-500" />
                           </div>
                           <span className="truncate">{staff.name}</span>
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-500 shrink-0 ml-1">{staff.role}</span>
                         </div>
                         <div className={`w-2 h-2 rounded-full shrink-0 ${staff.isOnline ? 'bg-emerald-500 shadow-[0_0_4px_rgba(16,185,129,0.5)]' : 'bg-red-500'}`} title={staff.isOnline ? 'Online' : 'Offline'} />
                       </button>
