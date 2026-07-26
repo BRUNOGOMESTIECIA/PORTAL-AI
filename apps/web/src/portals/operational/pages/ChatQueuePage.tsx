@@ -214,7 +214,7 @@ export default function ChatQueuePage() {
   useEffect(() => {
     chats.forEach(chat => {
       if (chat.status === 'waiting') {
-        const hasWelcome = chat.messages.some(m => m.senderType === 'system' && m.body.includes('Podemos ajudar'));
+        const hasWelcome = chat.messages.some(m => m.senderType === 'system' && m.body.includes('podemos ajudar'));
         if (!hasWelcome) {
           const fallbackTicket = chat.id.replace(/\D/g, '').slice(-5) || '1048';
           updateChat(chat.id, { messages: [...chat.messages, {
