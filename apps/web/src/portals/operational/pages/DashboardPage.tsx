@@ -93,14 +93,6 @@ export default function DashboardPage() {
           <h1 className="text-xl font-bold text-slate-900">Dashboard</h1>
           <p className="text-sm text-slate-500 mt-0.5">Visão geral em tempo real</p>
         </div>
-        <div className="flex gap-2">
-          <button onClick={seedTickets} className="text-sm bg-slate-100 px-3 py-1.5 rounded-lg font-medium text-slate-700 hover:bg-slate-200">
-            Carregar Tickets Teste
-          </button>
-          <button onClick={seedChats} className="text-sm bg-slate-100 px-3 py-1.5 rounded-lg font-medium text-slate-700 hover:bg-slate-200">
-            Carregar Chats Teste
-          </button>
-        </div>
       </div>
 
       {/* KPI Cards */}

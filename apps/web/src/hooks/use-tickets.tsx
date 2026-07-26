@@ -48,11 +48,6 @@ export function TicketsProvider({ children }: { children: React.ReactNode }) {
     }, (error) => {
       console.error("Erro ao carregar tickets:", error);
       setIsLoading(false);
-      setUseFallback(true);
-      // Fallback para mock local em caso de erro de permissão (banco não criado)
-      if (tickets.length === 0) {
-        setTickets([...MOCK_TICKETS]);
-      }
     });
 
     return () => unsubscribe();

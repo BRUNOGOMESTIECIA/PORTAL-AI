@@ -46,10 +46,6 @@ export function ChatsProvider({ children }: { children: React.ReactNode }) {
     }, (error) => {
       console.error("Erro ao carregar chats:", error);
       setIsLoading(false);
-      // Fallback para mock local em caso de erro de permissão
-      if (chats.length === 0) {
-        setChats([...MOCK_CHAT_SESSIONS]);
-      }
     });
 
     return () => unsubscribe();
