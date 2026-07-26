@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback, createContext, useContext, useRef } from 'react';
+import { useState, useEffect, useCallback, createContext, useContext, useRef } from 'react';
 import { db } from '../lib/firebase';
 import { 
   collection, doc, onSnapshot, setDoc, updateDoc, 
@@ -68,6 +68,7 @@ export function TicketsProvider({ children }: { children: React.ReactNode }) {
       await setDoc(doc(db, 'tickets', ticket.id), ticket);
     } catch (error) {
       console.error("Erro ao criar ticket:", error);
+      toast.error("Aviso: Conexão com o banco de dados falhou. Usando memória temporária.");
       setUseFallback(true);
       fallbackTicketsRef.current = [ticket, ...tickets];
       setTickets([...fallbackTicketsRef.current]);

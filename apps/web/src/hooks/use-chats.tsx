@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback, createContext, useContext, useRef } from 'react';
+import { useState, useEffect, useCallback, createContext, useContext, useRef } from 'react';
 import { db } from '../lib/firebase';
 import { 
   collection, doc, onSnapshot, setDoc, updateDoc, 
@@ -71,6 +71,7 @@ export function ChatsProvider({ children }: { children: React.ReactNode }) {
       await setDoc(doc(db, 'chat_sessions', chat.id), chat);
     } catch (error) {
       console.error("Erro ao criar chat (Firestore falhou, usando fallback):", error);
+      toast.error("Aviso: Conexão com o banco de dados falhou. Usando memória temporária.");
       setUseFallback(true);
       fallbackChatsRef.current = [chat, ...chats];
       setChats([...fallbackChatsRef.current]);
