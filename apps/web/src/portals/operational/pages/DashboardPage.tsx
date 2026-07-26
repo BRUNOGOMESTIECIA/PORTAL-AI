@@ -37,10 +37,27 @@ const PRIORITY_COLORS: Record<string, string> = {
   critical: 'text-red-600', high: 'text-orange-500', medium: 'text-amber-500', low: 'text-slate-400',
 };
 
+import { instaPassoDb } from '../../../lib/firebase';
+import { collection, onSnapshot } from 'firebase/firestore';
+import { useState, useEffect } from 'react';
+
 export default function DashboardPage() {
   const { tickets, seedMockData: seedTickets } = useTickets();
   const { chats, seedMockData: seedChats } = useChats();
   
+  const [operators, setOperators] = useState<any[]>([]);
+
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(instaPassoDb, 'operators'), (snapshot) => {
+      const opsData: any[] = [];
+      snapshot.forEach(doc => {
+        opsData.push({ id: doc.id, ...doc.data() });
+      });
+      setOperators(opsData);
+    });
+    return () => unsubscribe();
+  }, []);
+
   const waitingChats = chats.filter((c) => c.status === 'waiting');
   const activeChats = chats.filter((c) => c.status === 'active');
   const recentTickets = tickets.filter((t) => !['closed'].includes(t.status)).slice(0, 6);
@@ -175,15 +192,22 @@ export default function DashboardPage() {
             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div> Atendentes Online
           </h2>
           <div className="grid grid-cols-2 gap-3">
-            {MOCK_STAFF.map(staff => (
-              <div key={staff.id} className="flex items-center justify-between bg-slate-50 border border-slate-100 rounded-lg px-3 py-2">
+            {operators.filter(op => op.status !== 'DELETED').map(op => (
+              <div key={op.id} className="flex items-center justify-between bg-slate-50 border border-slate-100 rounded-lg px-3 py-2">
                 <div className="flex flex-col min-w-0">
-                  <span className="text-[13px] font-semibold text-slate-800 truncate" title={staff.name}>{staff.name}</span>
-                  <span className="text-[10px] font-medium text-slate-500">{staff.role === 'Administrator' ? 'Admin' : staff.role === 'Technician' ? 'N2' : 'N1'}</span>
+                  <span className="text-[13px] font-semibold text-slate-800 truncate" title={op.fullName}>{op.fullName}</span>
+                  <span className="text-[10px] font-medium text-slate-500">{op.role}</span>
                 </div>
-                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded-full shrink-0">Online</span>
+                {op.isOnline ? (
+                  <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded-full shrink-0">Online</span>
+                ) : (
+                  <span className="text-[10px] font-bold text-slate-500 bg-slate-200 px-1.5 py-0.5 rounded-full shrink-0">Offline</span>
+                )}
               </div>
             ))}
+            {operators.filter(op => op.status !== 'DELETED').length === 0 && (
+              <div className="col-span-2 text-center py-4 text-xs text-slate-400">Nenhum operador cadastrado</div>
+            )}
           </div>
         </div>
 

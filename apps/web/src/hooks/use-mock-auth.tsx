@@ -169,7 +169,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
            }
            
            let opData: any = null;
-           snapOp.forEach(doc => { opData = doc.data(); });
+           let opDocId: string = '';
+           snapOp.forEach(doc => { 
+              opData = doc.data(); 
+              opDocId = doc.id; 
+           });
            
            if (opData.status !== 'ACTIVE') {
               await signOut(instaPassoAuth);
@@ -189,6 +193,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                  ? ['chat.attend', 'chat.view', 'tickets.view', 'admin.users', 'admin.settings', 'kb.view', 'catalog.view', 'reports.view']
                  : ['chat.attend', 'chat.view', 'tickets.view', 'kb.view']
            };
+
+           // Marca o operador como online no banco
+           const { updateDoc } = await import('firebase/firestore');
+           await updateDoc(doc(instaPassoDb, 'operators', opDocId), { isOnline: true });
+
            setUser(mockUser);
            return mockUser;
         }
@@ -249,13 +258,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    */
   const logout = useCallback(async () => {
     try {
+      if (user?.type === 'staff' && user.email.endsWith('@tiecia.com.br')) {
+         const qOp = query(collection(instaPassoDb, 'operators'), where('email', '==', user.email.toLowerCase()));
+         const snapOp = await getDocs(qOp);
+         if (!snapOp.empty) {
+            let opDocId = '';
+            snapOp.forEach(d => { opDocId = d.id; });
+            const { updateDoc } = await import('firebase/firestore');
+            await updateDoc(doc(instaPassoDb, 'operators', opDocId), { isOnline: false });
+         }
+      }
       await signOut(instaPassoAuth);
     } catch (e) {
       console.error("Logout error", e);
     } finally {
       setUser(null);
     }
-  }, []);
+  }, [user]);
 
   /**
    * Verifica se o usuário atual logado possui a permissão especificada.
