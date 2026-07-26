@@ -214,12 +214,12 @@ export default function ChatQueuePage() {
   useEffect(() => {
     chats.forEach(chat => {
       if (chat.status === 'waiting') {
-        const hasWelcome = chat.messages.some(m => m.senderType === 'system' && m.body.includes('podemos ajudar'));
+        const hasWelcome = chat.messages.some(m => m.senderType === 'system' && (m.body.includes('podemos ajudar') || m.body.includes('protocolo é')));
         if (!hasWelcome) {
           const fallbackTicket = chat.id.replace(/\D/g, '').slice(-5) || '1048';
           updateChat(chat.id, { messages: [...chat.messages, {
             id: `welcome_${Date.now()}_${Math.random()}`,
-            body: `Olá! Em que podemos ajudar? O número do seu chamado é #${chat.ticketId || fallbackTicket}.`,
+            body: `Seu atendimento foi iniciado e logo um de nossos analistas irá falar com você. O protocolo é #${chat.ticketId || fallbackTicket}.`,
             senderName: 'Sistema',
             senderType: 'system',
             createdAt: new Date().toISOString()
@@ -249,11 +249,9 @@ export default function ChatQueuePage() {
       const chatInMock = chats.find(c => c.id === selected.id);
       if (chatInMock) {
         if (newStatus === 'active') {
-          const fallbackTicket = chatInMock.id.replace(/\D/g, '').slice(-5) || '1048';
-          const currentProtocol = chatInMock.ticketId || fallbackTicket;
           const welcomeMsg: MockChatMessage = {
             id: `m_agent_${Date.now()}`,
-            body: `Olá, bem-vindo! Tudo bem? Meu nome é ${user?.name || 'Atendente'} e eu irei seguir com o seu atendimento (Chamado #${currentProtocol}).`,
+            body: `Olá! Meu nome é ${user?.name || 'Atendente'}. Em que posso te ajudar hoje?`,
             senderName: user?.name || 'Você',
             senderType: 'agent',
             createdAt: new Date().toISOString()
@@ -266,21 +264,6 @@ export default function ChatQueuePage() {
             messages: [...chatInMock.messages, welcomeMsg] 
           });
 
-          // Simular o cliente respondendo às boas-vindas para iniciar o timer de inatividade de 2m
-          setTimeout(() => {
-            const currentChat = chats.find(c => c.id === chatInMock.id);
-            if (!currentChat || currentChat.status !== 'active') return;
-
-            const clientReply: MockChatMessage = {
-              id: `m_user_${Date.now()}`,
-              body: 'Oi, tudo bem. Preciso de ajuda com um problema.',
-              senderName: currentChat.clientName,
-              senderType: 'user',
-              createdAt: new Date().toISOString()
-            };
-            
-            updateChat(currentChat.id, { messages: [...currentChat.messages, clientReply] });
-          }, 4000);
         } else {
           setActiveTab(newStatus === 'waiting' ? 'entrada' : 'encerrados');
           const updates: any = { status: newStatus };
