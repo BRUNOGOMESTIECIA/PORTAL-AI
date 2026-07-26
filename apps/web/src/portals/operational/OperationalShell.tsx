@@ -130,15 +130,23 @@ function GlobalChatAlerts({ collapsed }: { collapsed?: boolean }) {
           const isAgentLast = lastMessage.senderType === 'agent';
           
           if (!isAgentLast && timeSinceLastMsg >= 120000) {
-            // Removed sysCount === 0 check to allow repeating every 2 mins
-            chat.messages.push({
-              id: `auto_2m_${chat.id}_${now}`,
-              body: 'ja irei te responder aguarde um pouquinho por favor',
-              senderName: 'Sistema',
-              senderType: 'system',
-              createdAt: new Date(now).toISOString()
-            });
-            hasChanges = true;
+            let sysCount = 0;
+            for (let i = messages.length - 1; i >= 0; i--) {
+              if (messages[i].senderType === 'system') sysCount++;
+              else break;
+            }
+
+            // Envia apenas se não enviou nos últimos 2 minutos
+            if (sysCount === 0) {
+              updateChat(chat.id, { messages: [...chat.messages, {
+                id: `auto_2m_${chat.id}_${now}`,
+                body: 'Já irei te responder, aguarde um pouquinho por favor.',
+                senderName: 'Sistema',
+                senderType: 'system',
+                createdAt: new Date(now).toISOString()
+              }] });
+              hasChanges = true;
+            }
           }
         }
       });
