@@ -56,7 +56,8 @@ export default function ChatQueuePage() {
           staffList.push({
             id: doc.id,
             name: data.fullName || data.email?.split('@')[0] || 'Atendente',
-            role: data.role || 'Agente'
+            role: data.role || 'Agente',
+            isOnline: data.isOnline || false
           });
         });
         if (staffList.length > 0) {
@@ -628,13 +629,11 @@ export default function ChatQueuePage() {
                                     }
                                   }
                                 }}
-                                className="w-full text-left px-3 py-1.5 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                                className="w-full flex items-center justify-between px-3 py-1.5 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
                               >
-                                <div className="flex justify-between items-center w-full">
-                                  <span>{staff.name}</span>
-                                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400">
-                                    {staff.role === 'Administrator' ? 'Admin' : staff.role === 'Technician' ? 'N2' : 'N1'}
-                                  </span>
+                                <div className="flex items-center gap-2">
+                                  <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${staff.isOnline ? 'bg-emerald-500 shadow-[0_0_4px_rgba(16,185,129,0.5)]' : 'bg-red-500'}`} title={staff.isOnline ? 'Online' : 'Offline'} />
+                                  <span className="truncate">{staff.name}</span>
                                 </div>
                               </button>
                             ))}
@@ -754,12 +753,15 @@ export default function ChatQueuePage() {
                           setInput((parts.length > 0 ? parts.join('@') : '') + '@' + staff.name + ' ');
                           inputRef.current?.focus(); 
                         }} 
-                        className="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-amber-50 dark:hover:bg-amber-900/30 font-medium flex items-center gap-2"
+                        className="w-full px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 font-medium flex items-center justify-between gap-2 transition-colors"
                       >
-                        <div className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center shrink-0">
-                          <User className="w-3 h-3 text-slate-500" />
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center shrink-0">
+                            <User className="w-3 h-3 text-slate-500" />
+                          </div>
+                          <span className="truncate">{staff.name}</span>
                         </div>
-                        <span className="truncate">{staff.name}</span>
+                        <div className={`w-2 h-2 rounded-full shrink-0 ${staff.isOnline ? 'bg-emerald-500 shadow-[0_0_4px_rgba(16,185,129,0.5)]' : 'bg-red-500'}`} title={staff.isOnline ? 'Online' : 'Offline'} />
                       </button>
                     )) : (
                       <div className="px-3 py-3 text-xs text-slate-500 text-center">Nenhum atendente encontrado.</div>
