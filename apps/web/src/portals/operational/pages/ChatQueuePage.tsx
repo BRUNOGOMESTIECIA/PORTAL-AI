@@ -7,6 +7,9 @@ import { ContextPanel } from '../components/ContextPanel';
 import { useAuth } from '../../../hooks/use-mock-auth';
 import { useChats } from '../../../hooks/use-chats';
 
+import { instaPassoDb } from '../../../lib/firebase';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+
 type ChatTab = 'entrada' | 'meus' | 'em_atendimento' | 'encerrados';
 
 function getCompanyByEmail(clientEmail: string) {
@@ -40,6 +43,32 @@ export default function ChatQueuePage() {
   const { chats, updateChat } = useChats();
   const [searchParams] = useSearchParams();
   
+  const [realStaff, setRealStaff] = useState<any[]>(MOCK_STAFF);
+
+  useEffect(() => {
+    const fetchStaff = async () => {
+      try {
+        const q = query(collection(instaPassoDb, 'operators'), where('status', '==', 'ACTIVE'));
+        const snap = await getDocs(q);
+        const staffList: any[] = [];
+        snap.forEach(doc => {
+          const data = doc.data();
+          staffList.push({
+            id: doc.id,
+            name: data.fullName || data.email?.split('@')[0] || 'Atendente',
+            role: data.role || 'Agente'
+          });
+        });
+        if (staffList.length > 0) {
+          setRealStaff(staffList);
+        }
+      } catch (e) {
+        console.error("Erro ao buscar equipe interna:", e);
+      }
+    };
+    fetchStaff();
+  }, []);
+
   const [selectedId, setSelectedId] = useState<string | null>('ch_andre');
   const selected = chats.find(c => c.id === selectedId) || null;
   const [input, setInput] = useState('');
@@ -320,7 +349,7 @@ export default function ChatQueuePage() {
     // (Mock removal: removed automatic client reply simulation to allow real local network testing)
     if (isInternalNote) {
       // Simular resposta de um colega atendente se ele for mencionado na nota interna
-      const mentionedStaff = MOCK_STAFF.find(s => input.includes(`@${s.name}`));
+      const mentionedStaff = realStaff.find(s => input.includes(`@${s.name}`));
       if (mentionedStaff) {
         setTimeout(() => {
           const chatInMockNow = chats.find(c => c.id === selected.id);
@@ -581,7 +610,7 @@ export default function ChatQueuePage() {
                             <div className="my-1 border-t border-slate-100 dark:border-slate-700" />
                             
                             <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Atendentes</div>
-                            {MOCK_STAFF.map((staff) => (
+                            {realStaff.map((staff) => (
                               <button 
                                 key={staff.id}
                                 onClick={() => {
@@ -711,10 +740,12 @@ export default function ChatQueuePage() {
                 
                 {/* Sugestão de Menção (se digitar @ em nota interna) */}
                 {isInternalNote && input.includes('@') && (
-                  <div className="absolute bottom-full mb-2 left-0 w-64 bg-white dark:bg-slate-800 border border-amber-200 dark:border-amber-700/50 rounded-xl shadow-xl overflow-hidden z-10 flex flex-col max-h-[240px]">
-                    <div className="px-3 py-2 text-xs font-bold text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-900/20 border-b border-amber-100 dark:border-amber-800/50 shrink-0">Mencionar Atendente</div>
-                    <div className="overflow-y-auto flex-1">
-                    {MOCK_STAFF.filter(s => s.name.toLowerCase().includes(input.split('@').pop()?.toLowerCase() || '')).length > 0 ? MOCK_STAFF.filter(s => s.name.toLowerCase().includes(input.split('@').pop()?.toLowerCase() || '')).map(staff => (
+                    <div className="absolute bottom-full left-0 mb-2 w-64 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl overflow-hidden z-50">
+                      <div className="px-3 py-2 bg-slate-50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-700/50">
+                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Mencionar Atendente</p>
+                      </div>
+                      <div className="max-h-48 overflow-y-auto py-1">
+                    {realStaff.filter(s => s.name.toLowerCase().includes(input.split('@').pop()?.toLowerCase() || '')).map(staff => (
                       <button 
                         key={staff.id}
                         onClick={() => { 
