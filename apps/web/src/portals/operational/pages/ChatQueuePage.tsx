@@ -745,7 +745,7 @@ export default function ChatQueuePage() {
                         <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Mencionar Atendente</p>
                       </div>
                       <div className="max-h-48 overflow-y-auto py-1">
-                    {realStaff.filter(s => s.name.toLowerCase().includes(input.split('@').pop()?.toLowerCase() || '')).map(staff => (
+                    {realStaff.filter(s => s.name.toLowerCase().includes(input.split('@').pop()?.toLowerCase() || '')).length > 0 ? realStaff.filter(s => s.name.toLowerCase().includes(input.split('@').pop()?.toLowerCase() || '')).map(staff => (
                       <button 
                         key={staff.id}
                         onClick={() => { 
