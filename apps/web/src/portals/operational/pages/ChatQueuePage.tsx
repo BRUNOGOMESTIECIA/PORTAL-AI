@@ -212,7 +212,6 @@ export default function ChatQueuePage() {
 
   // ── Auto-reply imediato: Boas-vindas ao entrar na fila ──
   useEffect(() => {
-    let changed = false;
     chats.forEach(chat => {
       if (chat.status === 'waiting') {
         const hasWelcome = chat.messages.some(m => m.senderType === 'system' && m.body.includes('Podemos ajudar'));
@@ -225,17 +224,10 @@ export default function ChatQueuePage() {
             senderType: 'system',
             createdAt: new Date().toISOString()
           }] });
-          changed = true;
         }
       }
     });
-    
-    if (changed) {
-      // Forçar atualização do chat selecionado se ele estiver na fila de entrada
-      
-      
-    }
-  }, []);
+  }, [chats]);
 
   
 
