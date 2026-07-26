@@ -176,14 +176,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               throw new Error('Acesso bloqueado. Seu cadastro na Equipe Interna está inativo ou excluído.');
            }
            
+           const isAdmin = opData.role === 'Super Administrador' || opData.role === 'Administrador';
+           
            const mockUser: AppUser = {
               id: cred.user.uid,
               email: email,
               name: opData.fullName || cred.user.displayName || email.split('@')[0],
               type: 'staff',
-              role: 'Administrator',
-              department: opData.role, // Guarda o cargo N1, N2, SOC, etc
-              permissions: ['chat.attend', 'chat.view', 'tickets.view', 'admin.users', 'admin.settings', 'kb.view', 'catalog.view', 'reports.view']
+              role: isAdmin ? 'Administrator' : 'Agent',
+              department: opData.role,
+              permissions: isAdmin 
+                 ? ['chat.attend', 'chat.view', 'tickets.view', 'admin.users', 'admin.settings', 'kb.view', 'catalog.view', 'reports.view']
+                 : ['chat.attend', 'chat.view', 'tickets.view', 'kb.view']
            };
            setUser(mockUser);
            return mockUser;
