@@ -63,8 +63,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    */
   const activateBridge = useCallback(async (): Promise<boolean> => {
     const MAX_RETRIES = 3;
-    const BRIDGE_EMAIL = 'system_bridge@portal.com';
-    const BRIDGE_PASS  = 'PortalSecureBridge2026!';
+    const BRIDGE_EMAIL = import.meta.env.VITE_BRIDGE_EMAIL;
+    const BRIDGE_PASS  = import.meta.env.VITE_BRIDGE_PASS;
 
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       try {
@@ -152,7 +152,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const loginWithMagicLink = useCallback(async (email: string): Promise<AppUser> => {
     // Para simplificar a demonstração e desenvolvimento sem e-mail de verdade
     // Vamos apenas criar ou logar o usuário com uma senha fixa
-    const mockPassword = "Portal123@Client";
+    const mockPassword = import.meta.env.VITE_CLIENT_MOCK_PASS;
     try {
       const cred = await signInWithEmailAndPassword(auth, email, mockPassword);
       const docRef = doc(db, 'users', cred.user.uid);

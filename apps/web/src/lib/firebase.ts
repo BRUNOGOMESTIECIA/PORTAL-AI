@@ -3,21 +3,21 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDu_VK35nuwDx-s3zG9vNjNRuVPH9nB6B0",
-  authDomain: "portal-ia-784f6.firebaseapp.com",
-  projectId: "portal-ia-784f6",
-  storageBucket: "portal-ia-784f6.firebasestorage.app",
-  messagingSenderId: "400935660517",
-  appId: "1:400935660517:web:83ea998c17cd0b3083dd0c"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
 const instaPassoConfig = {
-  apiKey: "AIzaSyBZyrcBfFRjhhMOpkhxLLrzgZ5vII6Tl98",
-  authDomain: "instapasso.firebaseapp.com",
-  projectId: "instapasso",
-  storageBucket: "instapasso.firebasestorage.app",
-  messagingSenderId: "190667143384",
-  appId: "1:190667143384:web:7b97b8b82d7912dfd2bfad"
+  apiKey: import.meta.env.VITE_INSTAPASSO_API_KEY,
+  authDomain: import.meta.env.VITE_INSTAPASSO_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_INSTAPASSO_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_INSTAPASSO_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_INSTAPASSO_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_INSTAPASSO_APP_ID
 };
 
 // Initialize Firebase (Portal Principal)
