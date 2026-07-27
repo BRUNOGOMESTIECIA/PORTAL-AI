@@ -34,6 +34,7 @@ interface AuthContextValue {
   user: AppUser | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  isBridgeReady: boolean;
   login: (email: string, password: string) => Promise<AppUser>;
   loginWithSSO: (provider: 'google' | 'microsoft', userType: 'client' | 'staff') => Promise<AppUser>;
   sendMagicLink: (email: string) => Promise<void>;
@@ -53,20 +54,50 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isBridgeReady, setIsBridgeReady] = useState(false);
+
+  /**
+   * Ativa a Ponte de Segurança para o banco do Portal IA.
+   * Tenta até MAX_RETRIES vezes com delay crescente antes de desistir.
+   * Isso resolve o problema de tela vazia em sessões novas (Edge, novo browser, rede lenta).
+   */
+  const activateBridge = useCallback(async (): Promise<boolean> => {
+    const MAX_RETRIES = 3;
+    const BRIDGE_EMAIL = 'system_bridge@portal.com';
+    const BRIDGE_PASS  = 'PortalSecureBridge2026!';
+
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        await signInWithEmailAndPassword(auth, BRIDGE_EMAIL, BRIDGE_PASS);
+        console.info(`[Bridge] Ponte de segurança ativa (tentativa ${attempt}/${MAX_RETRIES}).`);
+        setIsBridgeReady(true);
+        return true;
+      } catch (e: any) {
+        console.warn(`[Bridge] Tentativa ${attempt}/${MAX_RETRIES} falhou:`, e?.message || e);
+        if (attempt < MAX_RETRIES) {
+          // Delay crescente: 1s, 2s, 3s
+          await new Promise(resolve => setTimeout(resolve, attempt * 1000));
+        }
+      }
+    }
+
+    // Todas as tentativas falharam
+    console.error('[Bridge] Falha crítica: não foi possível ativar a ponte de segurança após', MAX_RETRIES, 'tentativas.');
+    setIsBridgeReady(false);
+    toast.error('Falha de conexão com o banco de dados. Recarregue a página.');
+    return false;
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(instaPassoAuth, async (firebaseUser) => {
       if (firebaseUser) {
-        // Garantir que a ponte de segurança (Portal IA) seja restaurada junto com o InstaPasso
-        try {
-           const { signInWithEmailAndPassword } = await import('firebase/auth');
-           await signInWithEmailAndPassword(auth, 'system_bridge@portal.com', 'PortalSecureBridge2026!');
-        } catch (e) {
-           console.error("Erro ao restaurar ponte de segurança:", e);
-        }
+        // Ativar ponte ANTES de liberar os dados para o usuário
+        // Isso impede que os hooks de dados consultem o banco sem autorização
+        setIsBridgeReady(false);
+        await activateBridge();
 
-        // Ignoramos totalmente o banco de dados aqui para nunca dar erro de permissão.
-        // Assumimos os dados do usuário direto da sessão do Google
+        // Assumimos os dados do usuário direto da sessão do Google (sem consulta ao banco)
+        // para evitar erros de permissão durante a inicialização
         setUser({
           id: firebaseUser.uid,
           email: firebaseUser.email || '',
@@ -78,12 +109,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } as AppUser);
       } else {
         setUser(null);
+        setIsBridgeReady(false);
       }
       setIsLoading(false);
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [activateBridge]);
 
   /**
    * Realiza login usando email e senha padrão (Firebase Auth).
@@ -251,15 +283,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           ...(expectedType === 'staff' ? { role: 'Administrator', permissions: ['chat.attend', 'chat.view', 'tickets.view', 'admin.users', 'admin.settings'] } : {})
         };
         
-        // --- PONTE DE SEGURANÇA PARA O PORTAL IA ---
-        // Como o usuário foi validado pelo InstaPasso com sucesso, nós logamos ele
-        // silenciosamente no banco do Portal IA usando a conta de serviço, para que 
-        // as regras de segurança do Firebase não bloqueiem a gravação do chat.
-        try {
-           await signInWithEmailAndPassword(auth, 'system_bridge@portal.com', 'PortalSecureBridge2026!');
-        } catch (bridgeError) {
-           console.error("Erro na ponte de segurança do Portal IA", bridgeError);
-        }
+        // --- PONTE DE SEGURANÇA PARA O PORTAL IA (com retry automático) ---
+        // Como o usuário foi validado pelo InstaPasso com sucesso, ativamos a
+        // ponte usando a função com retry para garantir que o Portal IA esteja
+        // autorizado antes de liberar o acesso.
+        await activateBridge();
 
         setUser(mockUser);
         return mockUser;
@@ -269,7 +297,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
     throw new Error('Provedor SSO não suportado ainda.');
-  }, []);
+  }, [activateBridge]);
 
   /**
    * Encerra a sessão atual do usuário, forçando limpeza de RAM imediata.
@@ -308,7 +336,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user]);
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, isAuthenticated: !!user, login, loginWithSSO, sendMagicLink, loginWithMagicLink, logout, hasPermission }}>
+    <AuthContext.Provider value={{ user, isLoading, isAuthenticated: !!user, isBridgeReady, login, loginWithSSO, sendMagicLink, loginWithMagicLink, logout, hasPermission }}>
       {children}
     </AuthContext.Provider>
   );
