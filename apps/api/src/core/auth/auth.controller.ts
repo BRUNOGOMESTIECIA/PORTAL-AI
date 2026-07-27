@@ -16,6 +16,7 @@ import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
+import { FirebaseAdminService } from './firebase-admin.service';
 import { UserEntity } from '../database/tenant/entities/user.entity';
 
 const COOKIE_OPTS = {
@@ -28,7 +29,26 @@ const COOKIE_OPTS = {
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly firebaseAdmin: FirebaseAdminService
+  ) {}
+
+  @Post('portal-token')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Troca um ID Token do InstaPasso por um Custom Token do Portal IA' })
+  async getPortalToken(@Body('idToken') idToken: string) {
+    if (!idToken) {
+      throw new Error('idToken é obrigatório');
+    }
+    // Verifica se o token veio realmente do InstaPasso (segurança)
+    const decodedToken = await this.firebaseAdmin.verifyInstaPassoToken(idToken);
+    
+    // Gera o Custom Token para o banco do Portal IA com a role injetada
+    const customToken = await this.firebaseAdmin.createCustomToken(decodedToken.uid);
+    
+    return { customToken };
+  }
 
   @Post('login')
   @HttpCode(HttpStatus.OK)

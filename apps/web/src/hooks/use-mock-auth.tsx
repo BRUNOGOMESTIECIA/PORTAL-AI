@@ -3,6 +3,7 @@ import { auth, db, instaPassoDb, instaPassoAuth } from '../lib/firebase';
 import { 
   onAuthStateChanged, 
   signInWithEmailAndPassword, 
+  signInWithCustomToken,
   signOut,
   GoogleAuthProvider,
   signInWithPopup,
@@ -57,46 +58,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isBridgeReady, setIsBridgeReady] = useState(false);
 
   /**
-   * Ativa a Ponte de Segurança para o banco do Portal IA.
-   * Tenta até MAX_RETRIES vezes com delay crescente antes de desistir.
-   * Isso resolve o problema de tela vazia em sessões novas (Edge, novo browser, rede lenta).
+   * Ativa a Ponte de Segurança para o banco do Portal IA usando a API NestJS.
+   * Ele pega o token de acesso (SSO) do InstaPasso, manda pra API, que 
+   * devolve um Custom Token (Crachá) com as regras de RBAC injetadas.
    */
-  const activateBridge = useCallback(async (): Promise<boolean> => {
-    const MAX_RETRIES = 3;
-    const BRIDGE_EMAIL = import.meta.env.VITE_BRIDGE_EMAIL;
-    const BRIDGE_PASS  = import.meta.env.VITE_BRIDGE_PASS;
+  const activateBridge = useCallback(async (firebaseUser: any): Promise<boolean> => {
+    try {
+      if (!firebaseUser) return false;
 
-    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-      try {
-        await signInWithEmailAndPassword(auth, BRIDGE_EMAIL, BRIDGE_PASS);
-        console.info(`[Bridge] Ponte de segurança ativa (tentativa ${attempt}/${MAX_RETRIES}).`);
-        setIsBridgeReady(true);
-        return true;
-      } catch (e: any) {
-        console.warn(`[Bridge] Tentativa ${attempt}/${MAX_RETRIES} falhou:`, e?.message || e);
-        if (attempt < MAX_RETRIES) {
-          // Delay crescente: 1s, 2s, 3s
-          await new Promise(resolve => setTimeout(resolve, attempt * 1000));
-        }
+      // 1. Pegar o Token de ID do Firebase InstaPasso
+      const idToken = await firebaseUser.getIdToken(true);
+
+      // 2. Chamar a API NestJS
+      const response = await fetch('/api/auth/portal-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken })
+      });
+
+      if (!response.ok) {
+        throw new Error('Falha ao obter Custom Token da API');
       }
-    }
 
-    // Todas as tentativas falharam
-    console.error('[Bridge] Falha crítica: não foi possível ativar a ponte de segurança após', MAX_RETRIES, 'tentativas.');
-    setIsBridgeReady(false);
-    toast.error('Falha de conexão com o banco de dados. Recarregue a página.');
-    return false;
+      const { customToken } = await response.json();
+
+      // 3. Fazer login no Firebase Portal IA com o "Crachá Assinado"
+      await signInWithCustomToken(auth, customToken);
+      
+      console.info('[Bridge] Ponte de segurança RBAC ativada com sucesso!');
+      setIsBridgeReady(true);
+      return true;
+    } catch (e: any) {
+      console.error('[Bridge] Falha crítica:', e?.message || e);
+      setIsBridgeReady(false);
+      toast.error('Falha de conexão com o banco de dados. Autenticação recusada.');
+      return false;
+    }
   }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(instaPassoAuth, async (firebaseUser) => {
       if (firebaseUser) {
         // Ativar ponte ANTES de liberar os dados para o usuário
-        // Isso impede que os hooks de dados consultem o banco sem autorização
         setIsBridgeReady(false);
-        await activateBridge();
+        await activateBridge(firebaseUser);
 
-        // Assumimos os dados do usuário direto da sessão do Google (sem consulta ao banco)
+        // Assumimos os dados do usuário direto da sessão do Google
         // para evitar erros de permissão durante a inicialização
         setUser({
           id: firebaseUser.uid,

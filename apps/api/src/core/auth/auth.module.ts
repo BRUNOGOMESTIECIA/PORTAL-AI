@@ -9,6 +9,8 @@ import { GoogleStrategy } from './strategies/google.strategy';
 import { MicrosoftStrategy } from './strategies/microsoft.strategy';
 import { MasterDatabaseModule } from '../database/master-database.module';
 
+import { FirebaseAdminService } from './firebase-admin.service';
+
 @Module({
   imports: [
     MasterDatabaseModule,
@@ -24,10 +26,11 @@ import { MasterDatabaseModule } from '../database/master-database.module';
   controllers: [AuthController],
   providers: [
     AuthService,
+    FirebaseAdminService,
     JwtStrategy,
     ...(process.env.GOOGLE_CLIENT_ID ? [GoogleStrategy] : []),
     ...(process.env.MICROSOFT_CLIENT_ID ? [MicrosoftStrategy] : []),
   ],
-  exports: [AuthService, JwtModule],
+  exports: [AuthService, FirebaseAdminService, JwtModule],
 })
 export class AuthModule {}

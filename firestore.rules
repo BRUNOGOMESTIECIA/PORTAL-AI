@@ -28,17 +28,20 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Verifica se é a conta de serviço do sistema (ponte de segurança)
-    // Esta conta é usada após validação pelo InstaPasso
+    // A ponte de segurança visual foi removida em favor de Tokens Seguros (NestJS)
     function isSystemBridge() {
-      return request.auth != null &&
-             request.auth.token.email == 'system_bridge@portal.com';
+      return false;
     }
 
-    // Verifica se o e-mail pertence à equipe interna (operadores)
+    // Verifica se o usuário é da equipe pelo Custom Claim (role) injetado via NestJS
     function isStaff() {
-      return request.auth != null &&
-             request.auth.token.email.matches('.*@tiecia\\.com\\.br');
+      return request.auth != null && 
+             (request.auth.token.role == 'staff' || request.auth.token.role == 'Administrator');
+    }
+
+    // Verifica se é administrador
+    function isAdmin() {
+      return request.auth != null && request.auth.token.role == 'Administrator';
     }
 
     // Verifica se o usuário é o dono do recurso pelo campo requesterId ou clientId
@@ -52,29 +55,22 @@ service cloud.firestore {
     // =========================================================================
     // TICKETS — Chamados de suporte
     // =========================================================================
-    // Regras:
-    //   - Sistema (ponte) pode criar, ler e atualizar (necessário para o chat)
-    //   - Staff (@tiecia) pode ler todos e atualizar qualquer ticket
-    //   - Cliente só lê os próprios tickets
-    //   - NINGUÉM pode deletar tickets (conformidade e auditoria)
-    // =========================================================================
     match /tickets/{ticketId} {
-      // Leitura: sistema, staff, ou dono do ticket
-      allow read: if isSystemBridge() || isStaff() || isOwner(resource);
+      // Leitura: staff, ou dono do ticket
+      allow read: if isStaff() || isOwner(resource);
 
-      // Criação: sistema ou staff
-      allow create: if isSystemBridge() || isStaff();
+      // Criação: staff, ou o próprio cliente (se ele for o requester)
+      allow create: if isStaff() || (isAuthenticated() && request.auth.uid == request.resource.data.requesterId);
 
-      // Atualização: sistema ou staff (clientes não editam tickets diretamente)
-      allow update: if isSystemBridge() || isStaff();
+      // Atualização: staff
+      allow update: if isStaff();
 
-      // Exclusão: BLOQUEADA para todos — tickets são imutáveis por conformidade
+      // Exclusão: BLOQUEADA
       allow delete: if false;
 
-      // Sub-coleção de comentários/histórico do ticket
       match /comments/{commentId} {
-        allow read: if isSystemBridge() || isStaff() || isOwner(get(/databases/$(database)/documents/tickets/$(ticketId)));
-        allow create: if isSystemBridge() || isStaff();
+        allow read: if isStaff() || isOwner(get(/databases/$(database)/documents/tickets/$(ticketId)));
+        allow create: if isStaff() || (isAuthenticated() && isOwner(get(/databases/$(database)/documents/tickets/$(ticketId))));
         allow update, delete: if false;
       }
     }
@@ -82,67 +78,41 @@ service cloud.firestore {
     // =========================================================================
     // CHAT SESSIONS — Sessões de chat cliente ↔ operador
     // =========================================================================
-    // Regras:
-    //   - Sistema cria e atualiza sessões (fluxo principal do chat)
-    //   - Staff pode ler e atualizar todas as sessões
-    //   - Cliente só lê a própria sessão
-    //   - Ninguém deleta sessões
-    // =========================================================================
     match /chat_sessions/{sessionId} {
-      // Leitura: sistema, staff, ou dono da sessão
-      allow read: if isSystemBridge() || isStaff() || isOwner(resource);
-
-      // Criação: sistema ou staff (não por qualquer anônimo)
-      allow create: if isSystemBridge() || isStaff();
-
-      // Atualização: sistema ou staff
-      allow update: if isSystemBridge() || isStaff();
-
-      // Exclusão: BLOQUEADA — histórico de chats é preservado
+      allow read: if isStaff() || isOwner(resource);
+      
+      // Cliente pode iniciar um chat se ele for o client
+      allow create: if isStaff() || (isAuthenticated() && request.auth.uid == request.resource.data.clientId);
+      
+      // Atualização: staff
+      allow update: if isStaff();
+      
       allow delete: if false;
 
-      // Sub-coleção de mensagens dentro do chat
       match /messages/{messageId} {
-        allow read: if isSystemBridge() || isStaff() || isOwner(get(/databases/$(database)/documents/chat_sessions/$(sessionId)));
-        allow create: if isSystemBridge() || isStaff();
+        allow read: if isStaff() || isOwner(get(/databases/$(database)/documents/chat_sessions/$(sessionId)));
+        allow create: if isStaff() || (isAuthenticated() && isOwner(get(/databases/$(database)/documents/chat_sessions/$(sessionId))));
         allow update, delete: if false;
       }
     }
 
     // =========================================================================
-    // USERS — Usuários clientes cadastrados pelo sistema
-    // =========================================================================
-    // Regras:
-    //   - Sistema cria usuários no fluxo do magic link
-    //   - Staff pode ler todos os usuários
-    //   - Cada usuário lê e atualiza apenas o próprio perfil
-    //   - Ninguém deleta (conformidade LGPD — usar anonimização, não exclusão)
+    // USERS — Usuários
     // =========================================================================
     match /users/{userId} {
-      // Leitura: sistema, staff, ou o próprio usuário
-      allow read: if isSystemBridge() || isStaff() || request.auth.uid == userId;
-
-      // Criação: apenas sistema (via magic link / SSO)
-      allow create: if isSystemBridge();
-
-      // Atualização: sistema ou o próprio usuário (atualizar perfil)
-      allow update: if isSystemBridge() || request.auth.uid == userId;
-
-      // Exclusão: BLOQUEADA — usar Cloud Function de anonimização (LGPD)
+      allow read: if isStaff() || request.auth.uid == userId;
+      // APENAS A API (NestJS Admin SDK) pode criar usuários
+      allow create: if false;
+      allow update: if request.auth.uid == userId || isAdmin();
       allow delete: if false;
     }
 
     // =========================================================================
     // AUDIT LOGS — Registros imutáveis de ações críticas
     // =========================================================================
-    // Regras:
-    //   - Apenas staff com nível admin pode ler
-    //   - NINGUÉM escreve pelo browser — apenas Cloud Functions (futura impl.)
-    //   - Totalmente protegido contra escrita externa
-    // =========================================================================
     match /audit_logs/{logId} {
-      allow read: if isStaff();
-      allow write: if false; // Apenas Cloud Functions escrevem aqui
+      allow read: if isAdmin();
+      allow write: if false; // Apenas API/Cloud Functions escrevem aqui
     }
 
     // =========================================================================
