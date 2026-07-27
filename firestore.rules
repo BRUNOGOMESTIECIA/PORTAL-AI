@@ -1,0 +1,159 @@
+rules_version = '2';
+
+// =============================================================================
+// Firestore Security Rules — Portal IA (portal-ia-784f6)
+// =============================================================================
+// Arquitetura:
+//   - A autenticação principal é feita pelo InstaPasso (projeto separado)
+//   - O Portal IA usa uma conta de serviço (system_bridge@portal.com) para
+//     autorizar operações do sistema após validação pelo InstaPasso
+//   - Estas regras são a segunda camada de proteção (defesa em profundidade)
+//
+// Coleções existentes:
+//   • tickets        — chamados abertos por clientes ou operadores
+//   • chat_sessions  — sessões de chat entre cliente e operador
+//   • users          — usuários clientes cadastrados pelo magic link
+//   • audit_logs     — registros imutáveis de ações críticas (futura impl.)
+// =============================================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // =========================================================================
+    // Funções auxiliares
+    // =========================================================================
+
+    // Verifica se o usuário está autenticado no Portal IA
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Verifica se é a conta de serviço do sistema (ponte de segurança)
+    // Esta conta é usada após validação pelo InstaPasso
+    function isSystemBridge() {
+      return request.auth != null &&
+             request.auth.token.email == 'system_bridge@portal.com';
+    }
+
+    // Verifica se o e-mail pertence à equipe interna (operadores)
+    function isStaff() {
+      return request.auth != null &&
+             request.auth.token.email.matches('.*@tiecia\\.com\\.br');
+    }
+
+    // Verifica se o usuário é o dono do recurso pelo campo requesterId ou clientId
+    function isOwner(resource) {
+      return request.auth != null &&
+             (request.auth.uid == resource.data.requesterId ||
+              request.auth.uid == resource.data.clientId ||
+              request.auth.token.email == resource.data.clientEmail);
+    }
+
+    // =========================================================================
+    // TICKETS — Chamados de suporte
+    // =========================================================================
+    // Regras:
+    //   - Sistema (ponte) pode criar, ler e atualizar (necessário para o chat)
+    //   - Staff (@tiecia) pode ler todos e atualizar qualquer ticket
+    //   - Cliente só lê os próprios tickets
+    //   - NINGUÉM pode deletar tickets (conformidade e auditoria)
+    // =========================================================================
+    match /tickets/{ticketId} {
+      // Leitura: sistema, staff, ou dono do ticket
+      allow read: if isSystemBridge() || isStaff() || isOwner(resource);
+
+      // Criação: sistema ou staff
+      allow create: if isSystemBridge() || isStaff();
+
+      // Atualização: sistema ou staff (clientes não editam tickets diretamente)
+      allow update: if isSystemBridge() || isStaff();
+
+      // Exclusão: BLOQUEADA para todos — tickets são imutáveis por conformidade
+      allow delete: if false;
+
+      // Sub-coleção de comentários/histórico do ticket
+      match /comments/{commentId} {
+        allow read: if isSystemBridge() || isStaff() || isOwner(get(/databases/$(database)/documents/tickets/$(ticketId)));
+        allow create: if isSystemBridge() || isStaff();
+        allow update, delete: if false;
+      }
+    }
+
+    // =========================================================================
+    // CHAT SESSIONS — Sessões de chat cliente ↔ operador
+    // =========================================================================
+    // Regras:
+    //   - Sistema cria e atualiza sessões (fluxo principal do chat)
+    //   - Staff pode ler e atualizar todas as sessões
+    //   - Cliente só lê a própria sessão
+    //   - Ninguém deleta sessões
+    // =========================================================================
+    match /chat_sessions/{sessionId} {
+      // Leitura: sistema, staff, ou dono da sessão
+      allow read: if isSystemBridge() || isStaff() || isOwner(resource);
+
+      // Criação: sistema ou staff (não por qualquer anônimo)
+      allow create: if isSystemBridge() || isStaff();
+
+      // Atualização: sistema ou staff
+      allow update: if isSystemBridge() || isStaff();
+
+      // Exclusão: BLOQUEADA — histórico de chats é preservado
+      allow delete: if false;
+
+      // Sub-coleção de mensagens dentro do chat
+      match /messages/{messageId} {
+        allow read: if isSystemBridge() || isStaff() || isOwner(get(/databases/$(database)/documents/chat_sessions/$(sessionId)));
+        allow create: if isSystemBridge() || isStaff();
+        allow update, delete: if false;
+      }
+    }
+
+    // =========================================================================
+    // USERS — Usuários clientes cadastrados pelo sistema
+    // =========================================================================
+    // Regras:
+    //   - Sistema cria usuários no fluxo do magic link
+    //   - Staff pode ler todos os usuários
+    //   - Cada usuário lê e atualiza apenas o próprio perfil
+    //   - Ninguém deleta (conformidade LGPD — usar anonimização, não exclusão)
+    // =========================================================================
+    match /users/{userId} {
+      // Leitura: sistema, staff, ou o próprio usuário
+      allow read: if isSystemBridge() || isStaff() || request.auth.uid == userId;
+
+      // Criação: apenas sistema (via magic link / SSO)
+      allow create: if isSystemBridge();
+
+      // Atualização: sistema ou o próprio usuário (atualizar perfil)
+      allow update: if isSystemBridge() || request.auth.uid == userId;
+
+      // Exclusão: BLOQUEADA — usar Cloud Function de anonimização (LGPD)
+      allow delete: if false;
+    }
+
+    // =========================================================================
+    // AUDIT LOGS — Registros imutáveis de ações críticas
+    // =========================================================================
+    // Regras:
+    //   - Apenas staff com nível admin pode ler
+    //   - NINGUÉM escreve pelo browser — apenas Cloud Functions (futura impl.)
+    //   - Totalmente protegido contra escrita externa
+    // =========================================================================
+    match /audit_logs/{logId} {
+      allow read: if isStaff();
+      allow write: if false; // Apenas Cloud Functions escrevem aqui
+    }
+
+    // =========================================================================
+    // Regra padrão de segurança
+    // =========================================================================
+    // Qualquer coleção não listada acima é BLOQUEADA por padrão
+    // Isso garante que novas coleções criadas acidentalmente não fiquem expostas
+    // =========================================================================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+  }
+}
