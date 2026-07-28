@@ -18,13 +18,12 @@ interface TicketsContextValue {
 const TicketsContext = createContext<TicketsContextValue | null>(null);
 
 export function TicketsProvider({ children }: { children: React.ReactNode }) {
-  // Inicializa os tickets com o localStorage ou com MOCK_TICKETS para que o portal nunca fique zerado
   const [tickets, setTickets] = useState<MockTicket[]>(() => {
     try {
       const saved = localStorage.getItem('portal_fallback_tickets');
       if (saved) {
         const parsed = JSON.parse(saved);
-        return Array.isArray(parsed) && parsed.length > 0 ? parsed : MOCK_TICKETS;
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
       return MOCK_TICKETS;
     } catch {
@@ -61,21 +60,50 @@ export function TicketsProvider({ children }: { children: React.ReactNode }) {
     return () => channelRef.current?.close();
   }, []);
 
+  // Carrega em tempo real do Firestore e combina para que NENHUM ticket suma
   useEffect(() => {
     const q = query(collection(db, 'tickets'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const ticketsData: MockTicket[] = [];
+      const firestoreTickets: MockTicket[] = [];
       snapshot.forEach((docSnap) => {
-        ticketsData.push(docSnap.data() as MockTicket);
+        const data = docSnap.data();
+        firestoreTickets.push({
+          id: docSnap.id,
+          number: data.number || parseInt(docSnap.id.replace(/\D/g, '').slice(-5)) || 1000,
+          title: data.title || 'Chamado de Suporte',
+          description: data.description || '',
+          status: data.status || 'open',
+          priority: data.priority || 'medium',
+          type: data.type || 'Incidente',
+          category: data.category || 'Outros',
+          requesterId: data.requesterId || data.requesterEmail || '',
+          requesterName: data.requesterName || data.requesterEmail || 'Cliente',
+          requesterEmail: data.requesterEmail || data.requesterId || '',
+          assigneeName: data.assigneeName || null,
+          team: data.team || null,
+          slaFirstResponseDue: data.slaFirstResponseDue || data.createdAt || new Date().toISOString(),
+          slaResolutionDue: data.slaResolutionDue || data.createdAt || new Date().toISOString(),
+          slaFirstResponseMet: data.slaFirstResponseMet ?? true,
+          slaResolutionMet: data.slaResolutionMet ?? true,
+          source: data.source || 'portal',
+          createdAt: data.createdAt || new Date().toISOString(),
+          updatedAt: data.updatedAt || data.createdAt || new Date().toISOString(),
+          closedAt: data.closedAt || null,
+          tags: data.tags || [],
+          comments: data.comments || [],
+          parentTicketId: data.parentTicketId
+        });
       });
-      ticketsData.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      
-      if (ticketsData.length > 0) {
-        saveFallbackTickets(ticketsData);
-      } else {
-        // Se o banco estiver vazio, usa os dados padrão
-        saveFallbackTickets(MOCK_TICKETS);
-      }
+
+      // Combina os tickets do banco com os de demonstração para garantir exibição total
+      const ticketMap = new Map<string, MockTicket>();
+      MOCK_TICKETS.forEach(t => ticketMap.set(t.id, t));
+      firestoreTickets.forEach(t => ticketMap.set(t.id, t));
+
+      const combined = Array.from(ticketMap.values());
+      combined.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+      saveFallbackTickets(combined);
       setIsLoading(false);
       setUseFallback(false);
     }, (error) => {

@@ -18,13 +18,12 @@ interface ChatsContextValue {
 const ChatsContext = createContext<ChatsContextValue | null>(null);
 
 export function ChatsProvider({ children }: { children: React.ReactNode }) {
-  // Inicializa os chats recuperando do localStorage ou usando MOCK_CHAT_SESSIONS para o portal nunca ficar zerado
   const [chats, setChats] = useState<MockChatSession[]>(() => {
     try {
       const saved = localStorage.getItem('portal_fallback_chats');
       if (saved) {
         const parsed = JSON.parse(saved);
-        return Array.isArray(parsed) && parsed.length > 0 ? parsed : MOCK_CHAT_SESSIONS;
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
       return MOCK_CHAT_SESSIONS;
     } catch {
@@ -36,7 +35,6 @@ export function ChatsProvider({ children }: { children: React.ReactNode }) {
   const [useFallback, setUseFallback] = useState(false);
   const fallbackChatsRef = useRef<MockChatSession[]>(chats);
 
-  // Sincroniza fallbackChatsRef e salva no localStorage
   const saveFallbackChats = useCallback((newChats: MockChatSession[]) => {
     fallbackChatsRef.current = newChats;
     setChats(newChats);
@@ -47,7 +45,6 @@ export function ChatsProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Configura BroadcastChannel para sincronização instantânea entre abas
   const channelRef = useRef<BroadcastChannel | null>(null);
 
   useEffect(() => {
@@ -64,25 +61,40 @@ export function ChatsProvider({ children }: { children: React.ReactNode }) {
     return () => channelRef.current?.close();
   }, []);
 
-  // Escuta no Firestore com fallback automático no localStorage
+  // Escuta no Firestore com combinações para que nenhum chat suma
   useEffect(() => {
     const q = query(collection(db, 'chat_sessions'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const chatsData: MockChatSession[] = [];
+      const firestoreChats: MockChatSession[] = [];
       snapshot.forEach((docSnap) => {
-        chatsData.push(docSnap.data() as MockChatSession);
+        const data = docSnap.data();
+        firestoreChats.push({
+          id: docSnap.id,
+          clientName: data.clientName || data.clientEmail?.split('@')[0] || 'Cliente',
+          clientEmail: data.clientEmail || data.clientId || data.requesterId || '',
+          status: data.status || 'waiting',
+          agentName: data.agentName || null,
+          queue: data.queue || 'Chat ao vivo',
+          waitingMinutes: data.waitingMinutes ?? 0,
+          messages: data.messages || [],
+          createdAt: data.createdAt || new Date().toISOString(),
+          ticketId: data.ticketId
+        });
       });
-      chatsData.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      
-      if (chatsData.length > 0) {
-        saveFallbackChats(chatsData);
-      } else {
-        saveFallbackChats(MOCK_CHAT_SESSIONS);
-      }
+
+      // Combina chats do banco com os de demonstração para que NENHUM suma
+      const chatMap = new Map<string, MockChatSession>();
+      MOCK_CHAT_SESSIONS.forEach(c => chatMap.set(c.id, c));
+      firestoreChats.forEach(c => chatMap.set(c.id, c));
+
+      const combined = Array.from(chatMap.values());
+      combined.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+      saveFallbackChats(combined);
       setIsLoading(false);
       setUseFallback(false);
     }, (error) => {
-      console.info("Firestore usando persistence local para os chats:", error?.message);
+      console.info("Firestore usando persistence local para chats:", error?.message);
       setIsLoading(false);
       setUseFallback(true);
       const saved = localStorage.getItem('portal_fallback_chats');
