@@ -18,13 +18,18 @@ interface ChatsContextValue {
 const ChatsContext = createContext<ChatsContextValue | null>(null);
 
 export function ChatsProvider({ children }: { children: React.ReactNode }) {
-  // Inicializa os chats com o localStorage para que nenhum chat ou mensagem seja perdido ao recarregar a página (F5)
+  // Inicializa os chats reais (sem carregar os chats fictícios de teste por padrão)
   const [chats, setChats] = useState<MockChatSession[]>(() => {
     try {
       const saved = localStorage.getItem('portal_fallback_chats');
-      return saved ? JSON.parse(saved) : MOCK_CHAT_SESSIONS;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Filtra para remover os chats fictícios antigos de demonstração
+        return Array.isArray(parsed) ? parsed.filter((c: any) => !['ch_juliana', 'ch_mariana', 'ch_paulo', 'ch_rafael'].includes(c.id)) : [];
+      }
+      return [];
     } catch {
-      return MOCK_CHAT_SESSIONS;
+      return [];
     }
   });
 
