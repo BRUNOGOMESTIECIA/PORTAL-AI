@@ -8,8 +8,26 @@ import { registerSW } from 'virtual:pwa-register';
 
 // Registra o Service Worker para cache offline e sincronização automática
 const updateSW = registerSW({
-  onNeedRefresh() {},
+  onNeedRefresh() {
+    updateSW(true);
+  },
   onOfflineReady() {},
+});
+
+// Limpa flag de erro de chunk quando a aplicação carrega com sucesso
+sessionStorage.removeItem('chunk_reload_attempt');
+
+// Trata automaticamente erros de módulos desatualizados após um novo deploy na Vercel (404 nos chunks antigos)
+window.addEventListener('unhandledrejection', (event) => {
+  if (event.reason && (
+    event.reason.message?.includes('Failed to fetch dynamically imported module') ||
+    event.reason.name === 'ChunkLoadError' ||
+    String(event.reason).includes('dynamically imported module')
+  )) {
+    event.preventDefault();
+    console.warn('[Vercel Deploy] Módulo desatualizado detectado. Recarregando versão atualizada...');
+    window.location.reload();
+  }
 });
 
 // Bloqueio de Inspeção de Código (Global)

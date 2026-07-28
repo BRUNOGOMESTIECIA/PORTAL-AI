@@ -3,40 +3,58 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from '../hooks/use-mock-auth';
 import { LoadingScreen } from '../components/shared/LoadingScreen';
 
+function safeLazy<T extends React.ComponentType<any>>(
+  factory: () => Promise<{ default: T }>
+) {
+  return lazy(async () => {
+    try {
+      return await factory();
+    } catch (error: any) {
+      console.warn('[Vercel Deploy] Chunk desatualizado detectado. Atualizando página...', error);
+      const isReloaded = sessionStorage.getItem('chunk_reload_attempt');
+      if (!isReloaded) {
+        sessionStorage.setItem('chunk_reload_attempt', 'true');
+        window.location.reload();
+      }
+      throw error;
+    }
+  });
+}
+
 // Misc
-const NotFoundPage = lazy(() => import('../pages/NotFoundPage'));
+const NotFoundPage = safeLazy(() => import('../pages/NotFoundPage'));
 
 // Auth pages
-const ClientLoginPage = lazy(() => import('../pages/auth/ClientLoginPage'));
-const OperationalLoginPage = lazy(() => import('../pages/auth/OperationalLoginPage'));
+const ClientLoginPage = safeLazy(() => import('../pages/auth/ClientLoginPage'));
+const OperationalLoginPage = safeLazy(() => import('../pages/auth/OperationalLoginPage'));
 
 // Client portal
-const ClientShell = lazy(() => import('../portals/client/ClientShell'));
-const ClientHomePage = lazy(() => import('../portals/client/pages/ClientHomePage'));
-const ClientTicketsPage = lazy(() => import('../portals/client/pages/ClientTicketsPage'));
-const ClientChatPage = lazy(() => import('../portals/client/pages/ClientChatPage'));
-const ClientKbPage = lazy(() => import('../portals/client/pages/ClientKbPage'));
-const ClientProfilePage = lazy(() => import('../portals/client/pages/ClientProfilePage'));
+const ClientShell = safeLazy(() => import('../portals/client/ClientShell'));
+const ClientHomePage = safeLazy(() => import('../portals/client/pages/ClientHomePage'));
+const ClientTicketsPage = safeLazy(() => import('../portals/client/pages/ClientTicketsPage'));
+const ClientChatPage = safeLazy(() => import('../portals/client/pages/ClientChatPage'));
+const ClientKbPage = safeLazy(() => import('../portals/client/pages/ClientKbPage'));
+const ClientProfilePage = safeLazy(() => import('../portals/client/pages/ClientProfilePage'));
 
 // Operational portal
-const OperationalShell = lazy(() => import('../portals/operational/OperationalShell'));
-const DashboardPage = lazy(() => import('../portals/operational/pages/DashboardPage'));
-const TicketsPage = lazy(() => import('../portals/operational/pages/TicketsPage'));
-const TicketDetailPage = lazy(() => import('../portals/operational/pages/TicketDetailPage'));
-const ChatQueuePage = lazy(() => import('../portals/operational/pages/ChatQueuePage'));
-const InternalChatPage = lazy(() => import('../portals/operational/pages/InternalChatPage'));
-const KbManagePage = lazy(() => import('../portals/operational/pages/KbManagePage'));
-const KbEditorPage = lazy(() => import('../portals/operational/pages/KbEditorPage'));
-const ReportsPage = lazy(() => import('../portals/operational/pages/ReportsPage'));
-const CatalogPage = lazy(() => import('../portals/operational/pages/CatalogPage'));
-const ToolsPage = lazy(() => import('../portals/operational/pages/ToolsPage'));
-const EquipmentMonitoringPage = lazy(() => import('../portals/operational/pages/EquipmentMonitoringPage'));
-const PrinterMonitoringPage = lazy(() => import('../portals/operational/pages/PrinterMonitoringPage'));
-const AdminUsersPage = lazy(() => import('../portals/operational/pages/admin/AdminUsersPage'));
-const AdminUserDetailPage = lazy(() => import('../portals/operational/pages/admin/AdminUserDetailPage'));
-const AdminClientsPage = lazy(() => import('../portals/operational/pages/admin/AdminClientsPage'));
-const AdminClientDetailPage = lazy(() => import('../portals/operational/pages/admin/AdminClientDetailPage'));
-const AdminSettingsPage = lazy(() => import('../portals/operational/pages/admin/AdminSettingsPage'));
+const OperationalShell = safeLazy(() => import('../portals/operational/OperationalShell'));
+const DashboardPage = safeLazy(() => import('../portals/operational/pages/DashboardPage'));
+const TicketsPage = safeLazy(() => import('../portals/operational/pages/TicketsPage'));
+const TicketDetailPage = safeLazy(() => import('../portals/operational/pages/TicketDetailPage'));
+const ChatQueuePage = safeLazy(() => import('../portals/operational/pages/ChatQueuePage'));
+const InternalChatPage = safeLazy(() => import('../portals/operational/pages/InternalChatPage'));
+const KbManagePage = safeLazy(() => import('../portals/operational/pages/KbManagePage'));
+const KbEditorPage = safeLazy(() => import('../portals/operational/pages/KbEditorPage'));
+const ReportsPage = safeLazy(() => import('../portals/operational/pages/ReportsPage'));
+const CatalogPage = safeLazy(() => import('../portals/operational/pages/CatalogPage'));
+const ToolsPage = safeLazy(() => import('../portals/operational/pages/ToolsPage'));
+const EquipmentMonitoringPage = safeLazy(() => import('../portals/operational/pages/EquipmentMonitoringPage'));
+const PrinterMonitoringPage = safeLazy(() => import('../portals/operational/pages/PrinterMonitoringPage'));
+const AdminUsersPage = safeLazy(() => import('../portals/operational/pages/admin/AdminUsersPage'));
+const AdminUserDetailPage = safeLazy(() => import('../portals/operational/pages/admin/AdminUserDetailPage'));
+const AdminClientsPage = safeLazy(() => import('../portals/operational/pages/admin/AdminClientsPage'));
+const AdminClientDetailPage = safeLazy(() => import('../portals/operational/pages/admin/AdminClientDetailPage'));
+const AdminSettingsPage = safeLazy(() => import('../portals/operational/pages/admin/AdminSettingsPage'));
 
 function ClientGuard({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
