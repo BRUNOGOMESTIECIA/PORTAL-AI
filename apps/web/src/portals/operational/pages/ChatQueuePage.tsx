@@ -684,8 +684,17 @@ export default function ChatQueuePage() {
                           : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-100 dark:border-slate-700 rounded-bl-sm'
                     }`}>
                       {isInternal && <p className="text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400/80 mb-1 flex items-center gap-1">🔒 Nota Interna</p>}
-                      {!isRightSide && <p className="text-xs font-bold mb-1 text-slate-500 dark:text-slate-400">{msg.senderName}</p>}
-                      {msg.body}
+                      {msg.body.startsWith('[GIF:') && msg.body.includes('http') ? (
+                        <div className="my-1 overflow-hidden rounded-xl">
+                          <img 
+                            src={msg.body.match(/\((.*?)\)/)?.[1] || ''} 
+                            alt="GIF Animado" 
+                            className="max-w-[220px] max-h-[160px] rounded-xl object-cover shadow-md hover:scale-105 transition-transform" 
+                          />
+                        </div>
+                      ) : (
+                        msg.body
+                      )}
                       <div className={`text-[10px] mt-1 text-right ${
                         isInternal 
                           ? 'text-amber-700/60 dark:text-amber-400/50' 
