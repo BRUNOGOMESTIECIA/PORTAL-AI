@@ -9,6 +9,7 @@ import { useChats } from '../../../hooks/use-chats';
 
 import { instaPassoDb } from '../../../lib/firebase';
 import { collection, getDocs, query, where } from 'firebase/firestore';
+import { EmojiStickerPicker } from '../../../components/chat/EmojiStickerPicker';
 
 type ChatTab = 'entrada' | 'meus' | 'em_atendimento' | 'encerrados';
 
