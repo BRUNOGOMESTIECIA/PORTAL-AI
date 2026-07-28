@@ -791,6 +791,17 @@ export default function ChatQueuePage() {
                   >
                     <FileText className="w-5 h-5" />
                   </button>
+                  <EmojiStickerPicker
+                    disabled={selected.status === 'waiting' || selected.status === 'closed' || !hasPermission('chat.attend')}
+                    onSelectEmoji={(emoji) => {
+                      setInput(prev => prev + emoji);
+                      inputRef.current?.focus();
+                    }}
+                    onSelectSticker={(stickerText) => {
+                      setInput(stickerText);
+                      inputRef.current?.focus();
+                    }}
+                  />
                   <input 
                     type="text" 
                     ref={inputRef}

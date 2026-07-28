@@ -3,6 +3,7 @@ import { MessageCircle, X, Send, Bot, Minimize2, Paperclip } from 'lucide-react'
 import { useAuth } from '../../../hooks/use-mock-auth';
 import { useChats } from '../../../hooks/use-chats';
 import { MockChatSession, MockChatMessage } from '../../../mocks/data';
+import { EmojiStickerPicker } from '../../../components/chat/EmojiStickerPicker';
 
 const BUSINESS_HOURS = [
   { days: 'Seg – Sex', hours: '08:00 – 18:00' },
@@ -218,6 +219,10 @@ export function ChatWidget() {
                 <button type="button" className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors">
                   <Paperclip className="h-4 w-4" />
                 </button>
+                <EmojiStickerPicker
+                  onSelectEmoji={(emoji) => setInput(prev => prev + emoji)}
+                  onSelectSticker={(stickerText) => send(stickerText)}
+                />
                 <input
                   type="text"
                   value={input}
