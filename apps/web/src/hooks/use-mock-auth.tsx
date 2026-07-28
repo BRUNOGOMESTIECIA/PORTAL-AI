@@ -2,14 +2,10 @@ import React, { createContext, useCallback, useContext, useEffect, useState } fr
 import { auth, db, instaPassoDb, instaPassoAuth } from '../lib/firebase';
 import { 
   onAuthStateChanged, 
-  signInWithEmailAndPassword, 
   signInWithCustomToken,
   signOut,
   GoogleAuthProvider,
-  signInWithPopup,
-  sendSignInLinkToEmail,
-  isSignInWithEmailLink,
-  signInWithEmailLink
+  signInWithPopup
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, collection, getDocs, query, where, onSnapshot } from 'firebase/firestore';
 import { toast } from 'sonner';
@@ -41,10 +37,7 @@ interface AuthContextValue {
   isBridgeReady: boolean;
   deviceInfo: DeviceInfo;
   sessionId: string;
-  login: (email: string, password: string) => Promise<AppUser>;
   loginWithSSO: (provider: 'google' | 'microsoft', userType: 'client' | 'staff') => Promise<AppUser>;
-  sendMagicLink: (email: string) => Promise<void>;
-  loginWithMagicLink: (email: string) => Promise<AppUser>;
   logout: () => void;
   hasPermission: (code: string) => boolean;
 }
@@ -189,59 +182,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   /**
    * Realiza login usando email e senha padrão (Firebase Auth).
-   * @param {string} email - E-mail do usuário.
-   * @param {string} password - Senha do usuário.
-   * @returns {Promise<AppUser>} Usuário logado recuperado do Firestore.
-   */
-  const login = useCallback(async (email: string, password: string): Promise<AppUser> => {
-    const cred = await signInWithEmailAndPassword(auth, email, password);
-    const docRef = doc(db, 'users', cred.user.uid);
-    const docSnap = await getDoc(docRef);
-    if (!docSnap.exists()) throw new Error('Usuário não encontrado no banco.');
-    return { id: cred.user.uid, ...docSnap.data() } as AppUser;
-  }, []);
 
-  /**
-   * Envia um link de acesso direto (Magic Link) para o e-mail do cliente.
-   * @param {string} email - E-mail para envio do link.
-   */
-  const sendMagicLink = useCallback(async (email: string): Promise<void> => {
-    const actionCodeSettings = {
-      url: window.location.origin + '/cliente/login',
-      handleCodeInApp: true,
-    };
-    await sendSignInLinkToEmail(auth, email, actionCodeSettings);
-    window.localStorage.setItem('emailForSignIn', email);
-  }, []);
-
-  /**
-   * Função para capturar a volta do Magic Link e autenticar.
-   * @param {string} email - E-mail do usuário.
-   * @returns {Promise<AppUser>}
-   */
-  const loginWithMagicLink = useCallback(async (email: string): Promise<AppUser> => {
-    // Para simplificar a demonstração e desenvolvimento sem e-mail de verdade
-    // Vamos apenas criar ou logar o usuário com uma senha fixa
-    const mockPassword = import.meta.env.VITE_CLIENT_MOCK_PASS;
-    try {
-      const cred = await signInWithEmailAndPassword(auth, email, mockPassword);
-      const docRef = doc(db, 'users', cred.user.uid);
-      const docSnap = await getDoc(docRef);
-      return { id: cred.user.uid, ...docSnap.data() } as AppUser;
-    } catch {
-      // Se não existir, a gente tenta criar (como se fosse o magic link cadastrando ele)
-      const { createUserWithEmailAndPassword } = await import('firebase/auth');
-      const cred = await createUserWithEmailAndPassword(auth, email, mockPassword);
-      const newUser: AppUser = {
-        id: cred.user.uid,
-        email: email,
-        name: email.split('@')[0],
-        type: 'client'
-      };
-      await setDoc(doc(db, 'users', cred.user.uid), newUser);
-      return newUser;
-    }
-  }, []);
 
   /**
    * Autenticação Híbrida (Google SSO + Validação Zero-Trust no Firestore)
@@ -406,7 +347,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user]);
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, isAuthenticated: !!user, isBridgeReady, deviceInfo: currentDevice, sessionId: currentSessionId, login, loginWithSSO, sendMagicLink, loginWithMagicLink, logout, hasPermission }}>
+    <AuthContext.Provider value={{ user, isLoading, isAuthenticated: !!user, isBridgeReady, deviceInfo: currentDevice, sessionId: currentSessionId, loginWithSSO, logout, hasPermission }}>
       {children}
     </AuthContext.Provider>
   );
