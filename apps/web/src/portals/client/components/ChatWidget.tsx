@@ -190,7 +190,7 @@ export function ChatWidget() {
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-3 space-y-3 bg-slate-50 dark:bg-slate-900/50">
+          <div className="flex-1 overflow-y-auto p-3 space-y-3 bg-slate-50 dark:bg-slate-900">
             {messages.length === 0 && (
                <div className="text-center text-xs text-slate-400 my-4">
                  Envie uma mensagem para iniciar o atendimento.
@@ -213,7 +213,7 @@ export function ChatWidget() {
                     <Bot className="h-3 w-3 text-blue-600" />
                   </div>
                 )}
-                <div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${msg.senderType === 'user' ? 'bg-blue-600 text-white rounded-br-sm' : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-bl-sm shadow-sm border border-slate-100 dark:border-slate-700/50'}`}>
+                <div className={`max-w-[85%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed ${msg.senderType === 'user' ? 'bg-blue-600 text-white rounded-br-sm shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-bl-sm shadow-sm border border-slate-200 dark:border-slate-700'}`}>
                   {msg.replyTo && (
                     <div className="mb-1.5 p-1.5 rounded-lg bg-black/10 dark:bg-black/30 border-l-2 border-blue-400 text-xs">
                       <span className="font-bold opacity-90 block mb-0.5">{msg.replyTo.senderName}</span>

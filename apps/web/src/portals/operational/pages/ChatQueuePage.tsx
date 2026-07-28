@@ -386,17 +386,24 @@ export default function ChatQueuePage() {
 
   // ── Mock Filters ──
   const waiting = chats.filter(c => c.status === 'waiting');
-  const active  = chats.filter(c => c.status === 'active');
-  const closed  = chats.filter(c => c.status === 'closed'); // Assume exists in mock or just empty
+  const active  = chats.filter(c => c.status === 'active' || c.status === 'waiting');
+  const closed  = chats.filter(c => c.status === 'closed' || c.status === 'finished');
 
   const getChatsForTab = () => {
+    let result: MockChatSession[] = [];
     switch (activeTab) {
-      case 'entrada': return waiting;
-      case 'meus': return active; // Mock: treating 'active' as mine
-      case 'em_atendimento': return active; 
-      case 'encerrados': return closed;
-      default: return [];
+      case 'entrada': result = waiting; break;
+      case 'meus': result = active; break;
+      case 'em_atendimento': result = active; break;
+      case 'encerrados': result = closed; break;
+      default: result = chats; break;
     }
+
+    // Se houver um chat selecionado e ele não estiver na lista da aba atual, inclui no topo para não sumir da esquerda
+    if (selected && !result.some(c => c.id === selected.id)) {
+      result = [selected, ...result];
+    }
+    return result;
   };
 
   const currentChats = getChatsForTab()
