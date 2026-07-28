@@ -1,27 +1,32 @@
 # Credenciais de Teste — Portal ITSM
 
+> ⚠️ O sistema usa **Firebase Auth + Google SSO** via InstaPasso. Não existem mais senhas locais fixas.
+> Para logar, a conta Google deve estar cadastrada e ativa no InstaPasso.
+
+---
+
 ## Portal do Cliente
-**URL:** http://localhost:5173/cliente
+**URL:** `http://localhost:5173/cliente`
 
-| Nome | E-mail | Senha |
-|---|---|---|
-| João Silva | joao.silva@clienteabc.com.br | 123456 |
-| Maria Santos | maria.santos@clienteabc.com.br | 123456 |
+| Tipo de Login | Como Fazer |
+|---|---|
+| **Google SSO** | Clicar em "Entrar com Google" e usar conta com domínio autorizado |
+| **Magic Link** | Digitar o e-mail e clicar no link enviado |
 
-Após login → redirecionado para `/portal` (simula `clienteabc.empresa.com/`)
+> A senha usada internamente pelo Magic Link é controlada pela variável `VITE_CLIENT_MOCK_PASS` no arquivo `.env`. Não é exposta no código-fonte.
 
 ---
 
 ## Portal Operacional
-**URL:** http://localhost:5173/operacional/login
+**URL:** `http://localhost:5173/operacional/login`
 
-| Nome | E-mail | Senha | Cargo | Permissões |
-|---|---|---|---|---|
-| Admin Sistema | admin@demo.com | admin1234 | Administrator | Acesso total |
-| Carlos Técnico | tecnico@demo.com | 123456 | Technician | Chamados, chat, KB, relatórios |
-| Ana Agente | agente@demo.com | 123456 | Support Agent | Chamados N1, chat |
+| Nome | Conta Google | Cargo | Permissões |
+|---|---|---|---|
+| Admin Sistema | conta autorizada no InstaPasso | Administrator | Acesso total |
+| Carlos Técnico | conta autorizada no InstaPasso | Technician | Chamados, chat, KB, relatórios |
+| Ana Agente | conta autorizada no InstaPasso | Agent | Chamados N1, chat |
 
-Após login → redirecionado para `/operacional/app/dashboard`
+> O **cargo** (role) de cada operador é definido no campo `type` do documento do usuário no **Firestore** (projeto `portal-ia-784f6`). A API NestJS lê esse cargo no login e injeta no Custom Token.
 
 ---
 
@@ -46,6 +51,6 @@ Após login → redirecionado para `/operacional/app/dashboard`
 ---
 
 ## Observações
-- Todos os dados são **mockados** (sem chamadas à API real)
-- Dados persistem apenas em localStorage (logout limpa a sessão)
-- O chat widget flutuante aparece no canto inferior direito do portal do cliente
+- O login usa **Firebase Auth** (Google SSO) via InstaPasso como provedor de identidade.
+- A segurança é validada no **servidor** (API NestJS + Firestore Rules), não apenas visualmente.
+- Logs de autenticação e erros aparecem no Console do Firebase → Authentication.
