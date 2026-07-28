@@ -597,7 +597,11 @@ export default function ClientTicketsPage() {
     }
   }, [isNewTicketOpen, location.search, navigate]);
 
-  const myTickets = tickets.filter((t) => t.requesterId === client?.id);
+  const myTickets = tickets.filter((t) => 
+    t.requesterId === client?.id || 
+    t.requesterEmail === client?.email || 
+    t.requesterId === client?.email
+  );
   const tree      = buildTree(myTickets);
   let filtered  = applyFilter(tree, filter);
   

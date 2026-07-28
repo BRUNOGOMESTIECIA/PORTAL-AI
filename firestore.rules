@@ -56,21 +56,20 @@ service cloud.firestore {
     // TICKETS — Chamados de suporte
     // =========================================================================
     match /tickets/{ticketId} {
-      // Leitura: staff, ou dono do ticket
-      allow read: if isStaff() || isOwner(resource);
+      // Leitura: Qualquer usuário autenticado no portal pode ler os chamados
+      allow read: if isAuthenticated();
 
-      // Criação: staff, ou o próprio cliente (se ele for o requester)
-      allow create: if isStaff() || (isAuthenticated() && request.auth.uid == request.resource.data.requesterId);
+      // Criação: Usuários autenticados no portal
+      allow create: if isAuthenticated();
 
-      // Atualização: staff
-      allow update: if isStaff();
+      // Atualização: Usuários autenticados
+      allow update: if isAuthenticated();
 
-      // Exclusão: BLOQUEADA
+      // Exclusão: BLOQUEADA por segurança
       allow delete: if false;
 
       match /comments/{commentId} {
-        allow read: if isStaff() || isOwner(get(/databases/$(database)/documents/tickets/$(ticketId)));
-        allow create: if isStaff() || (isAuthenticated() && isOwner(get(/databases/$(database)/documents/tickets/$(ticketId))));
+        allow read, create: if isAuthenticated();
         allow update, delete: if false;
       }
     }
@@ -79,19 +78,11 @@ service cloud.firestore {
     // CHAT SESSIONS — Sessões de chat cliente ↔ operador
     // =========================================================================
     match /chat_sessions/{sessionId} {
-      allow read: if isStaff() || isOwner(resource);
-      
-      // Cliente pode iniciar um chat se ele for o client
-      allow create: if isStaff() || (isAuthenticated() && request.auth.uid == request.resource.data.clientId);
-      
-      // Atualização: staff
-      allow update: if isStaff();
-      
+      allow read, create, update: if isAuthenticated();
       allow delete: if false;
 
       match /messages/{messageId} {
-        allow read: if isStaff() || isOwner(get(/databases/$(database)/documents/chat_sessions/$(sessionId)));
-        allow create: if isStaff() || (isAuthenticated() && isOwner(get(/databases/$(database)/documents/chat_sessions/$(sessionId))));
+        allow read, create: if isAuthenticated();
         allow update, delete: if false;
       }
     }

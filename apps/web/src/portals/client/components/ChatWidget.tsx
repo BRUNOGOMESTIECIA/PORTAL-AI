@@ -20,7 +20,7 @@ export function ChatWidget() {
 
   const activeChat = useMemo(() => {
     if (!user) return null;
-    const userChats = chats.filter(c => c.clientEmail === user.email);
+    const userChats = chats.filter(c => c.clientEmail === user.email || (c as any).clientId === user.id || (c as any).requesterId === user.email);
     if (userChats.length === 0) return null;
     const active = userChats.find(c => c.status !== 'closed');
     return active || userChats[0];
