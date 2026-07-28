@@ -182,65 +182,70 @@ export default function ChatQueuePage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [selected?.messages.length, forceRender]);
 
-  // Conexão com o painel cliente via WebSocket (Rede Local) ou BroadcastChannel
+  // Conexão com o painel cliente via WebSocket (Rede Local) ou BroadcastChannel com fallback seguro para Edge
   useEffect(() => {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const ws = new WebSocket(`${protocol}//${window.location.host}/mock-chat`);
-    wsRef.current = ws;
+    let ws: WebSocket | null = null;
+    let channel: BroadcastChannel | null = null;
 
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === 'client_msg') {
-          const targetChatId = selected?.id || chats.find(c => c.status === 'active' || c.status === 'waiting')?.id;
-          if (targetChatId) {
-            const chatInMock = chats.find(c => c.id === targetChatId);
-            if (chatInMock) {
-              chatInMock.messages.push({
-                id: `m_user_sync_${Date.now()}`,
-                body: data.body,
-                senderName: chatInMock.clientName,
-                senderType: 'user',
-                createdAt: new Date().toISOString()
-              });
-              if (selected?.id === chatInMock.id) {
-                
+    try {
+      if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        ws = new WebSocket(`${protocol}//${window.location.host}/mock-chat`);
+        wsRef.current = ws;
+        ws.onerror = () => {};
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.type === 'client_msg') {
+              const targetChatId = selected?.id || chats.find(c => c.status === 'active' || c.status === 'waiting')?.id;
+              if (targetChatId) {
+                const chatInMock = chats.find(c => c.id === targetChatId);
+                if (chatInMock) {
+                  chatInMock.messages.push({
+                    id: `m_user_sync_${Date.now()}`,
+                    body: data.body,
+                    senderName: chatInMock.clientName,
+                    senderType: 'user',
+                    createdAt: new Date().toISOString()
+                  });
+                  setForceRender(prev => prev + 1);
+                }
               }
-              
             }
-          }
-        }
-      } catch (e) {}
-    };
-
-    const channel = new BroadcastChannel('chat_sync');
-    channel.onmessage = (event) => {
-      if (event.data.type === 'client_msg') {
-        // Pega o chat atualmente selecionado, ou o primeiro ativo/esperando
-        const targetChatId = selected?.id || chats.find(c => c.status === 'active' || c.status === 'waiting')?.id;
-        if (targetChatId) {
-          const chatInMock = chats.find(c => c.id === targetChatId);
-          if (chatInMock) {
-            chatInMock.messages.push({
-              id: `m_user_sync_${Date.now()}`,
-              body: event.data.body,
-              senderName: chatInMock.clientName,
-              senderType: 'user',
-              createdAt: new Date().toISOString()
-            });
-            if (selected?.id === chatInMock.id) {
-              
-            }
-            
-          }
-        }
+          } catch (e) {}
+        };
       }
-    };
+    } catch (e) {}
+
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        channel = new BroadcastChannel('chat_sync');
+        channel.onmessage = (event) => {
+          if (event.data.type === 'client_msg') {
+            const targetChatId = selected?.id || chats.find(c => c.status === 'active' || c.status === 'waiting')?.id;
+            if (targetChatId) {
+              const chatInMock = chats.find(c => c.id === targetChatId);
+              if (chatInMock) {
+                chatInMock.messages.push({
+                  id: `m_user_sync_${Date.now()}`,
+                  body: event.data.body,
+                  senderName: chatInMock.clientName,
+                  senderType: 'user',
+                  createdAt: new Date().toISOString()
+                });
+                setForceRender(prev => prev + 1);
+              }
+            }
+          }
+        };
+      }
+    } catch (e) {}
+
     return () => {
-      ws.close();
-      channel.close();
+      try { ws?.close(); } catch (e) {}
+      try { channel?.close(); } catch (e) {}
     };
-  }, [selected?.id]);
+  }, [selected?.id, chats]);
 
   // ── Auto-reply imediato: Boas-vindas ao entrar na fila ──
   useEffect(() => {
@@ -339,14 +344,18 @@ export default function ChatQueuePage() {
     setReplyTo(null);
     
 
-    // Envia a mensagem para o painel do cliente pela rede local se não for nota interna
+    // Envia a mensagem para o painel do cliente se não for nota interna (com fallback seguro para Edge)
     if (!isInternalNote) {
-      if (wsRef.current?.readyState === WebSocket.OPEN) {
-        wsRef.current.send(JSON.stringify({ type: 'agent_msg', body: newMsg.body }));
-      } else {
-        const channel = new BroadcastChannel('chat_sync');
-        channel.postMessage({ type: 'agent_msg', body: newMsg.body });
-        channel.close();
+      try {
+        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+          wsRef.current.send(JSON.stringify({ type: 'agent_msg', body: newMsg.body }));
+        } else if (typeof BroadcastChannel !== 'undefined') {
+          const channel = new BroadcastChannel('chat_sync');
+          channel.postMessage({ type: 'agent_msg', body: newMsg.body });
+          channel.close();
+        }
+      } catch (e) {
+        console.warn('Sincronização em canal local contornada no Edge:', e);
       }
     }
 
