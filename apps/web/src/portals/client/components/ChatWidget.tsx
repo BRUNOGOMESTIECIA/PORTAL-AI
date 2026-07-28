@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { MessageCircle, X, Send, Bot, Minimize2, Paperclip } from 'lucide-react';
+import { MessageCircle, X, Send, Bot, Minimize2, Paperclip, Reply } from 'lucide-react';
 import { useAuth } from '../../../hooks/use-mock-auth';
 import { useChats } from '../../../hooks/use-chats';
 import { MockChatSession, MockChatMessage } from '../../../mocks/data';
@@ -97,6 +97,8 @@ export function ChatWidget() {
     setMinimized(false);
   };
 
+  const [replyTo, setReplyTo] = useState<{ id: string; senderName: string; body: string } | null>(null);
+
   const send = async (text: string) => {
     const msgBody = text.trim();
     if (!msgBody || !user) return;
@@ -104,6 +106,7 @@ export function ChatWidget() {
 
     if (!activeChat) {
       await startChat(msgBody);
+      setReplyTo(null);
       return;
     }
 
@@ -112,12 +115,15 @@ export function ChatWidget() {
       body: msgBody,
       senderName: user.name,
       senderType: 'user',
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      ...(replyTo ? { replyTo } : {})
     };
+
+    setReplyTo(null);
 
     await updateChat(activeChat.id, {
       messages: [...activeChat.messages, newMsg],
-      });
+    });
   };
 
   if (!open && !minimized && !activeChat) {
@@ -191,13 +197,29 @@ export function ChatWidget() {
                </div>
             )}
             {messages.map((msg) => (
-              <div key={msg.id} className={`flex ${msg.senderType === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <div key={msg.id} className={`flex items-end gap-1.5 group ${msg.senderType === 'user' ? 'justify-end' : 'justify-start'}`}>
+                {msg.senderType === 'user' && (
+                  <button
+                    type="button"
+                    onClick={() => setReplyTo({ id: msg.id, senderName: msg.senderName, body: msg.body })}
+                    className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-blue-500 rounded transition-opacity"
+                    title="Citar esta mensagem"
+                  >
+                    <Reply className="w-3 h-3" />
+                  </button>
+                )}
                 {msg.senderType !== 'user' && (
-                  <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center mr-2 mt-0.5 flex-shrink-0">
+                  <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center mr-1 mt-0.5 flex-shrink-0">
                     <Bot className="h-3 w-3 text-blue-600" />
                   </div>
                 )}
                 <div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${msg.senderType === 'user' ? 'bg-blue-600 text-white rounded-br-sm' : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-bl-sm shadow-sm border border-slate-100 dark:border-slate-700/50'}`}>
+                  {msg.replyTo && (
+                    <div className="mb-1.5 p-1.5 rounded-lg bg-black/10 dark:bg-black/30 border-l-2 border-blue-400 text-xs">
+                      <span className="font-bold opacity-90 block mb-0.5">{msg.replyTo.senderName}</span>
+                      <p className="truncate opacity-80 text-[11px]">{msg.replyTo.body}</p>
+                    </div>
+                  )}
                   {msg.body.startsWith('[GIF:') && msg.body.includes('http') ? (
                     <img 
                       src={msg.body.match(/\((.*?)\)/)?.[1] || ''} 
@@ -208,6 +230,16 @@ export function ChatWidget() {
                     msg.body
                   )}
                 </div>
+                {msg.senderType !== 'user' && (
+                  <button
+                    type="button"
+                    onClick={() => setReplyTo({ id: msg.id, senderName: msg.senderName, body: msg.body })}
+                    className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-blue-500 rounded transition-opacity"
+                    title="Citar esta mensagem"
+                  >
+                    <Reply className="w-3 h-3" />
+                  </button>
+                )}
               </div>
             ))}
             <div ref={bottomRef} />
@@ -230,6 +262,17 @@ export function ChatWidget() {
 
           {/* Input or Closed Status */}
           <div className="p-3 bg-white dark:bg-slate-800 border-t border-slate-100 dark:border-slate-700/50 rounded-b-2xl">
+            {replyTo && (
+              <div className="flex items-center justify-between px-2.5 py-1.5 bg-blue-50 dark:bg-slate-900 border-l-4 border-blue-500 rounded-lg mb-2 text-xs">
+                <div className="min-w-0 flex-1">
+                  <span className="font-bold text-blue-600 dark:text-blue-400">Respondendo a {replyTo.senderName}:</span>
+                  <p className="text-slate-600 dark:text-slate-300 truncate text-[11px]">{replyTo.body}</p>
+                </div>
+                <button type="button" onClick={() => setReplyTo(null)} className="p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
             {activeChat?.status === 'closed' ? (
               <div className="text-center py-2">
                 <p className="text-xs text-slate-500 mb-2">Este chat foi encerrado.</p>

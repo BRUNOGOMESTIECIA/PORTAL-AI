@@ -672,9 +672,19 @@ export default function ChatQueuePage() {
                 const isRightSide = msg.senderType === 'agent' || msg.senderType === 'system' || msg.senderType === 'internal';
                 const isInternal = msg.senderType === 'internal';
                 return (
-                  <div key={msg.id} className={`flex ${isRightSide ? 'justify-end' : 'justify-start'}`}>
+                  <div key={msg.id} className={`flex items-end gap-2 group ${isRightSide ? 'justify-end' : 'justify-start'}`}>
+                    {isRightSide && (
+                      <button
+                        type="button"
+                        onClick={() => setReplyTo({ id: msg.id, senderName: msg.senderName, body: msg.body })}
+                        className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-blue-500 rounded transition-opacity"
+                        title="Citar esta mensagem"
+                      >
+                        <Reply className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                     {!isRightSide && (
-                      <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center mr-2 flex-shrink-0 mt-auto">
+                      <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center mr-1 flex-shrink-0 mt-auto">
                         <User className="h-4 w-4 text-slate-500 dark:text-slate-400" />
                       </div>
                     )}
@@ -686,6 +696,13 @@ export default function ChatQueuePage() {
                           : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-100 dark:border-slate-700 rounded-bl-sm'
                     }`}>
                       {isInternal && <p className="text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400/80 mb-1 flex items-center gap-1">🔒 Nota Interna</p>}
+                      {msg.replyTo && (
+                        <div className="mb-2 p-2 rounded-lg bg-black/10 dark:bg-black/30 border-l-4 border-blue-500 text-xs">
+                          <span className="font-bold text-blue-600 dark:text-blue-400 block mb-0.5">{msg.replyTo.senderName}</span>
+                          <p className="truncate opacity-80">{msg.replyTo.body}</p>
+                        </div>
+                      )}
+                      {!isRightSide && <p className="text-xs font-bold mb-1 text-slate-500 dark:text-slate-400">{msg.senderName}</p>}
                       {msg.body.startsWith('[GIF:') && msg.body.includes('http') ? (
                         <div className="my-1 overflow-hidden rounded-xl">
                           <img 
@@ -707,6 +724,16 @@ export default function ChatQueuePage() {
                         {formatTimeBR(msg.createdAt)}
                       </div>
                     </div>
+                    {!isRightSide && (
+                      <button
+                        type="button"
+                        onClick={() => setReplyTo({ id: msg.id, senderName: msg.senderName, body: msg.body })}
+                        className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-blue-500 rounded transition-opacity"
+                        title="Citar esta mensagem"
+                      >
+                        <Reply className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
                 );
               })}
@@ -715,6 +742,17 @@ export default function ChatQueuePage() {
 
             {/* Input Wrapper */}
             <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 shrink-0 flex flex-col">
+              {replyTo && (
+                <div className="flex items-center justify-between px-3 py-2 bg-blue-50 dark:bg-slate-800 border-l-4 border-blue-500 rounded-lg mb-2 text-xs">
+                  <div className="min-w-0 flex-1">
+                    <span className="font-bold text-blue-600 dark:text-blue-400">Respondendo a {replyTo.senderName}:</span>
+                    <p className="text-slate-600 dark:text-slate-300 truncate">{replyTo.body}</p>
+                  </div>
+                  <button type="button" onClick={() => setReplyTo(null)} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
               <div className="flex gap-4 mb-3 px-1">
                 <button 
                   onClick={() => setIsInternalNote(false)}
