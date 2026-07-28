@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Filter, Plus, Clock, MessageCircle, User, Send, CheckCircle, ArrowRightLeft, Image as ImageIcon, FileText, PanelRight, X, ChevronLeft, ChevronDown, ChevronUp } from 'lucide-react';
+import { Search, Filter, Plus, Clock, MessageCircle, User, Send, CheckCircle, ArrowRightLeft, Image as ImageIcon, FileText, PanelRight, X, ChevronLeft, ChevronDown, ChevronUp, Reply } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSearchParams } from 'react-router-dom';
 import { MockChatSession, MockChatMessage, MOCK_CLIENTS, MOCK_STAFF, MOCK_MACROS } from '../../../mocks/data';
@@ -74,6 +74,7 @@ export default function ChatQueuePage() {
   const [selectedId, setSelectedId] = useState<string | null>('ch_andre');
   const selected = chats.find(c => c.id === selectedId) || null;
   const [input, setInput] = useState('');
+  const [replyTo, setReplyTo] = useState<{ id: string; senderName: string; body: string } | null>(null);
   const [activeTab, setActiveTab] = useState<ChatTab>('em_atendimento');
   const [search, setSearch] = useState('');
   const [forceRender, setForceRender] = useState(0);
@@ -325,16 +326,17 @@ export default function ChatQueuePage() {
       body: input.trim(),
       senderName: 'Você',
       senderType: isInternalNote ? 'internal' : 'agent',
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      ...(replyTo ? { replyTo } : {})
     };
 
     const chatInMock = chats.find(c => c.id === selected.id);
     if (chatInMock) {
       updateChat(chatInMock.id, { messages: [...chatInMock.messages, newMsg] });
-      
     }
 
     setInput('');
+    setReplyTo(null);
     
 
     // Envia a mensagem para o painel do cliente pela rede local se não for nota interna

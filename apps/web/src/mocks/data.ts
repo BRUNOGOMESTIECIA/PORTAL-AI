@@ -396,6 +396,11 @@ export interface MockChatMessage {
   isDeleted?: boolean;
   reactions?: { emoji: string; count: number; userReacted: boolean }[];
   replies?: MockChatMessage[];
+  replyTo?: {
+    id: string;
+    senderName: string;
+    body: string;
+  };
 }
 
 export interface MockChatSession {
