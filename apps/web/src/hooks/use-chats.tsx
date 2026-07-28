@@ -2,10 +2,9 @@ import { useState, useEffect, useCallback, createContext, useContext, useRef } f
 import { db } from '../lib/firebase';
 import { 
   collection, doc, onSnapshot, setDoc, updateDoc, 
-  query, getDocs, writeBatch 
+  query 
 } from 'firebase/firestore';
-import { MockChatSession, MOCK_CHAT_SESSIONS } from '../mocks/data';
-import { toast } from 'sonner';
+import { MockChatSession } from '../mocks/data';
 
 interface ChatsContextValue {
   chats: MockChatSession[];
@@ -18,21 +17,21 @@ interface ChatsContextValue {
 const ChatsContext = createContext<ChatsContextValue | null>(null);
 
 export function ChatsProvider({ children }: { children: React.ReactNode }) {
+  // Inicializa limpo (sem injetar bots/mock data se o localStorage for limpo)
   const [chats, setChats] = useState<MockChatSession[]>(() => {
     try {
       const saved = localStorage.getItem('portal_fallback_chats');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed)) return parsed;
       }
-      return MOCK_CHAT_SESSIONS;
+      return [];
     } catch {
-      return MOCK_CHAT_SESSIONS;
+      return [];
     }
   });
 
   const [isLoading, setIsLoading] = useState(true);
-  const [useFallback, setUseFallback] = useState(false);
   const fallbackChatsRef = useRef<MockChatSession[]>(chats);
 
   const saveFallbackChats = useCallback((newChats: MockChatSession[]) => {
@@ -61,7 +60,7 @@ export function ChatsProvider({ children }: { children: React.ReactNode }) {
     return () => channelRef.current?.close();
   }, []);
 
-  // Escuta no Firestore com combinações para que nenhum chat suma
+  // Escuta diretamente na coleção 'chat_sessions' do Firestore em tempo real
   useEffect(() => {
     const q = query(collection(db, 'chat_sessions'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -82,26 +81,16 @@ export function ChatsProvider({ children }: { children: React.ReactNode }) {
         });
       });
 
-      // Combina chats do banco com os de demonstração para que NENHUM suma
-      const chatMap = new Map<string, MockChatSession>();
-      MOCK_CHAT_SESSIONS.forEach(c => chatMap.set(c.id, c));
-      firestoreChats.forEach(c => chatMap.set(c.id, c));
+      firestoreChats.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-      const combined = Array.from(chatMap.values());
-      combined.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
-      saveFallbackChats(combined);
+      saveFallbackChats(firestoreChats);
       setIsLoading(false);
-      setUseFallback(false);
     }, (error) => {
-      console.info("Firestore usando persistence local para chats:", error?.message);
+      console.warn("Aviso Firestore Chats:", error?.message);
       setIsLoading(false);
-      setUseFallback(true);
       const saved = localStorage.getItem('portal_fallback_chats');
       if (saved) {
-        setChats(JSON.parse(saved));
-      } else {
-        saveFallbackChats(MOCK_CHAT_SESSIONS);
+        try { setChats(JSON.parse(saved)); } catch (e) {}
       }
     });
 
@@ -113,15 +102,12 @@ export function ChatsProvider({ children }: { children: React.ReactNode }) {
     saveFallbackChats(updated);
     channelRef.current?.postMessage({ type: 'SYNC_CHATS', payload: updated });
 
-    if (!useFallback) {
-      try {
-        await setDoc(doc(db, 'chat_sessions', chat.id), chat);
-      } catch (error) {
-        console.warn("Erro ao salvar chat no Firestore, mantido no localStorage:", error);
-        setUseFallback(true);
-      }
+    try {
+      await setDoc(doc(db, 'chat_sessions', chat.id), chat);
+    } catch (error) {
+      console.warn("Erro ao salvar chat no Firestore:", error);
     }
-  }, [useFallback, saveFallbackChats]);
+  }, [saveFallbackChats]);
 
   const updateChat = useCallback(async (id: string, updates: Partial<MockChatSession>) => {
     const currentList = [...fallbackChatsRef.current];
@@ -132,32 +118,14 @@ export function ChatsProvider({ children }: { children: React.ReactNode }) {
       channelRef.current?.postMessage({ type: 'SYNC_CHATS', payload: currentList });
     }
 
-    if (!useFallback) {
-      try {
-        await updateDoc(doc(db, 'chat_sessions', id), updates);
-      } catch (error) {
-        console.warn("Erro ao atualizar chat no Firestore, mantido no localStorage:", error);
-        setUseFallback(true);
-      }
-    }
-  }, [useFallback, saveFallbackChats]);
-
-  const seedMockData = useCallback(async () => {
     try {
-      const snapshot = await getDocs(collection(db, 'chat_sessions'));
-      if (snapshot.empty) {
-        toast.loading('Copiando chats...', { id: 'seed_chats' });
-        const batch = writeBatch(db);
-        MOCK_CHAT_SESSIONS.forEach((chat) => {
-          batch.set(doc(db, 'chat_sessions', chat.id), chat);
-        });
-        await batch.commit();
-        toast.success('Pronto!', { id: 'seed_chats' });
-      }
+      await updateDoc(doc(db, 'chat_sessions', id), updates);
     } catch (error) {
-      console.error("Erro no seed:", error);
+      console.warn("Erro ao atualizar chat no Firestore:", error);
     }
-  }, []);
+  }, [saveFallbackChats]);
+
+  const seedMockData = useCallback(async () => {}, []);
 
   return (
     <ChatsContext.Provider value={{ chats, isLoading, createChat, updateChat, seedMockData }}>
