@@ -11,8 +11,9 @@ import {
   isSignInWithEmailLink,
   signInWithEmailLink
 } from 'firebase/auth';
-import { doc, getDoc, setDoc, collection, getDocs, query, where } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, getDocs, query, where, onSnapshot } from 'firebase/firestore';
 import { toast } from 'sonner';
+import { detectDevice, DeviceInfo } from '../lib/device-detector';
 
 /**
  * Interface que define a estrutura do usuário logado na aplicação.
@@ -26,6 +27,8 @@ export interface AppUser {
   role?: 'Administrator' | 'Technician' | 'Agent';
   department?: string;
   permissions?: string[];
+  deviceInfo?: DeviceInfo;
+  sessionId?: string;
 }
 
 /**
@@ -36,6 +39,8 @@ interface AuthContextValue {
   isLoading: boolean;
   isAuthenticated: boolean;
   isBridgeReady: boolean;
+  deviceInfo: DeviceInfo;
+  sessionId: string;
   login: (email: string, password: string) => Promise<AppUser>;
   loginWithSSO: (provider: 'google' | 'microsoft', userType: 'client' | 'staff') => Promise<AppUser>;
   sendMagicLink: (email: string) => Promise<void>;
@@ -56,6 +61,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isBridgeReady, setIsBridgeReady] = useState(false);
+
+  // ID único desta sessão local do navegador
+  const [currentSessionId] = useState<string>(() => {
+    let sid = sessionStorage.getItem('portal_session_id');
+    if (!sid) {
+      sid = typeof crypto !== 'undefined' && crypto.randomUUID 
+        ? crypto.randomUUID() 
+        : `sess_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+      sessionStorage.setItem('portal_session_id', sid);
+    }
+    return sid;
+  });
+
+  // Detecta o dispositivo atual (Windows, Mac, iPhone, Android, Linux)
+  const [currentDevice] = useState<DeviceInfo>(() => detectDevice());
 
   /**
    * Ativa a Ponte de Segurança para o banco do Portal IA usando a API NestJS.
@@ -96,6 +116,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  /**
+   * Registra a sessão ativa no Firestore e escuta se outro dispositivo se conectar.
+   */
+  useEffect(() => {
+    if (!user?.id) return;
+
+    // 1. Grava a nova sessão ativa no Firestore (sobrescrevendo sessões anteriores)
+    const sessionRef = doc(db, 'active_sessions', user.id);
+    setDoc(sessionRef, {
+      activeSessionId: currentSessionId,
+      deviceInfo: currentDevice,
+      userEmail: user.email,
+      userName: user.name,
+      updatedAt: new Date().toISOString()
+    }, { merge: true }).catch((err) => {
+      console.warn('[Session] Não foi possível salvar sessão no Firestore:', err?.message);
+    });
+
+    // 2. Escuta mudanças na sessão em tempo real
+    const unsubscribeSession = onSnapshot(sessionRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        // Se a sessão registrada no banco for diferente da sessão local, desconecta!
+        if (data.activeSessionId && data.activeSessionId !== currentSessionId) {
+          toast.error('Sessão Encerrada! Sua conta foi conectada em outro dispositivo ou navegador.', {
+            duration: 9000,
+          });
+          signOut(instaPassoAuth).catch(() => {});
+          signOut(auth).catch(() => {});
+          setUser(null);
+          setIsBridgeReady(false);
+        }
+      }
+    });
+
+    return () => unsubscribeSession();
+  }, [user?.id, currentSessionId, currentDevice]);
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(instaPassoAuth, async (firebaseUser) => {
       if (firebaseUser) {
@@ -112,7 +170,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           type: 'staff',
           role: 'Administrator',
           department: 'Administração',
-          permissions: ['chat.attend', 'chat.view', 'tickets.view', 'admin.users', 'admin.settings', 'kb.view', 'catalog.view', 'reports.view']
+          permissions: ['chat.attend', 'chat.view', 'tickets.view', 'admin.users', 'admin.settings', 'kb.view', 'catalog.view', 'reports.view'],
+          deviceInfo: currentDevice,
+          sessionId: currentSessionId
         } as AppUser);
       } else {
         setUser(null);
@@ -122,7 +182,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     return () => unsubscribe();
-  }, [activateBridge]);
+  }, [activateBridge, currentDevice, currentSessionId]);
 
   /**
    * Realiza login usando email e senha padrão (Firebase Auth).
@@ -294,7 +354,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Como o usuário foi validado pelo InstaPasso com sucesso, ativamos a
         // ponte usando a função com retry para garantir que o Portal IA esteja
         // autorizado antes de liberar o acesso.
-        await activateBridge();
+        await activateBridge(cred.user);
 
         setUser(mockUser);
         return mockUser;
@@ -343,7 +403,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user]);
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, isAuthenticated: !!user, isBridgeReady, login, loginWithSSO, sendMagicLink, loginWithMagicLink, logout, hasPermission }}>
+    <AuthContext.Provider value={{ user, isLoading, isAuthenticated: !!user, isBridgeReady, deviceInfo: currentDevice, sessionId: currentSessionId, login, loginWithSSO, sendMagicLink, loginWithMagicLink, logout, hasPermission }}>
       {children}
     </AuthContext.Provider>
   );

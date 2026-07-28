@@ -48,7 +48,7 @@ const ADMIN_ITEMS: NavItem[] = [
 ];
 
 export function AppShell() {
-  const { hasPermission } = useAuth();
+  const { hasPermission, deviceInfo } = useAuth();
   const { theme, setTheme } = useTheme();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
@@ -138,6 +138,15 @@ export function AppShell() {
         <header className="relative z-10 flex h-14 items-center justify-between border-b border-border bg-card px-6">
           <div className="flex-1" />
           <div className="flex items-center gap-3">
+            {deviceInfo && (
+              <div 
+                className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-accent/60 text-muted-foreground border border-border"
+                title={`Dispositivo conectado nesta sessão: ${deviceInfo.label}`}
+              >
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span>{deviceInfo.label}</span>
+              </div>
+            )}
             <NotificationCenter />
             <UserMenu />
           </div>

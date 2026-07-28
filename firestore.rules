@@ -97,6 +97,14 @@ service cloud.firestore {
     }
 
     // =========================================================================
+    // ACTIVE SESSIONS — Controle de Sessão Única e Dispositivo
+    // =========================================================================
+    match /active_sessions/{userId} {
+      allow read, write: if isAuthenticated() && request.auth.uid == userId;
+      allow read: if isStaff();
+    }
+
+    // =========================================================================
     // USERS — Usuários
     // =========================================================================
     match /users/{userId} {
