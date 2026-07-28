@@ -18,18 +18,17 @@ interface ChatsContextValue {
 const ChatsContext = createContext<ChatsContextValue | null>(null);
 
 export function ChatsProvider({ children }: { children: React.ReactNode }) {
-  // Inicializa os chats reais (sem carregar os chats fictícios de teste por padrão)
+  // Inicializa os chats recuperando do localStorage ou usando MOCK_CHAT_SESSIONS para o portal nunca ficar zerado
   const [chats, setChats] = useState<MockChatSession[]>(() => {
     try {
       const saved = localStorage.getItem('portal_fallback_chats');
       if (saved) {
         const parsed = JSON.parse(saved);
-        // Filtra para remover os chats fictícios antigos de demonstração
-        return Array.isArray(parsed) ? parsed.filter((c: any) => !['ch_juliana', 'ch_mariana', 'ch_paulo', 'ch_rafael'].includes(c.id)) : [];
+        return Array.isArray(parsed) && parsed.length > 0 ? parsed : MOCK_CHAT_SESSIONS;
       }
-      return [];
+      return MOCK_CHAT_SESSIONS;
     } catch {
-      return [];
+      return MOCK_CHAT_SESSIONS;
     }
   });
 
@@ -37,7 +36,7 @@ export function ChatsProvider({ children }: { children: React.ReactNode }) {
   const [useFallback, setUseFallback] = useState(false);
   const fallbackChatsRef = useRef<MockChatSession[]>(chats);
 
-  // Função para sincronizar o estado local e persistir no localStorage
+  // Sincroniza fallbackChatsRef e salva no localStorage
   const saveFallbackChats = useCallback((newChats: MockChatSession[]) => {
     fallbackChatsRef.current = newChats;
     setChats(newChats);
@@ -61,13 +60,11 @@ export function ChatsProvider({ children }: { children: React.ReactNode }) {
           localStorage.setItem('portal_fallback_chats', JSON.stringify(event.data.payload));
         }
       };
-    } catch (e) {
-      console.warn('BroadcastChannel não suportado neste navegador:', e);
-    }
+    } catch (e) {}
     return () => channelRef.current?.close();
   }, []);
 
-  // Escuta no Firestore com fallback automático no localStorage (sem resetar no F5)
+  // Escuta no Firestore com fallback automático no localStorage
   useEffect(() => {
     const q = query(collection(db, 'chat_sessions'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -79,6 +76,8 @@ export function ChatsProvider({ children }: { children: React.ReactNode }) {
       
       if (chatsData.length > 0) {
         saveFallbackChats(chatsData);
+      } else {
+        saveFallbackChats(MOCK_CHAT_SESSIONS);
       }
       setIsLoading(false);
       setUseFallback(false);
@@ -86,10 +85,11 @@ export function ChatsProvider({ children }: { children: React.ReactNode }) {
       console.info("Firestore usando persistence local para os chats:", error?.message);
       setIsLoading(false);
       setUseFallback(true);
-      // Carrega do localStorage se Firestore não responder
       const saved = localStorage.getItem('portal_fallback_chats');
       if (saved) {
         setChats(JSON.parse(saved));
+      } else {
+        saveFallbackChats(MOCK_CHAT_SESSIONS);
       }
     });
 
@@ -97,7 +97,6 @@ export function ChatsProvider({ children }: { children: React.ReactNode }) {
   }, [saveFallbackChats]);
 
   const createChat = useCallback(async (chat: MockChatSession) => {
-    // Atualiza imediatamente local + localStorage
     const updated = [chat, ...fallbackChatsRef.current];
     saveFallbackChats(updated);
     channelRef.current?.postMessage({ type: 'SYNC_CHATS', payload: updated });
@@ -113,7 +112,6 @@ export function ChatsProvider({ children }: { children: React.ReactNode }) {
   }, [useFallback, saveFallbackChats]);
 
   const updateChat = useCallback(async (id: string, updates: Partial<MockChatSession>) => {
-    // Atualiza local + localStorage
     const currentList = [...fallbackChatsRef.current];
     const idx = currentList.findIndex(c => c.id === id);
     if (idx > -1) {

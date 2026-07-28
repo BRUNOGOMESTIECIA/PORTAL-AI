@@ -18,20 +18,46 @@ interface TicketsContextValue {
 const TicketsContext = createContext<TicketsContextValue | null>(null);
 
 export function TicketsProvider({ children }: { children: React.ReactNode }) {
-  const [tickets, setTickets] = useState<MockTicket[]>([]);
+  // Inicializa os tickets com o localStorage ou com MOCK_TICKETS para que o portal nunca fique zerado
+  const [tickets, setTickets] = useState<MockTicket[]>(() => {
+    try {
+      const saved = localStorage.getItem('portal_fallback_tickets');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return Array.isArray(parsed) && parsed.length > 0 ? parsed : MOCK_TICKETS;
+      }
+      return MOCK_TICKETS;
+    } catch {
+      return MOCK_TICKETS;
+    }
+  });
+
   const [isLoading, setIsLoading] = useState(true);
   const [useFallback, setUseFallback] = useState(false);
-  const fallbackTicketsRef = useRef<MockTicket[]>([]);
+  const fallbackTicketsRef = useRef<MockTicket[]>(tickets);
   const channelRef = useRef<BroadcastChannel | null>(null);
 
+  const saveFallbackTickets = useCallback((newTickets: MockTicket[]) => {
+    fallbackTicketsRef.current = newTickets;
+    setTickets(newTickets);
+    try {
+      localStorage.setItem('portal_fallback_tickets', JSON.stringify(newTickets));
+    } catch (e) {
+      console.warn('Não foi possível salvar tickets no localStorage:', e);
+    }
+  }, []);
+
   useEffect(() => {
-    channelRef.current = new BroadcastChannel('ticket_sync_fallback');
-    channelRef.current.onmessage = (event) => {
-      if (event.data.type === 'SYNC_TICKETS') {
-        fallbackTicketsRef.current = event.data.payload;
-        setTickets([...fallbackTicketsRef.current]);
-      }
-    };
+    try {
+      channelRef.current = new BroadcastChannel('ticket_sync_fallback');
+      channelRef.current.onmessage = (event) => {
+        if (event.data.type === 'SYNC_TICKETS') {
+          fallbackTicketsRef.current = event.data.payload;
+          setTickets([...fallbackTicketsRef.current]);
+          localStorage.setItem('portal_fallback_tickets', JSON.stringify(event.data.payload));
+        }
+      };
+    } catch (e) {}
     return () => channelRef.current?.close();
   }, []);
 
@@ -39,69 +65,67 @@ export function TicketsProvider({ children }: { children: React.ReactNode }) {
     const q = query(collection(db, 'tickets'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const ticketsData: MockTicket[] = [];
-      snapshot.forEach((doc) => {
-        ticketsData.push(doc.data() as MockTicket);
+      snapshot.forEach((docSnap) => {
+        ticketsData.push(docSnap.data() as MockTicket);
       });
       ticketsData.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       
-      setTickets(ticketsData);
+      if (ticketsData.length > 0) {
+        saveFallbackTickets(ticketsData);
+      } else {
+        // Se o banco estiver vazio, usa os dados padrão
+        saveFallbackTickets(MOCK_TICKETS);
+      }
       setIsLoading(false);
       setUseFallback(false);
     }, (error) => {
-      console.error("Erro ao carregar tickets:", error);
+      console.info("Firestore usando persistence local para tickets:", error?.message);
       setIsLoading(false);
       setUseFallback(true);
-      setTickets([...fallbackTicketsRef.current]);
+      const saved = localStorage.getItem('portal_fallback_tickets');
+      if (saved) {
+        setTickets(JSON.parse(saved));
+      } else {
+        saveFallbackTickets(MOCK_TICKETS);
+      }
     });
 
     return () => unsubscribe();
-  }, [tickets.length]);
+  }, [saveFallbackTickets]);
 
   const createTicket = useCallback(async (ticket: MockTicket) => {
-    if (useFallback) {
-      fallbackTicketsRef.current = [ticket, ...fallbackTicketsRef.current];
-      setTickets([...fallbackTicketsRef.current]);
-      channelRef.current?.postMessage({ type: 'SYNC_TICKETS', payload: fallbackTicketsRef.current });
-      return;
+    const updated = [ticket, ...fallbackTicketsRef.current];
+    saveFallbackTickets(updated);
+    channelRef.current?.postMessage({ type: 'SYNC_TICKETS', payload: updated });
+
+    if (!useFallback) {
+      try {
+        await setDoc(doc(db, 'tickets', ticket.id), ticket);
+      } catch (error) {
+        console.warn("Erro ao salvar ticket no Firestore, mantido no localStorage:", error);
+        setUseFallback(true);
+      }
     }
-    try {
-      await setDoc(doc(db, 'tickets', ticket.id), ticket);
-    } catch (error) {
-      console.error("Erro ao criar ticket:", error);
-      toast.error("Aviso: Conexão com o banco de dados falhou. Usando memória temporária.");
-      setUseFallback(true);
-      fallbackTicketsRef.current = [ticket, ...tickets];
-      setTickets([...fallbackTicketsRef.current]);
-      channelRef.current?.postMessage({ type: 'SYNC_TICKETS', payload: fallbackTicketsRef.current });
-    }
-  }, [useFallback, tickets]);
+  }, [useFallback, saveFallbackTickets]);
 
   const updateTicket = useCallback(async (id: string, updates: Partial<MockTicket>) => {
-    if (useFallback) {
-      const idx = fallbackTicketsRef.current.findIndex(t => t.id === id);
-      if (idx > -1) {
-        fallbackTicketsRef.current[idx] = { ...fallbackTicketsRef.current[idx], ...updates } as MockTicket;
-        setTickets([...fallbackTicketsRef.current]);
-        channelRef.current?.postMessage({ type: 'SYNC_TICKETS', payload: fallbackTicketsRef.current });
-      }
-      return;
+    const currentList = [...fallbackTicketsRef.current];
+    const idx = currentList.findIndex(t => t.id === id);
+    if (idx > -1) {
+      currentList[idx] = { ...currentList[idx], ...updates } as MockTicket;
+      saveFallbackTickets(currentList);
+      channelRef.current?.postMessage({ type: 'SYNC_TICKETS', payload: currentList });
     }
-    try {
-      await updateDoc(doc(db, 'tickets', id), updates);
-    } catch (error) {
-      console.error("Erro ao atualizar ticket:", error);
-      setUseFallback(true);
-      if (fallbackTicketsRef.current.length === 0 && tickets.length > 0) {
-        fallbackTicketsRef.current = [...tickets];
-      }
-      const idx = fallbackTicketsRef.current.findIndex(t => t.id === id);
-      if (idx > -1) {
-        fallbackTicketsRef.current[idx] = { ...fallbackTicketsRef.current[idx], ...updates } as MockTicket;
-        setTickets([...fallbackTicketsRef.current]);
-        channelRef.current?.postMessage({ type: 'SYNC_TICKETS', payload: fallbackTicketsRef.current });
+
+    if (!useFallback) {
+      try {
+        await updateDoc(doc(db, 'tickets', id), updates);
+      } catch (error) {
+        console.warn("Erro ao atualizar ticket no Firestore, mantido no localStorage:", error);
+        setUseFallback(true);
       }
     }
-  }, [useFallback, tickets]);
+  }, [useFallback, saveFallbackTickets]);
 
   const seedMockData = useCallback(async () => {
     try {
@@ -116,7 +140,7 @@ export function TicketsProvider({ children }: { children: React.ReactNode }) {
         toast.success('Pronto!', { id: 'seed_tickets' });
       }
     } catch (error) {
-      console.error("Erro ao fazer seed de tickets:", error);
+      console.error("Erro no seed de tickets:", error);
     }
   }, []);
 
