@@ -13,7 +13,6 @@ const BUSINESS_HOURS = [
 export function ChatWidget() {
   const { user } = useAuth();
   const { chats, createChat, updateChat } = useChats();
-  const [open, setOpen] = useState(false); // Fechado por padrão, cliente clica para abrir
   const [minimized, setMinimized] = useState(false);
   const [input, setInput] = useState('');
   const [hoursTooltip, setHoursTooltip] = useState(false);
@@ -26,6 +25,25 @@ export function ChatWidget() {
     const active = userChats.find(c => c.status !== 'closed');
     return active || userChats[0];
   }, [chats, user]);
+
+  const [open, setOpen] = useState(() => {
+    const savedOpen = localStorage.getItem('portal_chat_open');
+    if (savedOpen !== null) return JSON.parse(savedOpen);
+    return false;
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('portal_chat_open', JSON.stringify(open));
+    } catch(e) {}
+  }, [open]);
+
+  // Se houver um atendimento ativo do cliente em andamento, mantém a janela aberta no F5
+  useEffect(() => {
+    if (activeChat && activeChat.status !== 'closed') {
+      setOpen(true);
+    }
+  }, [activeChat?.id, activeChat?.status]);
 
   const messages = activeChat?.messages || [];
 

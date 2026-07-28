@@ -18,96 +18,114 @@ interface ChatsContextValue {
 const ChatsContext = createContext<ChatsContextValue | null>(null);
 
 export function ChatsProvider({ children }: { children: React.ReactNode }) {
-  const [chats, setChats] = useState<MockChatSession[]>([]);
+  // Inicializa os chats com o localStorage para que nenhum chat ou mensagem seja perdido ao recarregar a página (F5)
+  const [chats, setChats] = useState<MockChatSession[]>(() => {
+    try {
+      const saved = localStorage.getItem('portal_fallback_chats');
+      return saved ? JSON.parse(saved) : MOCK_CHAT_SESSIONS;
+    } catch {
+      return MOCK_CHAT_SESSIONS;
+    }
+  });
+
   const [isLoading, setIsLoading] = useState(true);
   const [useFallback, setUseFallback] = useState(false);
-  const fallbackChatsRef = useRef<MockChatSession[]>([]);
+  const fallbackChatsRef = useRef<MockChatSession[]>(chats);
 
-  // Configura BroadcastChannel para sincronização local entre abas se Firebase falhar
+  // Função para sincronizar o estado local e persistir no localStorage
+  const saveFallbackChats = useCallback((newChats: MockChatSession[]) => {
+    fallbackChatsRef.current = newChats;
+    setChats(newChats);
+    try {
+      localStorage.setItem('portal_fallback_chats', JSON.stringify(newChats));
+    } catch (e) {
+      console.warn('Não foi possível salvar no localStorage:', e);
+    }
+  }, []);
+
+  // Configura BroadcastChannel para sincronização instantânea entre abas
   const channelRef = useRef<BroadcastChannel | null>(null);
 
   useEffect(() => {
-    channelRef.current = new BroadcastChannel('chat_sync_fallback');
-    channelRef.current.onmessage = (event) => {
-      if (event.data.type === 'SYNC_CHATS') {
-        fallbackChatsRef.current = event.data.payload;
-        setChats([...fallbackChatsRef.current]);
-      }
-    };
+    try {
+      channelRef.current = new BroadcastChannel('chat_sync_fallback');
+      channelRef.current.onmessage = (event) => {
+        if (event.data.type === 'SYNC_CHATS') {
+          fallbackChatsRef.current = event.data.payload;
+          setChats([...fallbackChatsRef.current]);
+          localStorage.setItem('portal_fallback_chats', JSON.stringify(event.data.payload));
+        }
+      };
+    } catch (e) {
+      console.warn('BroadcastChannel não suportado neste navegador:', e);
+    }
     return () => channelRef.current?.close();
   }, []);
 
+  // Escuta no Firestore com fallback automático no localStorage (sem resetar no F5)
   useEffect(() => {
     const q = query(collection(db, 'chat_sessions'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const chatsData: MockChatSession[] = [];
-      snapshot.forEach((doc) => {
-        chatsData.push(doc.data() as MockChatSession);
+      snapshot.forEach((docSnap) => {
+        chatsData.push(docSnap.data() as MockChatSession);
       });
       chatsData.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       
-      setChats(chatsData);
+      if (chatsData.length > 0) {
+        saveFallbackChats(chatsData);
+      }
       setIsLoading(false);
       setUseFallback(false);
     }, (error) => {
-      console.error("Erro ao carregar chats (Firestore):", error);
+      console.info("Firestore usando persistence local para os chats:", error?.message);
       setIsLoading(false);
       setUseFallback(true);
-      // Usar memória local se Firebase bloquear
-      setChats([...fallbackChatsRef.current]);
+      // Carrega do localStorage se Firestore não responder
+      const saved = localStorage.getItem('portal_fallback_chats');
+      if (saved) {
+        setChats(JSON.parse(saved));
+      }
     });
 
     return () => unsubscribe();
-  }, [chats.length]);
+  }, [saveFallbackChats]);
 
   const createChat = useCallback(async (chat: MockChatSession) => {
-    if (useFallback) {
-      fallbackChatsRef.current = [chat, ...fallbackChatsRef.current];
-      setChats([...fallbackChatsRef.current]);
-      channelRef.current?.postMessage({ type: 'SYNC_CHATS', payload: fallbackChatsRef.current });
-      return;
+    // Atualiza imediatamente local + localStorage
+    const updated = [chat, ...fallbackChatsRef.current];
+    saveFallbackChats(updated);
+    channelRef.current?.postMessage({ type: 'SYNC_CHATS', payload: updated });
+
+    if (!useFallback) {
+      try {
+        await setDoc(doc(db, 'chat_sessions', chat.id), chat);
+      } catch (error) {
+        console.warn("Erro ao salvar chat no Firestore, mantido no localStorage:", error);
+        setUseFallback(true);
+      }
     }
-    try {
-      await setDoc(doc(db, 'chat_sessions', chat.id), chat);
-    } catch (error) {
-      console.error("Erro ao criar chat (Firestore falhou, usando fallback):", error);
-      toast.error("Aviso: Conexão com o banco de dados falhou. Usando memória temporária.");
-      setUseFallback(true);
-      fallbackChatsRef.current = [chat, ...chats];
-      setChats([...fallbackChatsRef.current]);
-      channelRef.current?.postMessage({ type: 'SYNC_CHATS', payload: fallbackChatsRef.current });
-    }
-  }, [useFallback, chats]);
+  }, [useFallback, saveFallbackChats]);
 
   const updateChat = useCallback(async (id: string, updates: Partial<MockChatSession>) => {
-    if (useFallback) {
-      const idx = fallbackChatsRef.current.findIndex(c => c.id === id);
-      if (idx > -1) {
-        fallbackChatsRef.current[idx] = { ...fallbackChatsRef.current[idx], ...updates };
-        setChats([...fallbackChatsRef.current]);
-        channelRef.current?.postMessage({ type: 'SYNC_CHATS', payload: fallbackChatsRef.current });
-      }
-      return;
+    // Atualiza local + localStorage
+    const currentList = [...fallbackChatsRef.current];
+    const idx = currentList.findIndex(c => c.id === id);
+    if (idx > -1) {
+      currentList[idx] = { ...currentList[idx], ...updates };
+      saveFallbackChats(currentList);
+      channelRef.current?.postMessage({ type: 'SYNC_CHATS', payload: currentList });
     }
-    try {
-      await updateDoc(doc(db, 'chat_sessions', id), updates);
-    } catch (error) {
-      console.error("Erro ao atualizar chat (Firestore falhou, usando fallback):", error);
-      setUseFallback(true);
-      
-      // Inicializar fallbackChatsRef com o estado atual caso ainda não tenha sido
-      if (fallbackChatsRef.current.length === 0 && chats.length > 0) {
-        fallbackChatsRef.current = [...chats];
-      }
-      
-      const idx = fallbackChatsRef.current.findIndex(c => c.id === id);
-      if (idx > -1) {
-        fallbackChatsRef.current[idx] = { ...fallbackChatsRef.current[idx], ...updates };
-        setChats([...fallbackChatsRef.current]);
-        channelRef.current?.postMessage({ type: 'SYNC_CHATS', payload: fallbackChatsRef.current });
+
+    if (!useFallback) {
+      try {
+        await updateDoc(doc(db, 'chat_sessions', id), updates);
+      } catch (error) {
+        console.warn("Erro ao atualizar chat no Firestore, mantido no localStorage:", error);
+        setUseFallback(true);
       }
     }
-  }, [useFallback, chats]);
+  }, [useFallback, saveFallbackChats]);
 
   const seedMockData = useCallback(async () => {
     try {
