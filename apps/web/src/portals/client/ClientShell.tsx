@@ -41,7 +41,7 @@ export default function ClientShell() {
 
   const navItems = [
     { path: '/portal', label: 'Início', icon: LayoutGrid, exact: true },
-    { path: '/portal/tickets', label: 'Meus Chamados', icon: Ticket },
+    { path: '/portal/tickets', label: 'Meus Tickets', icon: Ticket },
     { path: '/portal/kb', label: 'Base de Conhecimento', icon: BookOpen },
   ];
 

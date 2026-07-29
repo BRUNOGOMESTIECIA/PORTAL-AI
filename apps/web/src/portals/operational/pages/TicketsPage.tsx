@@ -233,7 +233,7 @@ export default function TicketsPage() {
       {/* ── Cabeçalho ──────────────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Board de Chamados</h1>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Board de Tickets</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Gestão de escalonamentos e filas especializadas</p>
         </div>
         {hasPermission('tickets.create') && (

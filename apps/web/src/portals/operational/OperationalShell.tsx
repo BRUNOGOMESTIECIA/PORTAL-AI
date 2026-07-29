@@ -25,7 +25,7 @@ interface NavItem { label: string; path: string; icon: React.ComponentType<{ cla
 
 const NAV_MAIN: NavItem[] = [
   { label: 'Dashboard', path: '/operacional/app/dashboard', icon: LayoutDashboard },
-  { label: 'Chamados', path: '/operacional/app/tickets', icon: Ticket, permission: 'tickets.view' },
+  { label: 'Tickets', path: '/operacional/app/tickets', icon: Ticket, permission: 'tickets.view' },
   { label: 'Fila de Chat', path: '/operacional/app/chat', icon: MessageCircle, permission: 'chat.view' },
   { label: 'Chat Interno', path: '/operacional/app/internal', icon: MessageSquare },
   { label: 'Base de Conhecimento', path: '/operacional/app/kb', icon: BookOpen, permission: 'kb.view' },
@@ -445,7 +445,7 @@ export default function OperationalShell() {
                 onClick={() => setShowQueueWidget(!showQueueWidget)}
                 className="w-full flex items-center justify-between text-xs font-semibold text-slate-300 hover:text-white transition-colors mb-3 group"
               >
-                Fila Chamados
+                Fila de Tickets
                 {showQueueWidget ? (
                   <ChevronDown className="w-3.5 h-3.5 opacity-50 group-hover:opacity-100" />
                 ) : (
