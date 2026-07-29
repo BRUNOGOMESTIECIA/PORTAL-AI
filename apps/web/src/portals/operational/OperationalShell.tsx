@@ -437,7 +437,7 @@ export default function OperationalShell() {
 
         {/* Bottom Section */}
         <div className="mt-auto">
-          {/* Widget Fila de Chamados */}
+          {/* Widget Fila de Tickets */}
           {!collapsed && (
             <div className="px-3 pt-6 pb-2">
               <div className="border-t border-slate-700/50 pt-4">

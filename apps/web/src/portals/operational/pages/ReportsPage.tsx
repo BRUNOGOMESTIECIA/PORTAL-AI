@@ -209,7 +209,7 @@ export default function ReportsPage() {
         
         {/* Gráfico de Evolução */}
         <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
-          <h2 className="text-sm font-bold text-slate-800 dark:text-slate-100 mb-6">Tendência de Chamados</h2>
+          <h2 className="text-sm font-bold text-slate-800 dark:text-slate-100 mb-6">Tendência de Tickets</h2>
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={stats.trendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -240,7 +240,7 @@ export default function ReportsPage() {
 
         {/* Gráfico de Origem */}
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm flex flex-col">
-          <h2 className="text-sm font-bold text-slate-800 dark:text-slate-100 mb-2">Origem dos Chamados</h2>
+          <h2 className="text-sm font-bold text-slate-800 dark:text-slate-100 mb-2">Origem dos Tickets</h2>
           <div className="flex-1 h-64">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>

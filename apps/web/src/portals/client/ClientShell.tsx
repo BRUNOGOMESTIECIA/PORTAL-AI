@@ -275,7 +275,7 @@ export default function ClientShell() {
                     <span className="text-[11px] font-bold font-mono px-2 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400">
                       {formatTicketProtocol(unratedTicket.number || unratedTicket.id)}
                     </span>
-                    <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 mt-1">Chamado Concluído</h3>
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 mt-1">Ticket Concluído</h3>
                   </div>
                   <button onClick={() => setDismissedTicketId(unratedTicket.id)} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
                     <X className="w-4 h-4" />

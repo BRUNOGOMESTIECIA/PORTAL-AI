@@ -14,7 +14,7 @@ export default function TicketDetailPage() {
   });
 
   if (isLoading) return <div className="flex h-48 items-center justify-center text-muted-foreground">Carregando…</div>;
-  if (!ticket) return <div className="flex h-48 items-center justify-center text-muted-foreground">Chamado não encontrado</div>;
+  if (!ticket) return <div className="flex h-48 items-center justify-center text-muted-foreground">Ticket não encontrado</div>;
 
   const sla = slaStatus(ticket.sla_resolution_due_at);
 
@@ -23,7 +23,7 @@ export default function TicketDetailPage() {
       <div className="flex items-start justify-between">
         <div>
           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-            <span>Chamado #{ticket.number}</span>
+            <span>Ticket #{ticket.number}</span>
             <span>•</span>
             <span>{ticket.type_name ?? 'Incidente'}</span>
           </div>

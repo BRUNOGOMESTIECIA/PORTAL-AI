@@ -261,8 +261,8 @@ export default function ClientHomePage() {
               <AlertTriangle className="h-4 w-4 text-amber-500" />
               <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
                 {pendingTickets.length === 1
-                  ? 'Um chamado aguarda sua resposta'
-                  : `${pendingTickets.length} chamados aguardam sua resposta`}
+                  ? 'Um ticket aguarda sua resposta'
+                  : `${pendingTickets.length} tickets aguardam sua resposta`}
               </h2>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -277,7 +277,7 @@ export default function ClientHomePage() {
               </div>
               <div>
                 <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-200">Tudo em dia!</h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Nenhuma pendência ou chamado aguardando sua resposta.</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Nenhuma pendência ou ticket aguardando sua resposta.</p>
               </div>
             </div>
           </div>
@@ -342,13 +342,13 @@ export default function ClientHomePage() {
                     )}
                     {ticketResults.length > 0 && (
                       <div>
-                        <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Meus Chamados</div>
+                        <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Meus Tickets</div>
                         {ticketResults.slice(0, 3).map(t => (
                           <Link key={t.id} to={`/portal/tickets/${t.id}`} className="flex items-start gap-3 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors w-full">
                             <Ticket className="h-4 w-4 text-indigo-500 mt-0.5 shrink-0" />
                             <div>
                               <p className="text-sm font-medium text-slate-800 dark:text-slate-200 leading-snug">#{t.number} - {t.title}</p>
-                              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 text-blue-600 dark:text-blue-400 font-medium">Ver chamado</p>
+                              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 text-blue-600 dark:text-blue-400 font-medium">Ver ticket</p>
                             </div>
                           </Link>
                         ))}
@@ -385,7 +385,7 @@ export default function ClientHomePage() {
               <Plus className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
-              <p className="font-semibold text-slate-800 dark:text-slate-200 text-sm">Abrir chamado</p>
+              <p className="font-semibold text-slate-800 dark:text-slate-200 text-sm">Abrir ticket</p>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Reporte um problema ou solicitação</p>
             </div>
           </button>
@@ -395,7 +395,7 @@ export default function ClientHomePage() {
               <Ticket className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
             </div>
             <div>
-              <p className="font-semibold text-slate-800 dark:text-slate-200 text-sm">Meus chamados</p>
+              <p className="font-semibold text-slate-800 dark:text-slate-200 text-sm">Meus tickets</p>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Acompanhe suas solicitações</p>
             </div>
           </Link>

@@ -174,7 +174,7 @@ export function ArticleModal({
                     to="/portal/tickets?new=1"
                     className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl transition-all duration-200 hover:-translate-y-[1.5px] active:translate-y-[0.5px] hover:shadow-md"
                   >
-                    <Ticket className="h-4 w-4" /> Abrir chamado
+                    <Ticket className="h-4 w-4" /> Abrir ticket
                   </Link>
                 </div>
               </div>

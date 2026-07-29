@@ -356,7 +356,7 @@ export default function AdminClientDetailPage() {
               <div className="space-y-6">
                 <div>
                   <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Usuários Vinculados</h2>
-                  <p className="text-sm text-slate-500">Lista de clientes que pertencem a esta empresa e podem abrir chamados em nome dela.</p>
+                  <p className="text-sm text-slate-500">Lista de clientes que pertencem a esta empresa e podem abrir tickets em nome dela.</p>
                 </div>
 
                 {companyUsers.length === 0 ? (

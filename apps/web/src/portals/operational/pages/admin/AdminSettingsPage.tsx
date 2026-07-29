@@ -900,9 +900,9 @@ export default function AdminSettingsPage() {
               <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 mb-3">Eventos de Notificação por E-mail</h3>
               <div className="space-y-3">
                 {[
-                  { title: 'Novo Chamado', desc: 'Avisar agentes quando um chamado for aberto', active: true },
-                  { title: 'Atualização no Chamado', desc: 'Avisar o cliente e agentes quando houver um comentário', active: true },
-                  { title: 'Chamado Resolvido', desc: 'Enviar e-mail para o cliente após resolução', active: true },
+                  { title: 'Novo Ticket', desc: 'Avisar agentes quando um ticket for aberto', active: true },
+                  { title: 'Atualização no Ticket', desc: 'Avisar o cliente e agentes quando houver um comentário', active: true },
+                  { title: 'Ticket Resolvido', desc: 'Enviar e-mail para o cliente após resolução', active: true },
                   { title: 'Alerta de SLA', desc: 'Avisar gerente se SLA estiver prestes a estourar (1 hora)', active: false },
                   { title: 'Alerta de Inatividade', desc: 'Lembrar cliente de responder após 3 dias', active: false },
                 ].map((notif, idx) => (

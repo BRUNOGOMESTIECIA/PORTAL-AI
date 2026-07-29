@@ -57,13 +57,13 @@ export function ChatWidget() {
   const pathname = window.location.pathname;
   let suggestions: string[] = [];
   if (pathname.includes('/tickets')) {
-    suggestions = ['Status do meu chamado', 'Como reabrir chamado?'];
+    suggestions = ['Status do meu ticket', 'Como reabrir ticket?'];
   } else if (pathname.includes('/kb')) {
     suggestions = ['Buscar artigo sobre rede', 'Como recuperar senha?'];
   } else if (pathname.includes('/profile')) {
     suggestions = ['Como alterar minha senha?', 'Atualizar meus dados'];
   } else {
-    suggestions = ['Como abrir um chamado?', 'Falar com um técnico'];
+    suggestions = ['Como abrir um ticket?', 'Falar com um técnico'];
   }
 
   useEffect(() => {

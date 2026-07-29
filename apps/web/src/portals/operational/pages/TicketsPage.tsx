@@ -309,7 +309,7 @@ export default function TicketsPage() {
       <div className="space-y-8">
         {filteredTickets.length === 0 ? (
           <div className="text-center py-20 bg-white dark:bg-slate-800/50 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700">
-            <p className="text-slate-500 dark:text-slate-400 font-medium">Nenhum chamado encontrado com os filtros atuais.</p>
+            <p className="text-slate-500 dark:text-slate-400 font-medium">Nenhum ticket encontrado com os filtros atuais.</p>
           </div>
 
         ) : groupMode === 'team' ? (
@@ -342,7 +342,7 @@ export default function TicketsPage() {
                   <div className="flex-1 min-w-0">
                     <h2 className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">{companyName}</h2>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
-                      {tickets.length} chamado{tickets.length !== 1 ? 's' : ''}
+                      {tickets.length} ticket{tickets.length !== 1 ? 's' : ''}
                       {' · '}
                       {tickets.filter(t => ['new','open','in_progress','pending'].includes(t.status)).length} ativo{tickets.filter(t => ['new','open','in_progress','pending'].includes(t.status)).length !== 1 ? 's' : ''}
                     </p>

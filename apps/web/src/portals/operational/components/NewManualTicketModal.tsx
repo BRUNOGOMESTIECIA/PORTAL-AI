@@ -429,9 +429,9 @@ export function NewManualTicketModal({ onClose, initialData, onSuccess, isFromCh
           <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
             <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" />
           </div>
-          <h2 className="text-lg font-bold text-slate-900 dark:text-slate-50 mb-1">Chamado criado!</h2>
+          <h2 className="text-lg font-bold text-slate-900 dark:text-slate-50 mb-1">Ticket criado!</h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">
-            Chamado <span className="font-bold text-slate-700 dark:text-slate-300">#{createdNumber}</span> adicionado ao board.
+            Ticket <span className="font-bold text-slate-700 dark:text-slate-300">#{createdNumber}</span> adicionado ao board.
           </p>
           {selectedCompany && (
             <p className="text-xs text-slate-400 dark:text-slate-500 mb-1">
@@ -690,7 +690,7 @@ export function NewManualTicketModal({ onClose, initialData, onSuccess, isFromCh
             <div className="flex items-start gap-2.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-3">
               <AlertCircle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
               <p className="text-xs text-amber-700 dark:text-amber-400">
-                Chamado registrado como <strong>source: technician</strong>. O solicitante receberá notificação por e-mail após a criação.
+                Ticket registrado como <strong>source: technician</strong>. O solicitante receberá notificação por e-mail após a criação.
               </p>
             </div>
 
@@ -766,8 +766,8 @@ export function NewManualTicketModal({ onClose, initialData, onSuccess, isFromCh
               <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-2">Confirmar Criação</h3>
               <p className="text-sm text-slate-500 dark:text-slate-400">
                 {intendedStatus === 'resolved' 
-                  ? 'Tem certeza que deseja criar o chamado e encerrar o chat (como Resolvido)?'
-                  : 'Tem certeza que deseja escalonar este chamado como Não Resolvido?'}
+                  ? 'Tem certeza que deseja criar o ticket e encerrar o chat (como Resolvido)?'
+                  : 'Tem certeza que deseja escalonar este ticket como Não Resolvido?'}
               </p>
             </div>
             <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800/50 flex gap-3 justify-end border-t border-slate-200 dark:border-slate-800">

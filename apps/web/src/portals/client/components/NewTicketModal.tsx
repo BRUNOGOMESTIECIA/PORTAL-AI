@@ -49,13 +49,13 @@ export function NewTicketModal({ initialTitle = '', onClose, onConfirm }: { init
           <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <CheckCircle2 className="h-7 w-7 text-green-600" />
           </div>
-          <h2 className="text-lg font-bold text-slate-900 dark:text-slate-50 mb-2">Chamado aberto!</h2>
+          <h2 className="text-lg font-bold text-slate-900 dark:text-slate-50 mb-2">Ticket aberto!</h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500 mb-6">
             Nossa equipe foi notificada e entrará em contato em breve.
           </p>
           <div className="flex gap-3 justify-center">
             <Link to="/portal/tickets" onClick={onClose} className="text-sm font-medium text-blue-600 hover:underline">
-              Ver meus chamados
+              Ver meus tickets
             </Link>
             <span className="text-slate-300">·</span>
             <button onClick={onClose} className="text-sm font-medium text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:text-slate-300">
@@ -72,7 +72,7 @@ export function NewTicketModal({ initialTitle = '', onClose, onConfirm }: { init
       <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg">
         <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-slate-100 dark:border-slate-700/50">
           <div>
-            <h2 className="text-base font-bold text-slate-900 dark:text-slate-50">Novo chamado</h2>
+            <h2 className="text-base font-bold text-slate-900 dark:text-slate-50">Novo ticket</h2>
             <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Preencha as informações para nos ajudar a entender sua solicitação.</p>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 transition-all duration-200 hover:-translate-y-[1.5px] active:translate-y-[0.5px] hover:shadow-md">

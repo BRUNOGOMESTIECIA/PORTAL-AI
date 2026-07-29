@@ -248,14 +248,14 @@ export default function ClientProfilePage() {
       <Section title="Notificações por e-mail" icon={Bell}>
         <div>
           <NotifRow
-            label="Atualizações de chamado"
-            desc="Quando seu chamado mudar de status ou for atribuído"
+            label="Atualizações de ticket"
+            desc="Quando seu ticket mudar de status ou for atribuído"
             checked={notifs.ticketUpdates}
             onChange={() => toggleNotif('ticketUpdates')}
           />
           <NotifRow
             label="Novos comentários"
-            desc="Quando a equipe responder seu chamado"
+            desc="Quando a equipe responder seu ticket"
             checked={notifs.newComments}
             onChange={() => toggleNotif('newComments')}
           />

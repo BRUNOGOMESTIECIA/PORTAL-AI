@@ -41,12 +41,12 @@ export default function TicketsPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Chamados</h1>
+        <h1 className="text-2xl font-bold">Tickets</h1>
         <Link
           to="/tickets/new"
           className="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
         >
-          <Plus className="h-4 w-4" /> Novo Chamado
+          <Plus className="h-4 w-4" /> Novo Ticket
         </Link>
       </div>
 
@@ -57,7 +57,7 @@ export default function TicketsPage() {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar chamados…"
+            placeholder="Buscar tickets…"
             className="w-full rounded-md border border-input bg-background py-1.5 pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
@@ -104,7 +104,7 @@ export default function TicketsPage() {
             {isLoading ? (
               <tr><td colSpan={8} className="px-4 py-8 text-center text-sm text-muted-foreground">Carregando…</td></tr>
             ) : tickets.length === 0 ? (
-              <tr><td colSpan={8} className="px-4 py-8 text-center text-sm text-muted-foreground">Nenhum chamado encontrado</td></tr>
+              <tr><td colSpan={8} className="px-4 py-8 text-center text-sm text-muted-foreground">Nenhum ticket encontrado</td></tr>
             ) : tickets.map((ticket) => {
               const sla = slaStatus(ticket.sla_resolution_due_at);
               return (
@@ -142,7 +142,7 @@ export default function TicketsPage() {
       {/* Pagination */}
       {meta && meta.totalPages > 1 && (
         <div className="flex items-center justify-between text-sm text-muted-foreground">
-          <span>{meta.total} chamados no total</span>
+          <span>{meta.total} tickets no total</span>
           <div className="flex gap-2">
             <button
               disabled={page === 1}

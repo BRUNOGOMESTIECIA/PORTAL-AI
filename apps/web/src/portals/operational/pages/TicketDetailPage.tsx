@@ -39,7 +39,7 @@ export default function TicketDetailPage() {
   if (!ticket) {
     return (
       <div className="text-center py-20">
-        <p className="text-slate-500">Chamado não encontrado.</p>
+        <p className="text-slate-500">Ticket não encontrado.</p>
         <Link to="/operacional/app/tickets" className="text-blue-600 hover:underline text-sm mt-2 inline-block">Voltar</Link>
       </div>
     );
@@ -52,7 +52,7 @@ export default function TicketDetailPage() {
   return (
     <div className="space-y-5 max-w-4xl">
       <Link to="/operacional/app/tickets" className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:underline">
-        <ChevronLeft className="h-4 w-4" /> Todos os chamados
+        <ChevronLeft className="h-4 w-4" /> Todos os tickets
       </Link>
 
       {/* Header */}
@@ -277,7 +277,7 @@ export default function TicketDetailPage() {
             <div className="p-6">
               <h3 className="text-lg font-bold text-slate-900 mb-2">Confirmar Alteração de Status</h3>
               <p className="text-sm text-slate-600 mb-4">
-                Você está alterando o status deste chamado para <strong className="text-slate-800">{STATUS_CONFIG[statusChangeRequest.newStatus].label}</strong>. 
+                Você está alterando o status deste ticket para <strong className="text-slate-800">{STATUS_CONFIG[statusChangeRequest.newStatus].label}</strong>. 
                 Por favor, informe o motivo desta alteração:
               </p>
               
@@ -318,7 +318,7 @@ export default function TicketDetailPage() {
                       updatedAt: new Date().toISOString()
                     });
                     
-                    toast.success('Status do chamado alterado com sucesso!');
+                    toast.success('Status do ticket alterado com sucesso!');
                     setStatusChangeRequest(null);
                     setStatusReason('');
                   }}
