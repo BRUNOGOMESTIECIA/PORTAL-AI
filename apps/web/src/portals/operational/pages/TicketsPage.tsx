@@ -39,7 +39,7 @@ function getCompany(ticket: MockTicket) {
   return MOCK_CLIENTS.find(c => c.name === ticket.requesterName)?.company ?? 'Desconhecida';
 }
 
-type StatusFilterType = 'all' | 'active' | TicketStatus;
+type StatusFilterType = 'all' | 'active' | 'unresolved' | TicketStatus;
 type GroupMode = 'team' | 'client';
 
 export default function TicketsPage() {
@@ -62,7 +62,9 @@ export default function TicketsPage() {
         ? true
         : statusFilter === 'active'
           ? ['new', 'open', 'in_progress', 'pending'].includes(t.status)
-          : t.status === statusFilter;
+          : statusFilter === 'unresolved'
+            ? ['new', 'open', 'pending'].includes(t.status)
+            : t.status === statusFilter;
 
       const searchLower = advancedFilters.search.toLowerCase();
       const matchSearch = !searchLower ||
@@ -142,17 +144,19 @@ export default function TicketsPage() {
   const counts = {
     all:         tickets.length,
     active:      tickets.filter(t => ['new','open','in_progress','pending'].includes(t.status)).length,
+    unresolved:  tickets.filter(t => ['new','open','pending'].includes(t.status)).length,
     new:         tickets.filter(t => t.status === 'new').length,
     in_progress: tickets.filter(t => t.status === 'in_progress').length,
     resolved:    tickets.filter(t => t.status === 'resolved').length,
   };
 
   const statusTabs: { key: StatusFilterType; label: string; count: number }[] = [
-    { key: 'active',      label: 'Ativos',        count: counts.active },
-    { key: 'all',         label: 'Todos',          count: counts.all },
-    { key: 'new',         label: 'Novos',          count: counts.new },
-    { key: 'in_progress', label: 'Em andamento',   count: counts.in_progress },
-    { key: 'resolved',    label: 'Resolvidos',     count: counts.resolved },
+    { key: 'active',      label: 'Ativos',          count: counts.active },
+    { key: 'all',         label: 'Todos',           count: counts.all },
+    { key: 'unresolved',  label: 'Não Resolvidos',  count: counts.unresolved },
+    { key: 'new',         label: 'Novos',           count: counts.new },
+    { key: 'in_progress', label: 'Em andamento',    count: counts.in_progress },
+    { key: 'resolved',    label: 'Resolvidos',      count: counts.resolved },
   ];
 
   // ── Tabela de tickets ────────────────────────────────────────────────────────
