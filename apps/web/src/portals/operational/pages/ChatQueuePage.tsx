@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Filter, Plus, Clock, MessageCircle, User, Send, CheckCircle, ArrowRightLeft, Image as ImageIcon, FileText, PanelRight, X, ChevronLeft, ChevronDown, ChevronUp, Reply } from 'lucide-react';
+import { Search, Filter, Plus, Clock, MessageCircle, User, Send, CheckCircle, ArrowRightLeft, Image as ImageIcon, FileText, PanelRight, X, ChevronLeft, ChevronDown, ChevronUp, Reply, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSearchParams } from 'react-router-dom';
 import { MockChatSession, MockChatMessage, MOCK_CLIENTS, MOCK_STAFF, MOCK_MACROS } from '../../../mocks/data';
 import { ContextPanel } from '../components/ContextPanel';
 import { useAuth } from '../../../hooks/use-mock-auth';
 import { useChats } from '../../../hooks/use-chats';
+import { exportChatTranscriptToPdf } from '../../../lib/export-utils';
 
 import { instaPassoDb } from '../../../lib/firebase';
 import { collection, getDocs, query, where } from 'firebase/firestore';
@@ -672,6 +673,32 @@ export default function ChatQueuePage() {
               </div>
               
               <div className="flex items-center gap-2">
+                {((user?.role || '').trim().toUpperCase().includes('ADMINISTRAD')) && (
+                  <button
+                    onClick={() => {
+                      exportChatTranscriptToPdf({
+                        id: selected.id,
+                        protocol: selected.ticketId || selected.id,
+                        clientName: selected.clientName,
+                        clientEmail: selected.clientEmail || `${selected.clientName.toLowerCase().replace(/\s+/g, '.')}@cliente.com.br`,
+                        companyName: (selected as any).companyName || (selected as any).clientCompany || 'Empresa B2B',
+                        agentName: (selected as any).assignedOperatorName || (selected as any).assigneeName || user?.name || 'Atendimento N1',
+                        clientIp: '187.52.190.44',
+                        messages: selected.messages.map(m => ({
+                          senderName: m.senderName,
+                          text: m.body,
+                          timestamp: new Date(m.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+                          isAgent: m.senderType === 'agent' || (m.senderType as string) === 'staff'
+                        }))
+                      });
+                    }}
+                    className="px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
+                    title="Exportar Transcrição do Chat em PDF (Exclusivo Administrador)"
+                  >
+                    <Download className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" /> Exportar PDF
+                  </button>
+                )}
+
                 <button 
                   onClick={() => setIsRightSidebarOpen(!isRightSidebarOpen)}
                   className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"

@@ -6,6 +6,8 @@ import {
   BarChart, Bar, PieChart, Pie, Cell, Legend
 } from 'recharts';
 
+import { exportTicketsToExcel, generateExecutivePdfReport } from '../../../lib/export-utils';
+
 const COLORS = ['#3b82f6', '#f59e0b', '#10b981', '#6366f1', '#ef4444', '#8b5cf6'];
 
 export default function ReportsPage() {
@@ -125,9 +127,21 @@ export default function ReportsPage() {
             </select>
           </div>
 
-          <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors shadow-sm shrink-0">
-            <Download className="w-4 h-4" /> Exportar
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => exportTicketsToExcel(MOCK_TICKETS)}
+              className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium px-3.5 py-2 rounded-lg transition-colors shadow-sm cursor-pointer"
+            >
+              <Download className="w-4 h-4" /> Excel (.xlsx)
+            </button>
+
+            <button
+              onClick={() => generateExecutivePdfReport(stats, period)}
+              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-3.5 py-2 rounded-lg transition-colors shadow-sm cursor-pointer"
+            >
+              <Download className="w-4 h-4" /> Relatório PDF
+            </button>
+          </div>
         </div>
       </div>
 

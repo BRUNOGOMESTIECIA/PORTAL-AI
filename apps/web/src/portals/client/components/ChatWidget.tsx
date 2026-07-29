@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { MessageCircle, X, Send, Bot, Minimize2, Paperclip, Reply } from 'lucide-react';
+import { MessageCircle, X, Send, Bot, Minimize2, Paperclip, Reply, Download } from 'lucide-react';
 import { useAuth } from '../../../hooks/use-mock-auth';
 import { useChats } from '../../../hooks/use-chats';
 import { MockChatSession, MockChatMessage } from '../../../mocks/data';
 import { EmojiStickerPicker } from '../../../components/chat/EmojiStickerPicker';
+import { exportChatTranscriptToPdf } from '../../../lib/export-utils';
 
 const BUSINESS_HOURS = [
   { days: 'Seg – Sex', hours: '08:00 – 18:00' },
@@ -180,6 +181,31 @@ export function ChatWidget() {
               </div>
             </div>
             <div className="flex items-center gap-1">
+              {activeChat && (
+                <button
+                  onClick={() => {
+                    exportChatTranscriptToPdf({
+                      id: activeChat.id,
+                      protocol: activeChat.ticketId || activeChat.id,
+                      clientName: user?.name || 'Cliente',
+                      clientEmail: user?.email || '',
+                      companyName: (user as any)?.company || 'Empresa B2B',
+                      agentName: (activeChat as any)?.assignedOperatorName || (activeChat as any)?.assigneeName || 'Suporte TIECIA',
+                      clientIp: '187.52.190.44',
+                      messages: activeChat.messages.map(m => ({
+                        senderName: m.senderName,
+                        text: m.body,
+                        timestamp: new Date(m.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+                        isAgent: m.senderType === 'agent' || (m.senderType as string) === 'staff'
+                      }))
+                    });
+                  }}
+                  className="p-1 hover:bg-blue-500 rounded transition-colors text-white text-xs flex items-center gap-1 font-semibold"
+                  title="Exportar Transcrição do Chat em PDF"
+                >
+                  <Download className="h-3.5 w-3.5" /> PDF
+                </button>
+              )}
               <button onClick={() => setMinimized(true)} className="p-1 hover:bg-blue-500 rounded transition-colors">
                 <Minimize2 className="h-3.5 w-3.5" />
               </button>
