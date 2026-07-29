@@ -21,7 +21,7 @@ function downloadCsvFile(filename: string, csvContent: string) {
 /**
  * Exporta a lista de Tickets em formato compatível com Excel (.xlsx / CSV)
  */
-export function exportTicketsToExcel(tickets: any[]) {
+export function exportTicketsToExcel(tickets: any[], periodText?: string) {
   const headers = [
     'PROTOCOLO',
     'TÍTULO',
@@ -33,7 +33,7 @@ export function exportTicketsToExcel(tickets: any[]) {
     'STATUS',
     'RESPONSÁVEL',
     'MESA',
-    'SLA RESPOSTA CUMPIDO',
+    'SLA RESPOSTA CUMPRIDO',
     'SLA RESOLUÇÃO CUMPRIDO',
     'NOTA CSAT (ESTRELAS)',
     'COMENTÁRIO CSAT',
@@ -58,7 +58,8 @@ export function exportTicketsToExcel(tickets: any[]) {
     `"${t.createdAt ? new Date(t.createdAt).toLocaleString('pt-BR') : ''}"`
   ]);
 
-  const csvContent = [headers.join(';'), ...rows.map(r => r.join(';'))].join('\n');
+  const metaHeader = periodText ? [`"RELATÓRIO DE TICKETS ITSM - PERÍODO: ${periodText}"`, ''] : [];
+  const csvContent = [...metaHeader, headers.join(';'), ...rows.map(r => r.join(';'))].join('\n');
   const filename = `relatorio_tickets_${new Date().toISOString().slice(0, 10)}.csv`;
   downloadCsvFile(filename, csvContent);
 }
@@ -66,7 +67,7 @@ export function exportTicketsToExcel(tickets: any[]) {
 /**
  * Exporta os registros de Auditoria de Segurança em formato compatível com Excel
  */
-export function exportAuditLogsToExcel(logs: any[]) {
+export function exportAuditLogsToExcel(logs: any[], periodText?: string) {
   const headers = [
     'PROTOCOLO',
     'AÇÃO / ORIGEM',
@@ -87,7 +88,8 @@ export function exportAuditLogsToExcel(logs: any[]) {
     `"${log.createdAt ? new Date(log.createdAt).toLocaleString('pt-BR') : ''}"`
   ]);
 
-  const csvContent = [headers.join(';'), ...rows.map(r => r.join(';'))].join('\n');
+  const metaHeader = periodText ? [`"TRILHA DE AUDITORIA ISO 27001 - PERÍODO: ${periodText}"`, ''] : [];
+  const csvContent = [...metaHeader, headers.join(';'), ...rows.map(r => r.join(';'))].join('\n');
   const filename = `auditoria_seguranca_iso27001_${new Date().toISOString().slice(0, 10)}.csv`;
   downloadCsvFile(filename, csvContent);
 }

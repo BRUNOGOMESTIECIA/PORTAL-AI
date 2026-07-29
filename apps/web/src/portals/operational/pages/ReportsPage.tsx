@@ -18,14 +18,32 @@ export default function ReportsPage() {
   const total = stats.ticketsByStatus.reduce((s, t) => s + t.count, 0);
   const resolved = MOCK_TICKETS.filter((t) => ['resolved', 'closed'].includes(t.status)).length;
 
-  // Filtros simulados
-  const [period, setPeriod] = useState('Ultimos 30 dias');
+  // Filtros simulados com Período Personalizado
+  const [period, setPeriod] = useState('Últimos 30 dias');
+  const [customStartDate, setCustomStartDate] = useState('2026-01-01');
+  const [customEndDate, setCustomEndDate] = useState(new Date().toISOString().slice(0, 10));
+
   const [team, setTeam] = useState('Todas as Equipes');
   const [source, setSource] = useState('Todos os Canais');
   const [client, setClient] = useState('Todos os Clientes');
   const [status, setStatus] = useState('Todos os Status');
   const [category, setCategory] = useState('Todas as Categorias');
   const [priority, setPriority] = useState('Todas as Prioridades');
+
+  const activePeriodLabel = period === 'Personalizado'
+    ? `${customStartDate} até ${customEndDate}`
+    : period;
+
+  // Filtragem dinâmica de tickets
+  const filteredTickets = tickets.filter((t) => {
+    if (period === 'Personalizado') {
+      const ticketDate = new Date(t.createdAt).getTime();
+      const start = new Date(customStartDate).getTime();
+      const end = new Date(customEndDate + 'T23:59:59').getTime();
+      if (ticketDate < start || ticketDate > end) return false;
+    }
+    return true;
+  });
 
   return (
     <div className="space-y-6">
@@ -36,7 +54,8 @@ export default function ReportsPage() {
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Visão consolidada da operação de atendimento</p>
         </div>
         
-        <div className="flex items-center gap-3 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0 hide-scrollbar">
+        <div className="flex items-center gap-3 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0 hide-scrollbar flex-wrap sm:flex-nowrap">
+          {/* Período */}
           <div className="flex items-center bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 shrink-0">
             <Calendar className="w-4 h-4 text-slate-400 mr-2" />
             <select 
@@ -47,8 +66,29 @@ export default function ReportsPage() {
               <option>Últimos 7 dias</option>
               <option>Últimos 30 dias</option>
               <option>Este Ano</option>
+              <option value="Personalizado">📅 Período Personalizado</option>
             </select>
           </div>
+
+          {/* Seletores de Data Inicial e Final quando Período = Personalizado */}
+          {period === 'Personalizado' && (
+            <div className="flex items-center gap-2 bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/80 rounded-lg px-3 py-1.5 shrink-0 animate-in fade-in duration-150">
+              <label className="text-xs font-bold text-blue-700 dark:text-blue-300">De:</label>
+              <input
+                type="date"
+                value={customStartDate}
+                onChange={(e) => setCustomStartDate(e.target.value)}
+                className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs font-semibold text-slate-800 dark:text-slate-200 rounded-md px-2 py-1 outline-none"
+              />
+              <label className="text-xs font-bold text-blue-700 dark:text-blue-300">Até:</label>
+              <input
+                type="date"
+                value={customEndDate}
+                onChange={(e) => setCustomEndDate(e.target.value)}
+                className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs font-semibold text-slate-800 dark:text-slate-200 rounded-md px-2 py-1 outline-none"
+              />
+            </div>
+          )}
 
           <div className="flex items-center bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 shrink-0">
             <Building2 className="w-4 h-4 text-slate-400 mr-2" />
@@ -132,14 +172,14 @@ export default function ReportsPage() {
 
           <div className="flex items-center gap-2 shrink-0">
             <button
-              onClick={() => exportTicketsToExcel(MOCK_TICKETS)}
+              onClick={() => exportTicketsToExcel(filteredTickets.length > 0 ? filteredTickets : tickets, activePeriodLabel)}
               className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium px-3.5 py-2 rounded-lg transition-colors shadow-sm cursor-pointer"
             >
               <Download className="w-4 h-4" /> Excel (.xlsx)
             </button>
 
             <button
-              onClick={() => generateExecutivePdfReport(stats, period)}
+              onClick={() => generateExecutivePdfReport(stats, activePeriodLabel)}
               className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-3.5 py-2 rounded-lg transition-colors shadow-sm cursor-pointer"
             >
               <Download className="w-4 h-4" /> Relatório PDF
