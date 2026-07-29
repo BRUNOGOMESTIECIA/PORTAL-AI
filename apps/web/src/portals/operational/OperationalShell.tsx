@@ -3,7 +3,7 @@ import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Ticket, MessageCircle, MessageSquare, BookOpen,
   ShoppingBag, BarChart3, Users, Settings, ChevronLeft, ChevronRight, ChevronUp, ChevronDown,
-  Bell, LogOut, User, ShieldCheck, Menu, X, Building2, Wrench, Plus, Clock, ArrowRightLeft
+  Bell, LogOut, User, ShieldCheck, Menu, X, Building2, Wrench, Plus, Clock, ArrowRightLeft, Volume2, VolumeX, BellRing
 } from 'lucide-react';
 import { useAuth } from '../../hooks/use-mock-auth';
 import { MockStaff, MOCK_STAFF, MOCK_NOTIFICATIONS } from '../../mocks/data';
@@ -18,6 +18,8 @@ import { Sun, Moon, Palette } from 'lucide-react';
 import { UserMenu } from '../../components/layout/UserMenu';
 import { toast } from 'sonner';
 import { ErrorBoundary } from '../../components/ErrorBoundary';
+import { getSoundSettings, saveSoundSettings, playAlertSound } from '../../lib/sound-effects';
+import { useNotifications } from '../../hooks/use-notifications';
 
 interface NavItem { label: string; path: string; icon: React.ComponentType<{ className?: string }>; permission?: string; badge?: number }
 
@@ -314,6 +316,20 @@ export default function OperationalShell() {
   const { chats } = useChats();
   const { tickets } = useTickets();
   const { theme, setTheme } = useTheme();
+  const { permission, requestPermission } = useNotifications();
+  const [soundConfig, setSoundConfig] = useState(() => getSoundSettings());
+
+  const toggleSound = () => {
+    const updated = saveSoundSettings({ enabled: !soundConfig.enabled });
+    setSoundConfig(updated);
+    if (updated.enabled) {
+      playAlertSound('chime', updated.volume);
+      toast.success('Alertas sonoros ativados');
+    } else {
+      toast.info('Alertas sonoros silenciados');
+    }
+  };
+
   const staff = user as MockStaff;
   const location = useLocation();
   const navigate = useNavigate();
@@ -612,6 +628,31 @@ export default function OperationalShell() {
           <div className="flex items-center gap-2">
             
             <SystemClock />
+
+            {/* Sound Toggle */}
+            <button
+              onClick={toggleSound}
+              title={soundConfig.enabled ? "Som de alertas ativado (Clique para silenciar)" : "Som de alertas silenciado (Clique para ativar)"}
+              className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-500"
+            >
+              {soundConfig.enabled ? (
+                <Volume2 className="h-4 w-4 text-blue-600" />
+              ) : (
+                <VolumeX className="h-4 w-4 text-slate-400" />
+              )}
+            </button>
+
+            {/* Desktop Notification Request */}
+            {permission !== 'granted' && (
+              <button
+                onClick={requestPermission}
+                title="Ativar Notificações Desktop"
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 text-xs font-semibold transition-colors"
+              >
+                <BellRing className="h-3.5 w-3.5" />
+                <span>Ativar Alertas</span>
+              </button>
+            )}
 
             {/* Notifications */}
             <div className="relative" ref={notificationsRef}>

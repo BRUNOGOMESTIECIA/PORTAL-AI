@@ -10,6 +10,8 @@ import { useChats } from '../../../hooks/use-chats';
 import { instaPassoDb } from '../../../lib/firebase';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { EmojiStickerPicker } from '../../../components/chat/EmojiStickerPicker';
+import { playAlertSound } from '../../../lib/sound-effects';
+import { useNotifications } from '../../../hooks/use-notifications';
 
 type ChatTab = 'entrada' | 'meus' | 'em_atendimento' | 'encerrados';
 
@@ -82,10 +84,55 @@ export default function ChatQueuePage() {
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const { sendNotification } = useNotifications();
+  const prevChatsRef = useRef<MockChatSession[]>(chats);
+
   const [sunTzuMode, setSunTzuMode] = useState(() => {
     const saved = localStorage.getItem('portal_sun_tzu_mode');
     return saved !== null ? JSON.parse(saved) : false;
   });
+
+  // Alertas sonoros e Notificações Desktop quando entram novos chats/mensagens
+  useEffect(() => {
+    const prevChats = prevChatsRef.current;
+    if (prevChats.length > 0) {
+      // 1. Detecta novos chats na fila
+      const newWaiting = chats.filter(c => c.status === 'waiting' && !prevChats.some(pc => pc.id === c.id));
+      if (newWaiting.length > 0) {
+        playAlertSound('chime');
+        sendNotification({
+          title: 'Novo Cliente na Fila!',
+          body: `${newWaiting[0].clientName} iniciou um atendimento ao vivo.`,
+          onClick: () => {
+            setSelectedId(newWaiting[0].id);
+            setActiveTab('entrada');
+          }
+        });
+      }
+
+      // 2. Detecta novas mensagens de clientes
+      chats.forEach(chat => {
+        const prev = prevChats.find(pc => pc.id === chat.id);
+        if (prev && chat.messages.length > prev.messages.length) {
+          const lastMsg = chat.messages[chat.messages.length - 1];
+          if (lastMsg.senderType === 'user') {
+            playAlertSound('pop');
+            if (document.hidden || selectedId !== chat.id) {
+              sendNotification({
+                title: `Nova mensagem de ${chat.clientName}`,
+                body: lastMsg.body,
+                onClick: () => {
+                  setSelectedId(chat.id);
+                }
+              });
+            }
+          }
+        }
+      });
+    }
+
+    prevChatsRef.current = chats;
+  }, [chats, sendNotification, selectedId]);
 
   const isAdmin = user && 'role' in user && (user as any).role === 'Administrator';
   const isSunTzuBlocked = sunTzuMode && !isAdmin;

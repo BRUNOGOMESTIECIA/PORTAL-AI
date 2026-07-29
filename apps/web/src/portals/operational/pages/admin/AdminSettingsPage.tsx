@@ -3,12 +3,14 @@ import {
   Building2, Clock, BarChart, Link as LinkIcon, 
   Bell, LayoutGrid, Palette, Save, ChevronRight, 
   Check, X, Image as ImageIcon, CheckSquare, Users,
-  Calendar, Plus, Trash2, Download, Loader2, Info, MessageSquareText
+  Calendar, Plus, Trash2, Download, Loader2, Info, MessageSquareText, Volume2, VolumeX, BellRing, Play
 } from 'lucide-react';
 import { cn } from '../../../../lib/utils';
 import { SuccessModal } from '../../../../components/shared/SuccessModal';
 import { toast } from 'sonner';
 import { MOCK_CLIENTS, MOCK_MACROS } from '../../../../mocks/data';
+import { getSoundSettings, saveSoundSettings, playAlertSound, AlertTone } from '../../../../lib/sound-effects';
+import { useNotifications } from '../../../../hooks/use-notifications';
 
 type SettingsTab = 'identity' | 'business_hours' | 'holidays' | 'sso' | 'notifications' | 'modules' | 'macros';
 
@@ -26,6 +28,31 @@ export default function AdminSettingsPage() {
   const [activeTab, setActiveTab] = useState<SettingsTab>('identity');
   const [isSaving, setIsSaving] = useState(false);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+
+  const { permission, requestPermission, sendNotification } = useNotifications();
+  const [soundForm, setSoundForm] = useState(() => getSoundSettings());
+
+  const handleSoundChange = (updates: Partial<typeof soundForm>) => {
+    const updated = saveSoundSettings(updates);
+    setSoundForm(updated);
+  };
+
+  const handleTestSound = (tone?: AlertTone) => {
+    playAlertSound(tone || soundForm.tone, soundForm.volume);
+    toast.success(`Testando som de alerta (${tone || soundForm.tone})`);
+  };
+
+  const handleTestNotification = () => {
+    if (permission !== 'granted') {
+      requestPermission();
+    } else {
+      sendNotification({
+        title: 'Notificação de Teste ITSM',
+        body: 'Os alertas visuais de área de trabalho estão funcionando perfeitamente!'
+      });
+      handleTestSound();
+    }
+  };
 
   // MOCK STATE FOR DEMO PURPOSES
   const [profileForm, setProfileForm] = useState({
@@ -693,28 +720,134 @@ export default function AdminSettingsPage() {
       case 'notifications':
         return (
           <div className="space-y-6">
-            <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Notificações</h2>
-            <p className="text-sm text-slate-500">Configure os eventos que disparam e-mails automáticos.</p>
+            <div>
+              <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Som & Notificações de Atendimento</h2>
+              <p className="text-sm text-slate-500">Configure os alertas sonoros e notificações em tempo real para os operadores no chat.</p>
+            </div>
 
-            <div className="space-y-3 mt-4">
-              {[
-                { title: 'Novo Chamado', desc: 'Avisar agentes quando um chamado for aberto', active: true },
-                { title: 'Atualização no Chamado', desc: 'Avisar o cliente e agentes quando houver um comentário', active: true },
-                { title: 'Chamado Resolvido', desc: 'Enviar e-mail para o cliente após resolução', active: true },
-                { title: 'Alerta de SLA', desc: 'Avisar gerente se SLA estiver prestes a estourar (1 hora)', active: false },
-                { title: 'Alerta de Inatividade', desc: 'Lembrar cliente de responder após 3 dias', active: false },
-              ].map((notif, idx) => (
-                <div key={idx} className="flex items-center justify-between p-4 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900">
-                  <div>
-                    <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">{notif.title}</h3>
-                    <p className="text-xs text-slate-500 mt-0.5">{notif.desc}</p>
+            {/* Painel de Controle de Som */}
+            <div className="p-5 border border-slate-200 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 space-y-5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                    {soundForm.enabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
                   </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" className="sr-only peer" defaultChecked={notif.active} />
-                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-blue-600"></div>
-                  </label>
+                  <div>
+                    <h3 className="font-bold text-slate-800 dark:text-slate-100 text-sm">Alertas Sonoros de Atendimento</h3>
+                    <p className="text-xs text-slate-500">Emitir tom de áudio quando novos clientes entrarem na fila ou enviarem mensagens</p>
+                  </div>
                 </div>
-              ))}
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="sr-only peer"
+                    checked={soundForm.enabled}
+                    onChange={(e) => handleSoundChange({ enabled: e.target.checked })}
+                  />
+                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-blue-600"></div>
+                </label>
+              </div>
+
+              {soundForm.enabled && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                      Tom de Alerta
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={soundForm.tone}
+                        onChange={(e) => handleSoundChange({ tone: e.target.value as AlertTone })}
+                        className="flex-1 h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-xs outline-none focus:border-blue-500 font-medium"
+                      >
+                        <option value="chime">Chime ITSM (Duas notas - Padrão)</option>
+                        <option value="bell">Campainha de Balcão (Bell)</option>
+                        <option value="pop">Pop Curto (Mensagens)</option>
+                        <option value="pulse">Pulse Duplo (Alerta Urgente)</option>
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => handleTestSound()}
+                        className="h-10 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-medium transition-colors flex items-center gap-1"
+                        title="Ouvir amostra"
+                      >
+                        <Play className="w-3.5 h-3.5 fill-current" />
+                        Testar
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between items-center mb-1.5">
+                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Volume do Áudio
+                      </label>
+                      <span className="text-xs font-bold text-blue-600 dark:text-blue-400">{soundForm.volume}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={soundForm.volume}
+                      onChange={(e) => handleSoundChange({ volume: Number(e.target.value) })}
+                      className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-600 mt-2"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Painel de Notificações Desktop */}
+            <div className="p-5 border border-slate-200 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+                    <BellRing className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-800 dark:text-slate-100 text-sm">Notificações Nativas da Área de Trabalho</h3>
+                    <p className="text-xs text-slate-500">Exibir balões de alerta do sistema operacional quando a aba estiver minimizada</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
+                    permission === 'granted' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400' : 'bg-amber-50 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400'
+                  }`}>
+                    {permission === 'granted' ? 'Ativo' : permission === 'denied' ? 'Bloqueado' : 'Pendente'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleTestNotification}
+                    className="h-9 px-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-semibold transition-colors"
+                  >
+                    {permission === 'granted' ? 'Enviar Notificação de Teste' : 'Solicitar Permissão'}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 mb-3">Eventos de Notificação por E-mail</h3>
+              <div className="space-y-3">
+                {[
+                  { title: 'Novo Chamado', desc: 'Avisar agentes quando um chamado for aberto', active: true },
+                  { title: 'Atualização no Chamado', desc: 'Avisar o cliente e agentes quando houver um comentário', active: true },
+                  { title: 'Chamado Resolvido', desc: 'Enviar e-mail para o cliente após resolução', active: true },
+                  { title: 'Alerta de SLA', desc: 'Avisar gerente se SLA estiver prestes a estourar (1 hora)', active: false },
+                  { title: 'Alerta de Inatividade', desc: 'Lembrar cliente de responder após 3 dias', active: false },
+                ].map((notif, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-4 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900">
+                    <div>
+                      <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">{notif.title}</h3>
+                      <p className="text-xs text-slate-500 mt-0.5">{notif.desc}</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" className="sr-only peer" defaultChecked={notif.active} />
+                      <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         );
