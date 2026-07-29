@@ -53,7 +53,7 @@ export async function logSecurityAudit(entry: Omit<SecurityAuditEntry, 'createdA
 }
 
 /**
- * Gera um protocolo corporativo no formato #2026-XXXX de acordo com o ano corrente
+ * Gera um protocolo corporativo no formato #2026XXXX de acordo com o ano corrente (sem hífen)
  */
 export function generateCorporateProtocol(seed?: number | string): string {
   const currentYear = new Date().getFullYear();
@@ -63,22 +63,21 @@ export function generateCorporateProtocol(seed?: number | string): string {
   } else {
     numStr = numStr.slice(-4);
   }
-  return `#${currentYear}-${numStr.padStart(4, '0')}`;
+  return `#${currentYear}${numStr.padStart(4, '0')}`;
 }
 
 /**
- * Garante a formatação padronizada do Protocolo / Ticket no formato #2026-XXXX
+ * Garante a formatação padronizada do Protocolo / Ticket no formato #2026XXXX (sem hífen)
  */
 export function formatTicketProtocol(seed: any): string {
   if (!seed) {
     const year = new Date().getFullYear();
-    return `#${year}-1042`;
+    return `#${year}1042`;
   }
-  const str = String(seed).trim();
+  const str = String(seed).trim().replace(/-/g, '');
   if (str.startsWith('#')) return str;
-  if (str.match(/^\d{4}-\d{4}$/)) return `#${str}`;
   const year = new Date().getFullYear();
   const numOnly = str.replace(/\D/g, '');
   const num = numOnly ? numOnly.slice(-4).padStart(4, '0') : '1042';
-  return `#${year}-${num}`;
+  return `#${year}${num}`;
 }
