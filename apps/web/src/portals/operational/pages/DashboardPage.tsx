@@ -77,7 +77,7 @@ export default function DashboardPage() {
   const total = tickets.length || 1; // Evitar divisão por zero
 
   const recentActivity = [...tickets].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 4).map(t => ({
-    text: `${t.requesterName} abriu chamado #${t.number}`,
+    text: `${t.requesterName} abriu ticket #${t.number}`,
     time: formatDistanceToNow(new Date(t.createdAt), { addSuffix: true, locale: ptBR })
   }));
 
@@ -97,7 +97,7 @@ export default function DashboardPage() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Chamados abertos" value={openTicketsCount} sub="Todos os status ativos" icon={Ticket} color="bg-blue-50 text-blue-600" />
+        <StatCard label="Tickets abertos" value={openTicketsCount} sub="Todos os status ativos" icon={Ticket} color="bg-blue-50 text-blue-600" />
         <StatCard label="Críticos / Altos" value={criticalTicketsCount} sub="Requer atenção imediata" icon={AlertTriangle} color="bg-red-50 text-red-600" />
         <StatCard label="Chats na fila" value={waitingChats.length} sub={`${activeChats.length} em atendimento`} icon={MessageCircle} color="bg-emerald-50 text-emerald-600" />
         <StatCard label="SLA compliance" value={`${stats.slaCompliance}%`} sub={`Média: ${stats.avgResolutionHours}h resolução`} icon={TrendingUp} color="bg-violet-50 text-violet-600" />
@@ -106,7 +106,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Tickets by status chart */}
         <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-          <h2 className="text-sm font-semibold text-slate-700 mb-4">Chamados por status</h2>
+          <h2 className="text-sm font-semibold text-slate-700 mb-4">Tickets por status</h2>
           <div className="space-y-3">
             {ticketsByStatus.map((item) => (
               <div key={item.label}>
@@ -221,7 +221,7 @@ export default function DashboardPage() {
       {/* Recent tickets */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-          <h2 className="text-sm font-semibold text-slate-700">Chamados recentes</h2>
+          <h2 className="text-sm font-semibold text-slate-700">Tickets recentes</h2>
           <Link to="/operacional/app/tickets" className="text-xs text-blue-600 hover:underline flex items-center gap-0.5">
             Ver todos <ChevronRight className="h-3 w-3" />
           </Link>
