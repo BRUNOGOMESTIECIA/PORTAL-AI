@@ -207,10 +207,10 @@ export default function ToolsPage() {
         </div>
 
         {/* Iframe Embutido do Portal InstaPasso */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-lg overflow-hidden relative">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-lg overflow-hidden relative w-full">
           <iframe
             src="https://insta-passo.vercel.app/"
-            className="w-full h-[780px] border-0"
+            className="w-full min-h-[620px] h-[calc(100vh-200px)] border-0 rounded-2xl"
             title="Portal InstaPasso Admin"
           />
         </div>
