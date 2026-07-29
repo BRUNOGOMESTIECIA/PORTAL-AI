@@ -20,6 +20,7 @@ export function ChatWidget() {
   const [hoursTooltip, setHoursTooltip] = useState(false);
   const [widgetCsatScore, setWidgetCsatScore] = useState(0);
   const [widgetCsatHovered, setWidgetCsatHovered] = useState(0);
+  const [widgetCsatComment, setWidgetCsatComment] = useState('');
   const [widgetCsatSubmitted, setWidgetCsatSubmitted] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -308,7 +309,7 @@ export function ChatWidget() {
                 {widgetCsatSubmitted ? (
                   <div>
                     <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mb-2">✓ Avaliação enviada! Obrigado pelo seu feedback.</p>
-                    <button onClick={() => { setWidgetCsatSubmitted(false); startChat(); }} className="text-xs font-semibold text-blue-600 hover:underline">
+                    <button onClick={() => { setWidgetCsatSubmitted(false); setWidgetCsatScore(0); setWidgetCsatComment(''); startChat(); }} className="text-xs font-semibold text-blue-600 hover:underline cursor-pointer">
                       Iniciar novo atendimento
                     </button>
                   </div>
@@ -320,20 +321,7 @@ export function ChatWidget() {
                         <button
                           key={n}
                           type="button"
-                          onClick={async () => {
-                            setWidgetCsatScore(n);
-                            setWidgetCsatSubmitted(true);
-                            if (activeChat) {
-                              await updateChat(activeChat.id, { rating: n } as any);
-                              logSecurityAudit({
-                                protocol: formatTicketProtocol(activeChat.ticketId || activeChat.id),
-                                action: `Avaliação CSAT Chat (${n} Estrelas)`,
-                                originPortal: 'Portal do Cliente',
-                                userName: user?.name || 'Cliente',
-                                userEmail: user?.email || '',
-                              });
-                            }
-                          }}
+                          onClick={() => setWidgetCsatScore(n)}
                           onMouseEnter={() => setWidgetCsatHovered(n)}
                           onMouseLeave={() => setWidgetCsatHovered(0)}
                           className="transition-transform hover:scale-110 cursor-pointer"
@@ -348,9 +336,44 @@ export function ChatWidget() {
                         </button>
                       ))}
                     </div>
-                    <button onClick={() => startChat()} className="text-xs font-medium text-slate-500 hover:text-blue-600 transition-colors">
-                      Iniciar novo atendimento
-                    </button>
+
+                    <textarea
+                      value={widgetCsatComment}
+                      onChange={(e) => setWidgetCsatComment(e.target.value)}
+                      placeholder="Deixe seu comentário sobre o suporte (opcional)..."
+                      rows={2}
+                      className="w-full text-xs p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 outline-none focus:border-blue-500 mb-2"
+                    />
+
+                    <div className="flex items-center justify-between gap-2">
+                      <button onClick={() => startChat()} className="text-xs font-medium text-slate-500 hover:text-blue-600 transition-colors cursor-pointer">
+                        Iniciar novo
+                      </button>
+                      <button
+                        disabled={widgetCsatScore === 0}
+                        onClick={async () => {
+                          setWidgetCsatSubmitted(true);
+                          if (activeChat) {
+                            await updateChat(activeChat.id, {
+                              rating: widgetCsatScore,
+                              ratingComment: widgetCsatComment
+                            } as any);
+
+                            logSecurityAudit({
+                              protocol: formatTicketProtocol(activeChat.ticketId || activeChat.id),
+                              action: `Avaliação CSAT Chat (${widgetCsatScore} Estrelas)`,
+                              originPortal: 'Portal do Cliente',
+                              userName: user?.name || 'Cliente',
+                              userEmail: user?.email || '',
+                              details: widgetCsatComment ? `Comentário: ${widgetCsatComment}` : 'Sem comentário'
+                            });
+                          }
+                        }}
+                        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white font-semibold text-xs rounded-lg transition-colors cursor-pointer"
+                      >
+                        Enviar Avaliação
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
