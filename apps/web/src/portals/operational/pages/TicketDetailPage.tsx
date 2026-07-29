@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { useAuth } from '../../../hooks/use-mock-auth';
 import { useTickets } from '../../../hooks/use-tickets';
 import { formatTicketProtocol } from '../../../lib/audit-logger';
+import SlaCountdownBar from '../components/SlaCountdownBar';
 
 const STATUS_CONFIG: Record<TicketStatus, { label: string; color: string }> = {
   new: { label: 'Novo', color: 'bg-indigo-100 text-indigo-700' },
@@ -82,7 +83,18 @@ export default function TicketDetailPage() {
             </select>
           </div>
         </div>
-        <h1 className="text-xl font-bold text-slate-900 mb-4">{ticket.title}</h1>
+        <h1 className="text-xl font-bold text-slate-900 mb-3">{ticket.title}</h1>
+
+        {/* SLA Live Timer Banner */}
+        <div className="mb-4">
+          <SlaCountdownBar
+            dueIsoString={ticket.slaResolutionDue}
+            createdIsoString={ticket.createdAt}
+            status={ticket.status}
+            compact={false}
+            showProgressBar={true}
+          />
+        </div>
 
         {/* Meta grid */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 py-4 border-y border-slate-100">

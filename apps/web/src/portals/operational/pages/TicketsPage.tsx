@@ -1,11 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Plus, Users, Clock, Building2, LayoutGrid } from 'lucide-react';
+import { Plus, Users, Clock, Building2, LayoutGrid, List, Kanban as KanbanIcon, AlertTriangle } from 'lucide-react';
 import { TicketStatus, TicketPriority, MockTicket, MOCK_CLIENTS } from '../../../mocks/data';
 import { formatDistanceToNow, isAfter, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { TicketsFilterBar, TicketFilters } from '../components/TicketsFilterBar';
 import { NewManualTicketModal } from '../components/NewManualTicketModal';
+import SlaCountdownBar from '../components/SlaCountdownBar';
 import { useAuth } from '../../../hooks/use-mock-auth';
 import { useTickets } from '../../../hooks/use-tickets';
 
@@ -50,6 +51,7 @@ export default function TicketsPage() {
   
   const [statusFilter, setStatusFilter]         = useState<StatusFilterType>('active');
   const [groupMode, setGroupMode]               = useState<GroupMode>('team');
+  const [viewLayout, setViewLayout]             = useState<'kanban' | 'table'>('kanban');
   const [showNewTicketModal, setShowNewTicketModal] = useState(false);
   const [advancedFilters, setAdvancedFilters]   = useState<TicketFilters>({
     search: '', company: [], team: [], requesterName: [], assigneeName: [], period: []
@@ -218,11 +220,13 @@ export default function TicketsPage() {
                   <td className="px-4 py-3">
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wide ${st.color}`}>{st.label}</span>
                   </td>
-                  <td className="px-4 py-3 text-xs text-slate-500 dark:text-slate-400 hidden sm:table-cell">
-                    <div className="flex items-center gap-1">
-                      <Clock className="w-3 h-3 text-slate-400" />
-                      {formatDistanceToNow(new Date(ticket.slaResolutionDue), { addSuffix: true, locale: ptBR })}
-                    </div>
+                  <td className="px-4 py-3 text-xs hidden sm:table-cell">
+                    <SlaCountdownBar 
+                      dueIsoString={ticket.slaResolutionDue} 
+                      createdIsoString={ticket.createdAt} 
+                      status={ticket.status} 
+                      compact={true} 
+                    />
                   </td>
                 </tr>
               );
@@ -230,6 +234,58 @@ export default function TicketsPage() {
           </tbody>
         </table>
       </div>
+    </div>
+  );
+  const TicketKanbanGrid = ({ tickets, showCompany = false }: { tickets: MockTicket[]; showCompany?: boolean }) => (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      {tickets.map((ticket) => {
+        const st  = STATUS_CONFIG[ticket.status];
+        const pri = PRIORITY_CONFIG[ticket.priority];
+        return (
+          <div
+            key={ticket.id}
+            className="group flex flex-col justify-between p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 space-y-3"
+          >
+            {/* Top Bar: Protocol + Status Badge */}
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-mono text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 px-2 py-0.5 rounded-md">
+                {formatTicketProtocol(ticket.number)}
+              </span>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wide ${st.color}`}>
+                {st.label}
+              </span>
+            </div>
+
+            {/* Title & Solicitante */}
+            <div>
+              <Link
+                to={`/operacional/app/tickets/${ticket.id}`}
+                className="font-bold text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors text-sm line-clamp-2 leading-snug"
+              >
+                {ticket.title}
+              </Link>
+              <div className="flex items-center justify-between mt-2 text-xs text-slate-500 dark:text-slate-400">
+                <span className="truncate font-medium">{ticket.requesterName}</span>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <div className={`w-2 h-2 rounded-full ${pri.dot}`} />
+                  <span className="text-[11px]">{pri.label}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* SLA Real-Time Timer & Dynamic Progress Bar */}
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80">
+              <SlaCountdownBar
+                dueIsoString={ticket.slaResolutionDue}
+                createdIsoString={ticket.createdAt}
+                status={ticket.status}
+                compact={false}
+                showProgressBar={true}
+              />
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 
@@ -281,31 +337,58 @@ export default function TicketsPage() {
           ))}
         </div>
 
-        {/* Toggle Agrupar por */}
-        <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl p-1 self-start sm:self-auto flex-shrink-0">
-          <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-2">
-            <LayoutGrid className="inline w-3 h-3 mr-0.5 -mt-0.5" />Agrupar:
-          </span>
-          <button
-            onClick={() => setGroupMode('team')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 ${
-              groupMode === 'team'
-                ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 shadow-sm'
-                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-            }`}
-          >
-            <Users className="w-3 h-3" /> Mesa
-          </button>
-          <button
-            onClick={() => setGroupMode('client')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 ${
-              groupMode === 'client'
-                ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 shadow-sm'
-                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-            }`}
-          >
-            <Building2 className="w-3 h-3" /> Cliente
-          </button>
+        {/* Seletores de Agrupamento e Layout */}
+        <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+          {/* Layout: Cartões SLA vs Tabela */}
+          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl p-1">
+            <button
+              onClick={() => setViewLayout('kanban')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 ${
+                viewLayout === 'kanban'
+                  ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 shadow-sm'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+              }`}
+            >
+              <KanbanIcon className="w-3.5 h-3.5 text-blue-500" /> Cartões SLA
+            </button>
+            <button
+              onClick={() => setViewLayout('table')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 ${
+                viewLayout === 'table'
+                  ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 shadow-sm'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+              }`}
+            >
+              <List className="w-3.5 h-3.5 text-slate-400" /> Tabela
+            </button>
+          </div>
+
+          {/* Agrupar por Mesa vs Cliente */}
+          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl p-1 flex-shrink-0">
+            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-2">
+              <LayoutGrid className="inline w-3 h-3 mr-0.5 -mt-0.5" />Agrupar:
+            </span>
+            <button
+              onClick={() => setGroupMode('team')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 ${
+                groupMode === 'team'
+                  ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 shadow-sm'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+              }`}
+            >
+              <Users className="w-3 h-3" /> Mesa
+            </button>
+            <button
+              onClick={() => setGroupMode('client')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 ${
+                groupMode === 'client'
+                  ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 shadow-sm'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+              }`}
+            >
+              <Building2 className="w-3 h-3" /> Cliente
+            </button>
+          </div>
         </div>
       </div>
 
@@ -327,7 +410,11 @@ export default function TicketsPage() {
                   {groupedByTeam.groups[teamName].length} tickets
                 </span>
               </h2>
-              <TicketTable tickets={groupedByTeam.groups[teamName]} showCompany={false} />
+              {viewLayout === 'kanban' ? (
+                <TicketKanbanGrid tickets={groupedByTeam.groups[teamName]} showCompany={false} />
+              ) : (
+                <TicketTable tickets={groupedByTeam.groups[teamName]} showCompany={false} />
+              )}
             </div>
           ))
 
@@ -365,7 +452,11 @@ export default function TicketsPage() {
                     )}
                   </div>
                 </div>
-                <TicketTable tickets={tickets} showCompany={true} />
+                {viewLayout === 'kanban' ? (
+                  <TicketKanbanGrid tickets={tickets} showCompany={true} />
+                ) : (
+                  <TicketTable tickets={tickets} showCompany={true} />
+                )}
               </div>
             );
           })
