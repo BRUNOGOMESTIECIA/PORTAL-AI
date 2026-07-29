@@ -7,6 +7,7 @@ import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { useAuth } from '../../../hooks/use-mock-auth';
 import { useTickets } from '../../../hooks/use-tickets';
+import { formatTicketProtocol } from '../../../lib/audit-logger';
 
 const STATUS_CONFIG: Record<TicketStatus, { label: string; color: string }> = {
   new: { label: 'Novo', color: 'bg-indigo-100 text-indigo-700' },
@@ -58,7 +59,7 @@ export default function TicketDetailPage() {
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
         <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-mono text-slate-400">#{ticket.number}</span>
+            <span className="text-sm font-mono font-bold text-blue-600 dark:text-blue-400">{formatTicketProtocol(ticket.number)}</span>
             <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${st.color}`}>{st.label}</span>
             <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${pri.color}`}>{pri.label}</span>
             {slaBreached && <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-red-100 text-red-700">SLA Vencido</span>}

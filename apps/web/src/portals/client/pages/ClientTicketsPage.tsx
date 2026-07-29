@@ -16,6 +16,7 @@ import { useTickets } from '../../../hooks/use-tickets';
 import { format, formatDistanceToNow, isPast } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
+import { formatTicketProtocol } from '../../../lib/audit-logger';
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
@@ -472,7 +473,7 @@ function TicketCard({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 mb-1.5 text-xs text-slate-400 dark:text-slate-500 flex-wrap">
-              <span className="font-mono font-semibold text-slate-500 dark:text-slate-400 dark:text-slate-500">#{ticket.number}</span>
+              <span className="font-mono font-bold text-blue-600 dark:text-blue-400">{formatTicketProtocol(ticket.number)}</span>
               <span className="text-slate-300">·</span>
               <span>{ticket.type}</span>
               <span className="text-slate-300">·</span>

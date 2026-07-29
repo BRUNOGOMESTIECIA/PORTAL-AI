@@ -9,6 +9,8 @@ import { NewManualTicketModal } from '../components/NewManualTicketModal';
 import { useAuth } from '../../../hooks/use-mock-auth';
 import { useTickets } from '../../../hooks/use-tickets';
 
+import { formatTicketProtocol } from '../../../lib/audit-logger';
+
 const STATUS_CONFIG: Record<TicketStatus, { label: string; color: string }> = {
   new:         { label: 'Novo',          color: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400' },
   open:        { label: 'Aberto',        color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
@@ -181,7 +183,7 @@ export default function TicketsPage() {
               const pri = PRIORITY_CONFIG[ticket.priority];
               return (
                 <tr key={ticket.id} className="hover:bg-blue-50/50 dark:hover:bg-slate-800/50 transition-colors group">
-                  <td className="px-4 py-3 font-mono text-xs text-slate-500 dark:text-slate-400 font-medium">#{ticket.number}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-blue-600 dark:text-blue-400 font-bold whitespace-nowrap">{formatTicketProtocol(ticket.number)}</td>
                   <td className="px-4 py-3">
                     <Link
                       to={`/operacional/app/tickets/${ticket.id}`}
