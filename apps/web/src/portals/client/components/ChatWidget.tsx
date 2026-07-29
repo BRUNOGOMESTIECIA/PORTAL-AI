@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { MessageCircle, X, Send, Bot, Minimize2, Paperclip, Reply, Download } from 'lucide-react';
+import { MessageCircle, X, Send, Bot, Minimize2, Paperclip, Reply, Download, Star } from 'lucide-react';
 import { useAuth } from '../../../hooks/use-mock-auth';
 import { useChats } from '../../../hooks/use-chats';
 import { MockChatSession, MockChatMessage } from '../../../mocks/data';
 import { EmojiStickerPicker } from '../../../components/chat/EmojiStickerPicker';
 import { exportChatTranscriptToPdf } from '../../../lib/export-utils';
+import { formatTicketProtocol, logSecurityAudit } from '../../../lib/audit-logger';
 
 const BUSINESS_HOURS = [
   { days: 'Seg – Sex', hours: '08:00 – 18:00' },
@@ -17,6 +18,9 @@ export function ChatWidget() {
   const [minimized, setMinimized] = useState(false);
   const [input, setInput] = useState('');
   const [hoursTooltip, setHoursTooltip] = useState(false);
+  const [widgetCsatScore, setWidgetCsatScore] = useState(0);
+  const [widgetCsatHovered, setWidgetCsatHovered] = useState(0);
+  const [widgetCsatSubmitted, setWidgetCsatSubmitted] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const activeChat = useMemo(() => {
@@ -300,11 +304,55 @@ export function ChatWidget() {
               </div>
             )}
             {activeChat?.status === 'closed' ? (
-              <div className="text-center py-2">
-                <p className="text-xs text-slate-500 mb-2">Este chat foi encerrado.</p>
-                <button onClick={() => startChat()} className="text-sm font-semibold text-blue-600 hover:text-blue-700 transition-colors">
-                  Iniciar novo atendimento
-                </button>
+              <div className="text-center py-2.5 bg-slate-50 dark:bg-slate-900 rounded-xl p-3 border border-slate-200 dark:border-slate-700">
+                {widgetCsatSubmitted ? (
+                  <div>
+                    <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mb-2">✓ Avaliação enviada! Obrigado pelo seu feedback.</p>
+                    <button onClick={() => { setWidgetCsatSubmitted(false); startChat(); }} className="text-xs font-semibold text-blue-600 hover:underline">
+                      Iniciar novo atendimento
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200 mb-1.5">Como você avalia este atendimento?</p>
+                    <div className="flex justify-center gap-1.5 mb-2">
+                      {[1, 2, 3, 4, 5].map((n) => (
+                        <button
+                          key={n}
+                          type="button"
+                          onClick={async () => {
+                            setWidgetCsatScore(n);
+                            setWidgetCsatSubmitted(true);
+                            if (activeChat) {
+                              await updateChat(activeChat.id, { rating: n } as any);
+                              logSecurityAudit({
+                                protocol: formatTicketProtocol(activeChat.ticketId || activeChat.id),
+                                action: `Avaliação CSAT Chat (${n} Estrelas)`,
+                                originPortal: 'Portal do Cliente',
+                                userName: user?.name || 'Cliente',
+                                userEmail: user?.email || '',
+                              });
+                            }
+                          }}
+                          onMouseEnter={() => setWidgetCsatHovered(n)}
+                          onMouseLeave={() => setWidgetCsatHovered(0)}
+                          className="transition-transform hover:scale-110 cursor-pointer"
+                        >
+                          <Star
+                            className={`w-6 h-6 ${
+                              n <= (widgetCsatHovered || widgetCsatScore)
+                                ? 'fill-amber-400 text-amber-400'
+                                : 'text-slate-300 dark:text-slate-600'
+                            }`}
+                          />
+                        </button>
+                      ))}
+                    </div>
+                    <button onClick={() => startChat()} className="text-xs font-medium text-slate-500 hover:text-blue-600 transition-colors">
+                      Iniciar novo atendimento
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <form
