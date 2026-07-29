@@ -1,17 +1,67 @@
 import React from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { HeadphonesIcon, Ticket, BookOpen, LogOut, LayoutGrid, Bell, Sun, Moon } from 'lucide-react';
+import { HeadphonesIcon, Ticket, BookOpen, LogOut, LayoutGrid, Bell, Sun, Moon, Star, X, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../../hooks/use-mock-auth';
 import { ChatWidget } from './components/ChatWidget';
 import { MockClient, MOCK_NOTIFICATIONS, MockNotification } from '../../mocks/data';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useEscapeModal } from '../../hooks/use-escape-modal';
+import { useTickets } from '../../hooks/use-tickets';
+import { formatTicketProtocol, logSecurityAudit } from '../../lib/audit-logger';
 
 export default function ClientShell() {
   const { user, logout } = useAuth();
+  const { tickets, updateTicket } = useTickets();
   const location = useLocation();
   const client = user as MockClient;
+
+  // Estados do Modal Automático de Pesquisa CSAT
+  const [csatSubmitted, setCsatSubmitted] = React.useState(false);
+  const [csatScore, setCsatScore] = React.useState(0);
+  const [csatHovered, setCsatHovered] = React.useState(0);
+  const [csatComment, setCsatComment] = React.useState('');
+  const [dismissedTicketId, setDismissedTicketId] = React.useState<string | null>(null);
+
+  // Detecta chamados finalizados não avaliados pertencentes a este cliente
+  const unratedTicket = React.useMemo(() => {
+    if (!client) return null;
+    return tickets.find(t => 
+      (t.requesterEmail === client.email || t.requesterId === client.id) &&
+      ['resolved', 'closed'].includes(t.status) &&
+      !(t as any).rating &&
+      t.id !== dismissedTicketId
+    );
+  }, [tickets, client, dismissedTicketId]);
+
+  const handleSendCsat = async () => {
+    if (!unratedTicket || csatScore === 0) return;
+    
+    try {
+      await updateTicket(unratedTicket.id, {
+        rating: csatScore,
+        ratingComment: csatComment,
+        ratedAt: new Date().toISOString()
+      } as any);
+
+      logSecurityAudit({
+        protocol: formatTicketProtocol(unratedTicket.number || unratedTicket.id),
+        action: `Pesquisa CSAT (${csatScore} Estrelas)`,
+        originPortal: 'Portal do Cliente',
+        userName: client?.name || 'Cliente',
+        userEmail: client?.email || '',
+        details: csatComment ? `Comentário: ${csatComment}` : 'Sem comentário'
+      });
+
+      setCsatSubmitted(true);
+      setTimeout(() => {
+        setCsatSubmitted(false);
+        setDismissedTicketId(unratedTicket.id);
+      }, 2000);
+    } catch (e) {
+      console.error("Erro ao enviar avaliação CSAT:", e);
+    }
+  };
 
   const [showNotifications, setShowNotifications] = React.useState(false);
   const [notifications, setNotifications] = React.useState<MockNotification[]>(MOCK_NOTIFICATIONS);
@@ -192,6 +242,85 @@ export default function ClientShell() {
 
       {/* Floating chat */}
       <ChatWidget />
+
+      {/* Modal Automático de Pesquisa de Satisfação (CSAT / NPS) */}
+      {unratedTicket && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6 border border-slate-200 dark:border-slate-700">
+            {csatSubmitted ? (
+              <div className="text-center py-6">
+                <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto mb-3" />
+                <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Avaliação Registrada!</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Muito obrigado por seu feedback. Ele nos ajuda a melhorar a qualidade do suporte.</p>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700/60 pb-3 mb-4">
+                  <div>
+                    <span className="text-[11px] font-bold font-mono px-2 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400">
+                      {formatTicketProtocol(unratedTicket.number || unratedTicket.id)}
+                    </span>
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 mt-1">Chamado Concluído</h3>
+                  </div>
+                  <button onClick={() => setDismissedTicketId(unratedTicket.id)} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  <p className="text-xs text-slate-600 dark:text-slate-300 text-center font-medium">
+                    Como você avalia o atendimento prestado em <strong>"{unratedTicket.title}"</strong>?
+                  </p>
+
+                  <div className="flex justify-center gap-2 py-2">
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <button
+                        key={n}
+                        onClick={() => setCsatScore(n)}
+                        onMouseEnter={() => setCsatHovered(n)}
+                        onMouseLeave={() => setCsatHovered(0)}
+                        className="transition-transform hover:scale-110 cursor-pointer"
+                      >
+                        <Star
+                          className={`w-8 h-8 ${
+                            n <= (csatHovered || csatScore)
+                              ? 'fill-amber-400 text-amber-400'
+                              : 'text-slate-200 dark:text-slate-700'
+                          }`}
+                        />
+                      </button>
+                    ))}
+                  </div>
+
+                  <textarea
+                    value={csatComment}
+                    onChange={(e) => setCsatComment(e.target.value)}
+                    placeholder="Escreva um breve comentário (opcional)..."
+                    rows={3}
+                    className="w-full text-xs p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 outline-none focus:border-blue-500"
+                  />
+
+                  <div className="flex justify-end gap-2 pt-1">
+                    <button
+                      onClick={() => setDismissedTicketId(unratedTicket.id)}
+                      className="px-3.5 py-2 text-xs font-medium text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+                    >
+                      Avaliar Mais Tarde
+                    </button>
+                    <button
+                      disabled={csatScore === 0}
+                      onClick={handleSendCsat}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white font-semibold text-xs rounded-lg shadow-sm transition-colors cursor-pointer"
+                    >
+                      Enviar Avaliação
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

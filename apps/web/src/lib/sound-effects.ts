@@ -171,3 +171,24 @@ export function playAlertSound(customTone?: AlertTone, customVolume?: number) {
     }
   }
 }
+
+/**
+ * Toca efeito sonoro diferenciado de acordo com o nível / prioridade
+ */
+export function playLevelSound(level: 'N1' | 'N2' | 'N3' | 'critical' | 'chat') {
+  switch (level) {
+    case 'N1':
+    case 'chat':
+      playAlertSound('chime');
+      break;
+    case 'N2':
+    case 'N3':
+      playAlertSound('bell');
+      break;
+    case 'critical':
+      playAlertSound('pulse');
+      break;
+    default:
+      playAlertSound('chime');
+  }
+}
