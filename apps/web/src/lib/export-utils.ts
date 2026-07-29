@@ -35,6 +35,8 @@ export function exportTicketsToExcel(tickets: any[]) {
     'MESA',
     'SLA RESPOSTA CUMPIDO',
     'SLA RESOLUÇÃO CUMPRIDO',
+    'NOTA CSAT (ESTRELAS)',
+    'COMENTÁRIO CSAT',
     'DATA CRIAÇÃO'
   ];
 
@@ -51,6 +53,8 @@ export function exportTicketsToExcel(tickets: any[]) {
     `"${t.team || 'Triagem'}"`,
     `"${t.slaFirstResponseMet === true ? 'SIM' : t.slaFirstResponseMet === false ? 'NÃO' : 'EM ANDAMENTO'}"`,
     `"${t.slaResolutionMet === true ? 'SIM' : t.slaResolutionMet === false ? 'NÃO' : 'EM ANDAMENTO'}"`,
+    `"${t.rating ? `${t.rating}/5 Estrelas` : 'Sem avaliação'}"`,
+    `"${(t.ratingComment || '').replace(/"/g, '""')}"`,
     `"${t.createdAt ? new Date(t.createdAt).toLocaleString('pt-BR') : ''}"`
   ]);
 

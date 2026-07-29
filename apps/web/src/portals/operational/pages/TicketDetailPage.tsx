@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ChevronLeft, Clock, User, Tag, MessageSquare, Lock, Send, Sparkles } from 'lucide-react';
+import { ChevronLeft, Clock, User, Tag, MessageSquare, Lock, Send, Sparkles, Star } from 'lucide-react';
 import { TicketStatus, TicketPriority, MOCK_CATALOG_ITEMS } from '../../../mocks/data';
 import { formatDistanceToNow, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -161,6 +161,32 @@ export default function TicketDetailPage() {
             {ticket.tags.map((tag) => (
               <span key={tag} className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{tag}</span>
             ))}
+          </div>
+        )}
+
+        {/* Avaliação CSAT do Cliente */}
+        {(ticket as any).rating && (
+          <div className="mt-5 p-4 bg-amber-50/70 border border-amber-200/80 rounded-xl">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-1.5">
+                <Star className="w-4 h-4 fill-amber-400 text-amber-500" />
+                <span className="text-xs font-bold text-amber-900">Avaliação CSAT do Cliente</span>
+              </div>
+              <div className="flex items-center gap-0.5">
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <Star
+                    key={n}
+                    className={`w-3.5 h-3.5 ${n <= ((ticket as any).rating || 5) ? 'fill-amber-400 text-amber-400' : 'text-slate-200'}`}
+                  />
+                ))}
+                <span className="text-xs font-bold text-slate-800 ml-1">{(ticket as any).rating}.0</span>
+              </div>
+            </div>
+            {(ticket as any).ratingComment && (
+              <p className="text-xs text-slate-700 italic bg-white p-2.5 rounded-lg border border-amber-100 mt-1">
+                "{(ticket as any).ratingComment}"
+              </p>
+            )}
           </div>
         )}
       </div>

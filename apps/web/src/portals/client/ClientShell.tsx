@@ -16,12 +16,27 @@ export default function ClientShell() {
   const location = useLocation();
   const client = user as MockClient;
 
-  // Estados do Modal Automático de Pesquisa CSAT
+  // Estados do Modal Automático de Pesquisa CSAT (Reincidente a cada Login)
   const [csatSubmitted, setCsatSubmitted] = React.useState(false);
   const [csatScore, setCsatScore] = React.useState(0);
   const [csatHovered, setCsatHovered] = React.useState(0);
   const [csatComment, setCsatComment] = React.useState('');
-  const [dismissedTicketId, setDismissedTicketId] = React.useState<string | null>(null);
+  
+  // Lê chamados dispensados na sessão atual do navegador
+  const [dismissedTicketId, setDismissedTicketIdState] = React.useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem('csat_dismissed_ticket_id');
+    }
+    return null;
+  });
+
+  const setDismissedTicketId = (id: string | null) => {
+    setDismissedTicketIdState(id);
+    if (typeof window !== 'undefined') {
+      if (id) sessionStorage.setItem('csat_dismissed_ticket_id', id);
+      else sessionStorage.removeItem('csat_dismissed_ticket_id');
+    }
+  };
 
   // Detecta chamados finalizados não avaliados pertencentes a este cliente
   const unratedTicket = React.useMemo(() => {
