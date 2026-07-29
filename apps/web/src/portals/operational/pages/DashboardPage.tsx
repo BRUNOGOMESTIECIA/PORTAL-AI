@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Ticket, MessageCircle, TrendingUp, AlertTriangle, Clock, CheckCircle2, ChevronRight, Star } from 'lucide-react';
-import { MOCK_DASHBOARD_STATS, MOCK_STAFF } from '../../../mocks/data';
+import { MOCK_DASHBOARD_STATS, MOCK_STAFF, MOCK_TICKETS } from '../../../mocks/data';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useTickets } from '../../../hooks/use-tickets';
@@ -265,51 +265,55 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {tickets.filter(t => (t as any).rating).length === 0 ? (
-            <div className="col-span-2 text-center py-6 text-xs text-slate-400">
-              Nenhuma avaliação por estrelas registrada ainda nos chamados encerrados.
-            </div>
-          ) : (
-            tickets
-              .filter(t => (t as any).rating)
-              .slice(0, 4)
-              .map((ticket) => {
-                const score = (ticket as any).rating || 5;
-                const comment = (ticket as any).ratingComment;
-                return (
-                  <div key={ticket.id} className="bg-slate-50 border border-slate-100 rounded-xl p-4 flex flex-col justify-between">
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-[11px] font-bold font-mono bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
-                          {formatTicketProtocol(ticket.number || ticket.id)}
-                        </span>
-                        <div className="flex items-center gap-0.5">
-                          {[1, 2, 3, 4, 5].map((n) => (
-                            <Star
-                              key={n}
-                              className={`w-3.5 h-3.5 ${n <= score ? 'fill-amber-400 text-amber-400' : 'text-slate-200'}`}
-                            />
-                          ))}
-                          <span className="text-xs font-bold text-slate-700 ml-1">{score}.0</span>
-                        </div>
+          {(() => {
+            const liveRated = tickets.filter((t: any) => t.rating);
+            const ratedList = liveRated.length > 0 ? liveRated : MOCK_TICKETS.filter((t: any) => t.rating);
+            
+            if (ratedList.length === 0) {
+              return (
+                <div className="col-span-2 text-center py-6 text-xs text-slate-400">
+                  Nenhuma avaliação por estrelas registrada ainda nos chamados encerrados.
+                </div>
+              );
+            }
+
+            return ratedList.slice(0, 4).map((ticket: any) => {
+              const score = (ticket as any).rating || 5;
+              const comment = (ticket as any).ratingComment;
+              return (
+                <div key={ticket.id} className="bg-slate-50 border border-slate-100 rounded-xl p-4 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[11px] font-bold font-mono bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
+                        {formatTicketProtocol(ticket.number || ticket.id)}
+                      </span>
+                      <div className="flex items-center gap-0.5">
+                        {[1, 2, 3, 4, 5].map((n) => (
+                          <Star
+                            key={n}
+                            className={`w-3.5 h-3.5 ${n <= score ? 'fill-amber-400 text-amber-400' : 'text-slate-200'}`}
+                          />
+                        ))}
+                        <span className="text-xs font-bold text-slate-700 ml-1">{score}.0</span>
                       </div>
-                      <p className="text-xs font-bold text-slate-800 line-clamp-1">{ticket.title}</p>
-                      {comment ? (
-                        <p className="text-xs text-slate-600 italic bg-white p-2.5 rounded-lg border border-slate-200/60 mt-2">
-                          "{comment}"
-                        </p>
-                      ) : (
-                        <p className="text-xs text-slate-400 italic mt-1">Sem comentário por extenso</p>
-                      )}
                     </div>
-                    <div className="flex items-center justify-between text-[11px] text-slate-400 mt-3 pt-2 border-t border-slate-200/50">
-                      <span className="font-medium text-slate-600">{ticket.requesterName}</span>
-                      <span>{(ticket as any).ratedAt ? new Date((ticket as any).ratedAt).toLocaleDateString('pt-BR') : 'Recente'}</span>
-                    </div>
+                    <p className="text-xs font-bold text-slate-800 line-clamp-1">{ticket.title}</p>
+                    {comment ? (
+                      <p className="text-xs text-slate-600 italic bg-white p-2.5 rounded-lg border border-slate-200/60 mt-2">
+                        "{comment}"
+                      </p>
+                    ) : (
+                      <p className="text-xs text-slate-400 italic mt-1">Sem comentário por extenso</p>
+                    )}
                   </div>
-                );
-              })
-          )}
+                  <div className="flex items-center justify-between text-[11px] text-slate-400 mt-3 pt-2 border-t border-slate-200/50">
+                    <span className="font-medium text-slate-600">{ticket.requesterName}</span>
+                    <span>{(ticket as any).ratedAt ? new Date((ticket as any).ratedAt).toLocaleDateString('pt-BR') : 'Recente'}</span>
+                  </div>
+                </div>
+              );
+            });
+          })()}
         </div>
       </div>
     </div>

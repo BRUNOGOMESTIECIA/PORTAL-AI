@@ -330,83 +330,91 @@ export default function ReportsPage() {
       </div>
 
       {/* Tabela de Pesquisas de Satisfação CSAT Recebidas */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
-        <div className="flex items-center justify-between mb-4 border-b border-slate-100 dark:border-slate-800 pb-3">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-600">
-              <Star className="w-4 h-4 fill-amber-400 text-amber-500" />
+      {(() => {
+        const liveRated = tickets.filter(t => (t as any).rating);
+        const ratedList = liveRated.length > 0 ? liveRated : MOCK_TICKETS.filter(t => (t as any).rating);
+        const avgScore = ratedList.length > 0
+          ? (ratedList.reduce((sum, t) => sum + ((t as any).rating || 5), 0) / ratedList.length).toFixed(1)
+          : '5.0';
+
+        return (
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
+            <div className="flex items-center justify-between mb-4 border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-600">
+                  <Star className="w-4 h-4 fill-amber-400 text-amber-500" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-slate-800 dark:text-slate-100">Pesquisas de Satisfação Recebidas (CSAT)</h2>
+                  <p className="text-xs text-slate-400">Avaliações em estrelas e feedbacks escritos pelos solicitantes</p>
+                </div>
+              </div>
+              <span className="text-xs font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-900/50 px-3 py-1 rounded-lg">
+                Média Atual: {avgScore} ★
+              </span>
             </div>
-            <div>
-              <h2 className="text-sm font-bold text-slate-800 dark:text-slate-100">Pesquisas de Satisfação Recebidas (CSAT)</h2>
-              <p className="text-xs text-slate-400">Avaliações em estrelas e feedbacks escritos pelos solicitantes</p>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-100 dark:border-slate-800 text-[11px] font-bold text-slate-400 uppercase">
+                    <th className="py-2.5 px-3">Protocolo</th>
+                    <th className="py-2.5 px-3">Solicitante</th>
+                    <th className="py-2.5 px-3">Avaliação CSAT</th>
+                    <th className="py-2.5 px-3">Comentário Escrito</th>
+                    <th className="py-2.5 px-3 text-right">Data</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+                  {ratedList.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-6 text-center text-slate-400">
+                        Nenhuma avaliação por estrelas registrada no momento.
+                      </td>
+                    </tr>
+                  ) : (
+                    ratedList.map((t) => {
+                      const score = (t as any).rating || 5;
+                      const comment = (t as any).ratingComment;
+                      return (
+                        <tr key={t.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                          <td className="py-3 px-3 font-mono font-bold text-blue-600 dark:text-blue-400">
+                            {formatTicketProtocol(t.number || t.id)}
+                          </td>
+                          <td className="py-3 px-3 font-medium text-slate-800 dark:text-slate-200">
+                            {t.requesterName}
+                          </td>
+                          <td className="py-3 px-3">
+                            <div className="flex items-center gap-1">
+                              {[1, 2, 3, 4, 5].map((n) => (
+                                <Star
+                                  key={n}
+                                  className={`w-3.5 h-3.5 ${n <= score ? 'fill-amber-400 text-amber-400' : 'text-slate-200 dark:text-slate-700'}`}
+                                />
+                              ))}
+                              <span className="text-xs font-bold text-slate-700 dark:text-slate-300 ml-1">{score}.0</span>
+                            </div>
+                          </td>
+                          <td className="py-3 px-3 text-slate-600 dark:text-slate-300 max-w-md">
+                            {comment ? (
+                              <span className="italic">"{comment}"</span>
+                            ) : (
+                              <span className="text-slate-400 italic">Sem comentário por escrito</span>
+                            )}
+                          </td>
+                          <td className="py-3 px-3 text-right text-slate-400">
+                            {(t as any).ratedAt ? new Date((t as any).ratedAt).toLocaleDateString('pt-BR') : 'Hoje'}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
-          <span className="text-xs font-semibold text-slate-500 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-lg">
-            Média Atual: 4.9 ★
-          </span>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-slate-100 dark:border-slate-800 text-[11px] font-bold text-slate-400 uppercase">
-                <th className="py-2.5 px-3">Protocolo</th>
-                <th className="py-2.5 px-3">Solicitante</th>
-                <th className="py-2.5 px-3">Avaliação CSAT</th>
-                <th className="py-2.5 px-3">Comentário Escrito</th>
-                <th className="py-2.5 px-3 text-right">Data</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
-              {tickets.filter(t => (t as any).rating).length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="py-6 text-center text-slate-400">
-                    Nenhuma avaliação por estrelas registrada no momento.
-                  </td>
-                </tr>
-              ) : (
-                tickets
-                  .filter(t => (t as any).rating)
-                  .map((t) => {
-                    const score = (t as any).rating || 5;
-                    const comment = (t as any).ratingComment;
-                    return (
-                      <tr key={t.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                        <td className="py-3 px-3 font-mono font-bold text-blue-600 dark:text-blue-400">
-                          {formatTicketProtocol(t.number || t.id)}
-                        </td>
-                        <td className="py-3 px-3 font-medium text-slate-800 dark:text-slate-200">
-                          {t.requesterName}
-                        </td>
-                        <td className="py-3 px-3">
-                          <div className="flex items-center gap-1">
-                            {[1, 2, 3, 4, 5].map((n) => (
-                              <Star
-                                key={n}
-                                className={`w-3.5 h-3.5 ${n <= score ? 'fill-amber-400 text-amber-400' : 'text-slate-200 dark:text-slate-700'}`}
-                              />
-                            ))}
-                            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 ml-1">{score}.0</span>
-                          </div>
-                        </td>
-                        <td className="py-3 px-3 text-slate-600 dark:text-slate-300 max-w-md">
-                          {comment ? (
-                            <span className="italic">"{comment}"</span>
-                          ) : (
-                            <span className="text-slate-400 italic">Sem comentário por escrito</span>
-                          )}
-                        </td>
-                        <td className="py-3 px-3 text-right text-slate-400">
-                          {(t as any).ratedAt ? new Date((t as any).ratedAt).toLocaleDateString('pt-BR') : 'Hoje'}
-                        </td>
-                      </tr>
-                    );
-                  })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+        );
+      })()}
     </div>
   );
 }

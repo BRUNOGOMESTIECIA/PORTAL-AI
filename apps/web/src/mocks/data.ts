@@ -261,6 +261,9 @@ export const MOCK_TICKETS: MockTicket[] = [
     comments: [
       { id: 'cm5', authorName: 'Ana Agente', authorType: 'staff', body: 'Atualização concluída em todas as 32 máquinas via SCCM. Versão instalada: 24.1.', isInternal: false, createdAt: '2026-05-27T16:30:00Z' },
     ],
+    rating: 5,
+    ratingComment: 'Atendimento excelente e resolução super rápida!',
+    ratedAt: '2026-07-28T14:20:00Z'
   },
   {
     id: 't6', number: 1037,
@@ -276,6 +279,9 @@ export const MOCK_TICKETS: MockTicket[] = [
     comments: [
       { id: 'cm6', authorName: 'Ana Agente', authorType: 'staff', body: 'Resolvido. Era necessário reconfigurar o perfil Exchange com as novas configurações do servidor.', isInternal: false, createdAt: '2026-05-27T14:00:00Z' },
     ],
+    rating: 5,
+    ratingComment: 'Analista muito atencioso, resolveu a sincronização de primeira.',
+    ratedAt: '2026-07-27T16:10:00Z'
   },
   {
     id: 't7', number: 1036,
