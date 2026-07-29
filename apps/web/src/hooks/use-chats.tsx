@@ -77,7 +77,9 @@ export function ChatsProvider({ children }: { children: React.ReactNode }) {
           waitingMinutes: data.waitingMinutes ?? 0,
           messages: data.messages || [],
           createdAt: data.createdAt || new Date().toISOString(),
-          ticketId: data.ticketId
+          ticketId: data.ticketId,
+          rating: data.rating,
+          ratingComment: data.ratingComment
         });
       });
 

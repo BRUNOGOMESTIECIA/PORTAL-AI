@@ -91,6 +91,9 @@ export function TicketsProvider({ children }: { children: React.ReactNode }) {
           closedAt: data.closedAt || null,
           tags: data.tags || [],
           comments: data.comments || [],
+          rating: data.rating,
+          ratingComment: data.ratingComment,
+          ratedAt: data.ratedAt,
           parentTicketId: data.parentTicketId
         });
       });

@@ -177,6 +177,9 @@ export interface MockTicket {
   tags: string[];
   comments: MockComment[];
   parentTicketId?: string;
+  rating?: number;
+  ratingComment?: string;
+  ratedAt?: string;
 }
 
 export interface MockComment {
@@ -413,6 +416,8 @@ export interface MockChatSession {
   ticketId?: string;
   pendingTransferTo?: string;
   pendingTransferFrom?: string;
+  rating?: number;
+  ratingComment?: string;
 }
 
 export const MOCK_CHAT_SESSIONS: MockChatSession[] = [
