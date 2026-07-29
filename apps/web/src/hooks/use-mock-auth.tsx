@@ -20,7 +20,7 @@ export interface AppUser {
   email: string;
   avatarUrl?: string;
   type: 'client' | 'staff';
-  role?: 'Administrator' | 'Technician' | 'Agent';
+  role?: string;
   department?: string;
   permissions?: string[];
   deviceInfo?: DeviceInfo;
@@ -286,18 +286,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
            throw new Error(`Acesso Negado: Seu domínio não tem permissão para acessar o ${requiredPermission} ou está inativo.`);
         }
 
+        let operatorPermissions = ['tickets.view', 'tickets.create', 'chat.view', 'chat.attend', 'kb.view', 'catalog.view', 'reports.view'];
+        let operatorRole = 'Support Agent';
+
+        if (expectedType === 'staff') {
+          try {
+            const qOp = query(collection(instaPassoDb, 'operators'), where('email', '==', email.toLowerCase()));
+            const snapOp = await getDocs(qOp);
+            if (!snapOp.empty) {
+              const opData = snapOp.docs[0].data();
+              if (opData.permissions && Array.isArray(opData.permissions) && opData.permissions.length > 0) {
+                operatorPermissions = opData.permissions;
+              }
+              if (opData.role) {
+                operatorRole = opData.role;
+              }
+            }
+          } catch (e) {
+            console.warn('[SSO] Não foi possível carregar permissões do operador do Firestore:', e);
+          }
+        }
+
         const mockUser: AppUser = {
           id: cred.user.uid,
           email: email,
           name: cred.user.displayName || email.split('@')[0] || 'Usuário',
           type: expectedType,
-          ...(expectedType === 'staff' ? { role: 'Administrator', permissions: ['chat.attend', 'chat.view', 'tickets.view', 'admin.users', 'admin.settings'] } : {})
+          ...(expectedType === 'staff' ? { role: operatorRole, permissions: operatorPermissions } : {})
         };
         
         // --- PONTE DE SEGURANÇA PARA O PORTAL IA (com retry automático) ---
-        // Como o usuário foi validado pelo InstaPasso com sucesso, ativamos a
-        // ponte usando a função com retry para garantir que o Portal IA esteja
-        // autorizado antes de liberar o acesso.
         await activateBridge(cred.user);
 
         setUser(mockUser);
@@ -342,7 +360,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    */
   const hasPermission = useCallback((code: string) => {
     if (!user || user.type !== 'staff') return false;
-    if (user.role === 'Administrator') return true;
+    if (user.role === 'Administrator' || user.role === 'Super Administrador') return true;
     return user.permissions?.includes(code) || false;
   }, [user]);
 
