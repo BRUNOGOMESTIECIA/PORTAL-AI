@@ -37,6 +37,40 @@ export default function AdminSettingsPage() {
     setSoundForm(updated);
   };
 
+  const handleCustomAudioUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('O arquivo de áudio deve ter no máximo 5MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string;
+      const updated = saveSoundSettings({
+        tone: 'custom',
+        customAudioUrl: dataUrl,
+        customFileName: file.name
+      });
+      setSoundForm(updated);
+      toast.success(`Som personalizado "${file.name}" carregado com sucesso!`);
+      playAlertSound('custom', updated.volume);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveCustomAudio = () => {
+    const updated = saveSoundSettings({
+      tone: 'chime',
+      customAudioUrl: undefined,
+      customFileName: undefined
+    });
+    setSoundForm(updated);
+    toast.info('Som personalizado removido. Restaurado tom padrão.');
+  };
+
   const handleTestSound = (tone?: AlertTone) => {
     playAlertSound(tone || soundForm.tone, soundForm.volume);
     toast.success(`Testando som de alerta (${tone || soundForm.tone})`);
@@ -764,6 +798,9 @@ export default function AdminSettingsPage() {
                         <option value="bell">Campainha de Balcão (Bell)</option>
                         <option value="pop">Pop Curto (Mensagens)</option>
                         <option value="pulse">Pulse Duplo (Alerta Urgente)</option>
+                        {soundForm.customAudioUrl && (
+                          <option value="custom">🎵 Som Personalizado ({soundForm.customFileName || 'Arquivo Próprio'})</option>
+                        )}
                       </select>
                       <button
                         type="button"
@@ -792,6 +829,39 @@ export default function AdminSettingsPage() {
                       onChange={(e) => handleSoundChange({ volume: Number(e.target.value) })}
                       className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-600 mt-2"
                     />
+                  </div>
+
+                  {/* Seção para Upload de Áudio Próprio */}
+                  <div className="sm:col-span-2 pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">Som Próprio Personalizado (.mp3, .wav, .ogg)</p>
+                      <p className="text-[11px] text-slate-400">Envie seu próprio efeito sonoro para ser tocado quando um cliente entrar na fila.</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {soundForm.customFileName && (
+                        <div className="flex items-center gap-2 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-3 py-1.5 rounded-xl text-xs font-medium border border-blue-200 dark:border-blue-800">
+                          <span className="truncate max-w-[150px]">🎵 {soundForm.customFileName}</span>
+                          <button
+                            type="button"
+                            onClick={handleRemoveCustomAudio}
+                            className="text-red-500 hover:text-red-700 font-bold"
+                            title="Remover som personalizado"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
+                      <label className="h-9 px-3.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-semibold cursor-pointer transition-colors flex items-center gap-1.5">
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>{soundForm.customFileName ? 'Trocar Áudio' : 'Adicionar Som Próprio'}</span>
+                        <input
+                          type="file"
+                          accept="audio/mp3,audio/wav,audio/ogg,audio/m4a"
+                          className="hidden"
+                          onChange={handleCustomAudioUpload}
+                        />
+                      </label>
+                    </div>
                   </div>
                 </div>
               )}

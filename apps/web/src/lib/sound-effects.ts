@@ -1,14 +1,15 @@
 // =============================================================================
-// Sintetizador de Efeitos Sonoros de Atendimento via Web Audio API
-// Sem dependência de arquivos .mp3 externos (execução instantânea sem delay)
+// Sintetizador de Efeitos Sonoros de Atendimento via Web Audio API + Som Personalizado
 // =============================================================================
 
-export type AlertTone = 'chime' | 'bell' | 'pop' | 'pulse';
+export type AlertTone = 'chime' | 'bell' | 'pop' | 'pulse' | 'custom';
 
 export interface SoundSettings {
   enabled: boolean;
   volume: number; // 0 a 100
   tone: AlertTone;
+  customAudioUrl?: string; // Data URL Base64 do arquivo de áudio próprio (.mp3, .wav, .ogg)
+  customFileName?: string;
 }
 
 const DEFAULT_SETTINGS: SoundSettings = {
@@ -58,17 +59,29 @@ export function playAlertSound(customTone?: AlertTone, customVolume?: number) {
 
   const tone = customTone || settings.tone;
   const volumePercent = customVolume !== undefined ? customVolume : settings.volume;
-  const masterVolume = Math.max(0, Math.min(1, volumePercent / 100)) * 0.4; // cap at 0.4 for comfort
+  const masterVolume = Math.max(0, Math.min(1, volumePercent / 100));
+
+  // Toca arquivo próprio personalizado se selecionado
+  if (tone === 'custom' && settings.customAudioUrl) {
+    try {
+      const audio = new Audio(settings.customAudioUrl);
+      audio.volume = masterVolume;
+      audio.play().catch((e) => console.warn('Erro ao tocar áudio personalizado:', e));
+      return;
+    } catch (e) {
+      console.warn('Erro ao carregar áudio personalizado, usando tom padrão:', e);
+    }
+  }
 
   const ctx = getAudioContext();
   if (!ctx) return;
 
   const now = ctx.currentTime;
   const masterGain = ctx.createGain();
-  masterGain.gain.setValueAtTime(masterVolume, now);
+  masterGain.gain.setValueAtTime(masterVolume * 0.4, now); // cap at 0.4 for synth comfort
   masterGain.connect(ctx.destination);
 
-  switch (tone) {
+  switch (tone === 'custom' ? 'chime' : tone) {
     case 'chime': {
       // Tom suave ITSM: Duas notas ascendentes (E5 -> B5)
       const osc1 = ctx.createOscillator();
