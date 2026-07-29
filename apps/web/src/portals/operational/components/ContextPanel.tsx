@@ -1,21 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, Monitor, Clock, CheckCircle2, AlertCircle, ExternalLink, Pencil, Check, ChevronDown } from 'lucide-react';
+import { Shield, User, Monitor, Clock, CheckCircle2, AlertCircle, ExternalLink, Pencil, Check, ChevronDown } from 'lucide-react';
 import { MockChatSession, MOCK_CLIENTS, MOCK_STAFF, TICKET_CATEGORIES } from '../../../mocks/data';
 import { useNavigate } from 'react-router-dom';
 import { NewManualTicketModal, TicketInitialData } from './NewManualTicketModal';
 import { maskEmail } from '../../../lib/utils';
+import { generateCorporateProtocol } from '../../../lib/audit-logger';
 
 // Variável global para manter o tempo rolando continuamente no sistema
 const APP_START_TIME = Date.now();
 
-/**
- * Componente Panel de Contexto (ContextPanel).
- * Exibido na lateral direita da tela de chat, mostra informações consolidadadas
- * do cliente atualmente selecionado, histórico recente, equipamentos associados e
- * permite ações rápidas (Transferir, Resolver, Encerrar).
- * 
- * @param session Sessão de chat selecionada, ou null se não houver seleção.
- */
 export function ContextPanel({ 
   session, 
   onStatusChange,
@@ -299,11 +292,33 @@ export function ContextPanel({
 
       <div className="p-5 space-y-6 flex-1 overflow-y-auto">
 
+        {/* Security IP Audit Card (Sincronizado com InstaPasso) */}
+        <div className="p-3 bg-slate-900 text-slate-100 rounded-xl text-xs space-y-2 border border-slate-800 shadow-sm">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+            <span className="font-bold text-blue-400 flex items-center gap-1.5 text-[11px]">
+              <Shield className="w-3.5 h-3.5" /> Protocolo {generateCorporateProtocol(session.ticketId || session.id)}
+            </span>
+            <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-semibold px-2 py-0.5 rounded-full border border-emerald-500/30">
+              InstaPasso SSO
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-2 pt-0.5 text-[11px]">
+            <div>
+              <span className="text-slate-400 block text-[10px]">IP de Origem:</span>
+              <span className="font-mono text-slate-200 font-semibold">187.52.190.44</span>
+            </div>
+            <div>
+              <span className="text-slate-400 block text-[10px]">Dispositivo:</span>
+              <span className="text-slate-200 truncate block">Chrome / Win11</span>
+            </div>
+          </div>
+        </div>
+
         {/* Ticket Link */}
         <section>
           <div className="flex justify-between items-center mb-3">
-            <span className="text-xs text-slate-500 font-medium">Ticket</span>
-            <span className="text-xs font-bold text-slate-900 dark:text-slate-100">#{session.ticketId || (session.id.replace(/\D/g, '').slice(-5) || '1048')}</span>
+            <span className="text-xs text-slate-500 font-medium">Protocolo / Ticket</span>
+            <span className="text-xs font-bold text-blue-600 dark:text-blue-400">{generateCorporateProtocol(session.ticketId || session.id)}</span>
           </div>
           <div className="flex justify-between items-center mb-3">
             <span className="text-xs text-slate-500 font-medium">Status</span>
