@@ -5,6 +5,8 @@ import { ALL_MOCK_USERS, MockUser, MockStaff, MockClient, ALL_PERMISSIONS } from
 import { cn } from '../../../../lib/utils';
 import { SuccessModal } from '../../../../components/shared/SuccessModal';
 import { toast } from 'sonner';
+import { instaPassoDb } from '../../../../lib/firebase';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 
 // Helper to group permissions by module
 const groupPermissions = () => {
@@ -20,7 +22,7 @@ const groupPermissions = () => {
 const permissionGroups = groupPermissions();
 
 const moduleLabels: Record<string, string> = {
-  tickets: 'Chamados',
+  tickets: 'Tickets',
   chat: 'Chat Ao Vivo',
   kb: 'Base de Conhecimento',
   catalog: 'Catálogo de Serviços',
@@ -31,11 +33,11 @@ const moduleLabels: Record<string, string> = {
 };
 
 const permissionLabels: Record<string, string> = {
-  'tickets.view': 'Visualizar Chamados',
-  'tickets.create': 'Criar Chamados',
-  'tickets.update': 'Editar Chamados (Geral)',
+  'tickets.view': 'Visualizar Tickets',
+  'tickets.create': 'Criar Tickets',
+  'tickets.update': 'Editar Tickets (Geral)',
   'tickets.assign': 'Atribuir/Transferir',
-  'tickets.close': 'Fechar Chamados',
+  'tickets.close': 'Fechar Tickets',
   
   'chat.view': 'Acessar Histórico',
   'chat.attend': 'Atender Chats (Ficar Online)',
@@ -84,19 +86,43 @@ export default function AdminUserDetailPage() {
 
   useEffect(() => {
     if (id) {
-      const user = ALL_MOCK_USERS.find(u => u.id === id);
-      if (user) {
-        setFormData({
-          name: user.name,
-          email: user.email,
-          type: user.type,
-          role: user.type === 'staff' ? user.role : '',
-          company: user.type === 'client' ? user.company : '',
-          companySlug: user.type === 'client' ? user.companySlug : '',
-          password: user.password,
-          permissions: user.type === 'staff' ? user.permissions : [],
-        });
-      }
+      const fetchOperator = async () => {
+        try {
+          const docRef = doc(instaPassoDb, 'operators', id);
+          const snap = await getDoc(docRef);
+          if (snap.exists()) {
+            const data = snap.data();
+            setFormData({
+              name: data.fullName || data.name || '',
+              email: data.email || '',
+              type: data.type || 'staff',
+              role: data.role || 'Support Agent',
+              company: data.company || '',
+              companySlug: data.companySlug || '',
+              password: '',
+              permissions: data.permissions || ['tickets.view'],
+            });
+            return;
+          }
+        } catch (e) {
+          console.warn('Operator document not in Firestore, fallback to mock data');
+        }
+
+        const user = ALL_MOCK_USERS.find(u => u.id === id);
+        if (user) {
+          setFormData({
+            name: user.name,
+            email: user.email,
+            type: user.type,
+            role: user.type === 'staff' ? user.role : '',
+            company: user.type === 'client' ? user.company : '',
+            companySlug: user.type === 'client' ? user.companySlug : '',
+            password: user.password,
+            permissions: user.type === 'staff' ? user.permissions : [],
+          });
+        }
+      };
+      fetchOperator();
     }
   }, [id]);
 
@@ -124,9 +150,37 @@ export default function AdminUserDetailPage() {
     }
   };
 
-  const handleSave = () => {
-    if (!formData.name.trim() || !formData.email.trim()) return;
-    setIsSuccessModalOpen(true);
+  const handleSave = async () => {
+    if (!formData.name.trim() || !formData.email.trim()) {
+      toast.error('Preencha nome e e-mail do usuário');
+      return;
+    }
+
+    try {
+      const operatorId = id || `op_${Date.now()}`;
+      const docRef = doc(instaPassoDb, 'operators', operatorId);
+      
+      await setDoc(docRef, {
+        id: operatorId,
+        fullName: formData.name,
+        email: formData.email,
+        type: formData.type,
+        role: formData.role,
+        company: formData.company || '',
+        companySlug: formData.companySlug || '',
+        permissions: formData.permissions,
+        status: 'ACTIVE',
+        isOnline: false,
+        updatedAt: new Date().toISOString(),
+        createdAt: new Date().toISOString()
+      }, { merge: true });
+
+      toast.success(id ? 'Usuário operacional atualizado com sucesso!' : 'Novo usuário operacional criado com sucesso!');
+      setIsSuccessModalOpen(true);
+    } catch (e: any) {
+      console.error('Erro ao salvar operador:', e);
+      toast.error('Erro ao salvar no banco de dados. Tente novamente.');
+    }
   };
 
   const handleCloseSuccess = () => {
