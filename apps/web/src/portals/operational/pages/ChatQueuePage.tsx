@@ -437,18 +437,64 @@ export default function ChatQueuePage() {
   const closed  = chats.filter(c => c.status === 'closed' || c.status === 'finished');
 
   const getChatsForTab = () => {
+    const userRole = (user?.role || '').trim().toUpperCase();
+    const isAboveN1 = 
+      userRole === 'N2' ||
+      userRole === 'N3' ||
+      userRole === 'SOC' ||
+      userRole === 'ADMINISTRADOR' ||
+      userRole === 'SUPER ADMINISTRADOR' ||
+      userRole === 'ADMINISTRATOR' ||
+      hasPermission('chat.manage');
+
+    const isMyChat = (c: MockChatSession) => {
+      if (!user) return false;
+      if (c.agentName === user.name) return true;
+      if (user.email && c.agentName && c.agentName.toLowerCase() === user.email.split('@')[0].toLowerCase()) return true;
+      return false;
+    };
+
     let result: MockChatSession[] = [];
     switch (activeTab) {
-      case 'entrada': result = waiting; break;
-      case 'meus': result = active; break;
-      case 'em_atendimento': result = active; break;
-      case 'encerrados': result = closed; break;
-      default: result = chats; break;
+      case 'entrada':
+        result = chats.filter(c => c.status === 'waiting');
+        break;
+
+      case 'meus':
+        // Apenas chats atribuídos ao próprio operador conectado
+        result = chats.filter(c => 
+          (c.status === 'active' || c.status === 'waiting') && isMyChat(c)
+        );
+        break;
+
+      case 'em_atendimento':
+        if (isAboveN1) {
+          // Cargos acima de N1 visualizam TODOS os chats de todos os operadores
+          result = chats.filter(c => c.status === 'active' || c.status === 'waiting');
+        } else {
+          // Operador N1 visualiza APENAS os seus próprios chats ou chats da fila de entrada não assumidos
+          result = chats.filter(c => c.status === 'waiting' || (c.status === 'active' && isMyChat(c)));
+        }
+        break;
+
+      case 'encerrados':
+        if (isAboveN1) {
+          result = chats.filter(c => c.status === 'closed' || c.status === 'finished');
+        } else {
+          result = chats.filter(c => (c.status === 'closed' || c.status === 'finished') && isMyChat(c));
+        }
+        break;
+
+      default:
+        result = chats;
+        break;
     }
 
-    // Se houver um chat selecionado e ele não estiver na lista da aba atual, inclui no topo para não sumir da esquerda
+    // Se houver um chat selecionado e ele for permitido para o perfil, mantém fixado para o operador
     if (selected && !result.some(c => c.id === selected.id)) {
-      result = [selected, ...result];
+      if (isAboveN1 || isMyChat(selected) || selected.status === 'waiting') {
+        result = [selected, ...result];
+      }
     }
     return result;
   };
