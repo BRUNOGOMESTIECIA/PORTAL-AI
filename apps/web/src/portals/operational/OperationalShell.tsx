@@ -18,6 +18,8 @@ import { GlobalSearchModal } from '../../components/layout/GlobalSearchModal';
 import { useInactivityTimeout } from '../../hooks/use-inactivity-timeout';
 import { useTabNotification } from '../../hooks/use-tab-notification';
 import { OperatorStatusToggle } from './components/OperatorStatusToggle';
+import { useSessionIpGuard } from '../../hooks/use-session-ip-guard';
+import { SessionIpDriftModal } from './components/SessionIpDriftModal';
 import { useTheme } from '../../components/theme-provider';
 import { Sun, Moon, Palette } from 'lucide-react';
 import { UserMenu } from '../../components/layout/UserMenu';
@@ -364,6 +366,7 @@ export default function OperationalShell() {
   const [pendingTransferChat, setPendingTransferChat] = useState<typeof chats[0] | null>(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const { isLocked, unlockSession } = useInactivityTimeout(30);
+  const ipGuard = useSessionIpGuard();
 
   // Atalho global de teclado Ctrl+K / Cmd+K
   useEffect(() => {
@@ -845,6 +848,14 @@ export default function OperationalShell() {
 
       {/* Modal de Pesquisa Global Instantânea (Ctrl+K) */}
       <GlobalSearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+
+      {/* Modal de Detecção de Alteração de IP na Mesma Sessão (Item 113) */}
+      <SessionIpDriftModal
+        isOpen={ipGuard.isIpDriftDetected}
+        initialIp={ipGuard.initialIp}
+        currentIp={ipGuard.currentIp}
+        onResolve={ipGuard.resolveIpDrift}
+      />
     </div>
   );
 }
