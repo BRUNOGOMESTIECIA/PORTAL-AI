@@ -194,6 +194,7 @@ export default function ToolsPage() {
   const [showTermModal, setShowTermModal] = useState(false);
   const [showB2bModal, setShowB2bModal] = useState(false);
   const [showAuditReportModal, setShowAuditReportModal] = useState(false);
+  const [instaPassoTab, setInstaPassoTab] = useState<'iframe' | 'audit'>('iframe');
 
   // Regra de Acesso do InstaPasso: Administradores, Supervisores e equipe com permissões admin/tickets
   const canAccessInstaPasso = () => {
@@ -233,19 +234,43 @@ export default function ToolsPage() {
             </div>
           </div>
 
+          {/* Seletor de Abas do InstaPasso */}
           <div className="flex items-center gap-2">
+            <div className="flex bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold">
+              <button
+                onClick={() => setInstaPassoTab('iframe')}
+                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                  instaPassoTab === 'iframe'
+                    ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                }`}
+              >
+                🌐 Portal InstaPasso
+              </button>
+              <button
+                onClick={() => setInstaPassoTab('audit')}
+                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                  instaPassoTab === 'audit'
+                    ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                }`}
+              >
+                🛡️ Auditoria & Invasões ISO 27001
+              </button>
+            </div>
+
             <button
               onClick={() => setShowAuditReportModal(true)}
-              className="flex items-center justify-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-all shadow-sm shadow-blue-600/30 cursor-pointer"
+              className="flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-all shadow-sm shadow-blue-600/30 cursor-pointer"
             >
-              📄 Emitir Laudo Mensal ISO 27001 (Item 112)
+              📄 Laudo ISO 27001
             </button>
             <button
               onClick={() => window.open('https://insta-passo.vercel.app/', '_blank')}
-              className="flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-colors shadow-sm cursor-pointer"
+              className="flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-colors shadow-sm cursor-pointer"
             >
               <Maximize2 className="w-3.5 h-3.5" />
-              Abrir em Nova Aba
+              Abrir
             </button>
           </div>
         </div>
@@ -256,40 +281,43 @@ export default function ToolsPage() {
           onClose={() => setShowAuditReportModal(false)}
         />
 
-        {/* Central de Auditoria, Governança & Invasões ISO 27001 / InstaPasso SSO */}
-        <div className="space-y-6 pt-2 border-t border-slate-200 dark:border-slate-800">
-          <div className="bg-gradient-to-r from-slate-900 to-slate-800 text-white p-4 rounded-2xl flex items-center justify-between shadow-md">
-            <div>
-              <h3 className="font-extrabold text-sm flex items-center gap-2">
-                🛡️ Central de Auditoria, Hardening & Invasões ISO 27001 (InstaPasso SSO)
-              </h3>
-              <p className="text-xs text-slate-300">
-                Governança centralizada de acessos, criptografia, políticas LGPD e telemetria WAF em tempo real.
-              </p>
-            </div>
-            <span className="text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-3 py-1 rounded-full">
-              🟢 Proteção Ativa
-            </span>
+        {/* Conteúdo Dinâmico por Aba */}
+        {instaPassoTab === 'iframe' ? (
+          /* Iframe Embutido do Portal InstaPasso */
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-lg overflow-hidden relative w-full">
+            <iframe
+              src="https://insta-passo.vercel.app/"
+              className="w-full min-h-[680px] h-[calc(100vh-180px)] border-0 rounded-2xl"
+              title="Portal InstaPasso Admin"
+            />
           </div>
+        ) : (
+          /* Central de Auditoria, Governança & Invasões ISO 27001 */
+          <div className="space-y-6 pt-2">
+            <div className="bg-gradient-to-r from-slate-900 to-slate-800 text-white p-4 rounded-2xl flex items-center justify-between shadow-md">
+              <div>
+                <h3 className="font-extrabold text-sm flex items-center gap-2">
+                  🛡️ Central de Auditoria, Hardening & Invasões ISO 27001 (InstaPasso SSO)
+                </h3>
+                <p className="text-xs text-slate-300">
+                  Governança centralizada de acessos, criptografia, políticas LGPD e telemetria WAF em tempo real.
+                </p>
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-3 py-1 rounded-full">
+                🟢 Proteção Ativa
+              </span>
+            </div>
 
-          <EncryptionComplianceWidget />
-          <SessionTimeoutSettingsWidget />
-          <LgpdUserAnonymizationWidget />
-          <FrameAncestorsPolicyWidget />
-          <SessionCookiePolicyWidget />
-          <HttpSecurityHeadersWidget />
-          <AntiBruteForcePanelWidget />
-          <SecurityAuditLogsWidget />
-        </div>
-
-        {/* Iframe Embutido do Portal InstaPasso */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-lg overflow-hidden relative w-full mt-6">
-          <iframe
-            src="https://insta-passo.vercel.app/"
-            className="w-full min-h-[620px] h-[calc(100vh-200px)] border-0 rounded-2xl"
-            title="Portal InstaPasso Admin"
-          />
-        </div>
+            <EncryptionComplianceWidget />
+            <SessionTimeoutSettingsWidget />
+            <LgpdUserAnonymizationWidget />
+            <FrameAncestorsPolicyWidget />
+            <SessionCookiePolicyWidget />
+            <HttpSecurityHeadersWidget />
+            <AntiBruteForcePanelWidget />
+            <SecurityAuditLogsWidget />
+          </div>
+        )}
       </div>
     );
   }
