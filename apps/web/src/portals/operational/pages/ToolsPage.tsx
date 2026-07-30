@@ -3,11 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Fingerprint, Monitor, LayoutGrid, Cloud, Gamepad2, Tv, HardDrive, Cpu, 
   ExternalLink, Printer, Package, Smartphone, Server, Send, ShieldCheck, 
-  ArrowLeft, Lock, Maximize2, FileText
+  ArrowLeft, Lock, Maximize2, FileText, Building2
 } from 'lucide-react';
 import { useAuth } from '../../../hooks/use-mock-auth';
 import { toast } from 'sonner';
 import { EquipmentDeliveryTermModal } from '../components/EquipmentDeliveryTermModal';
+import { B2bCompanyPerformanceModal } from '../components/B2bCompanyPerformanceModal';
 
 /**
  * Definição estática de todas as ferramentas disponíveis no painel.
@@ -159,6 +160,17 @@ const TOOLS = [
     badge: 'Assinatura Digital',
     isTermModal: true,
   },
+  {
+    id: 'b2b_report',
+    name: 'Extrato de Desempenho B2B (QBR)',
+    description: 'Laudo executivo de cumprimento de SLA, CSAT e volumetria por empresa cliente (Item 130).',
+    icon: Building2,
+    color: 'text-indigo-500',
+    bg: 'bg-indigo-100 dark:bg-indigo-500/10',
+    border: 'hover:border-indigo-400 border-indigo-300 dark:border-indigo-700/50 shadow-indigo-500/5',
+    badge: 'Laudo Corporativo',
+    isB2bModal: true,
+  },
 ];
 
 /**
@@ -171,6 +183,7 @@ export default function ToolsPage() {
   const { user, hasPermission } = useAuth();
   const [activeEmbeddedTool, setActiveEmbeddedTool] = useState<string | null>(null);
   const [showTermModal, setShowTermModal] = useState(false);
+  const [showB2bModal, setShowB2bModal] = useState(false);
 
   // Regra de Acesso do InstaPasso: Administradores, Supervisores e equipe com permissões admin/tickets
   const canAccessInstaPasso = () => {
@@ -251,6 +264,8 @@ export default function ToolsPage() {
               onClick={() => {
                 if ((tool as any).isTermModal) {
                   setShowTermModal(true);
+                } else if ((tool as any).isB2bModal) {
+                  setShowB2bModal(true);
                 } else if ((tool as any).isInstaPasso) {
                   if (canAccessInstaPasso()) {
                     setActiveEmbeddedTool('instapasso');
@@ -300,6 +315,9 @@ export default function ToolsPage() {
 
       {/* Modal Gerador do Termo de Entrega de Equipamento com Assinatura Digital (Item 099) */}
       <EquipmentDeliveryTermModal isOpen={showTermModal} onClose={() => setShowTermModal(false)} />
+
+      {/* Modal Extrato de Desempenho B2B / QBR (Item 130) */}
+      <B2bCompanyPerformanceModal isOpen={showB2bModal} onClose={() => setShowB2bModal(false)} />
     </div>
   );
 }
