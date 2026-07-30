@@ -108,11 +108,13 @@ export default function SlaCountdownBar({
     ? `${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`
     : `${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
 
-  // Define Nível de Urgência
-  let tier: 'normal' | 'warning' | 'critical' | 'breached' = 'normal';
+  // Define Nível de Urgência (Item 122 - Pre-Breach Warning a 90%)
+  let tier: 'normal' | 'warning' | 'pre_breach' | 'critical' | 'breached' = 'normal';
   if (isBreached) {
     tier = 'breached';
-  } else if (diffSeconds < 900) { // < 15 minutos
+  } else if (diffSeconds < 900 || percentageUsed >= 90) { // < 15 minutos ou >= 90% do SLA
+    tier = 'pre_breach';
+  } else if (diffSeconds < 1800) { // < 30 minutos
     tier = 'critical';
   } else if (diffSeconds < 3600 || percentageUsed >= 50) { // < 1 hora ou > 50% tempo gasto
     tier = 'warning';
@@ -137,12 +139,20 @@ export default function SlaCountdownBar({
       badgeText: `Atenção: ${formattedTime}`,
     },
     critical: {
-      bg: 'bg-rose-100 dark:bg-rose-950/60 animate-pulse',
-      border: 'border-rose-300 dark:border-rose-700 shadow-sm shadow-rose-500/20',
-      text: 'text-rose-700 dark:text-rose-300 font-bold',
-      icon: <AlertTriangle className="w-3.5 h-3.5 text-rose-600 animate-bounce" />,
-      bar: 'bg-rose-500',
-      badgeText: `CRÍTICO: ${formattedTime}`,
+      bg: 'bg-orange-100 dark:bg-orange-950/60',
+      border: 'border-orange-300 dark:border-orange-700',
+      text: 'text-orange-700 dark:text-orange-300 font-bold',
+      icon: <AlertTriangle className="w-3.5 h-3.5 text-orange-600" />,
+      bar: 'bg-orange-500',
+      badgeText: `SLA 75%: ${formattedTime}`,
+    },
+    pre_breach: {
+      bg: 'bg-rose-100 dark:bg-rose-950/80 animate-pulse',
+      border: 'border-rose-400 dark:border-rose-600 shadow-md shadow-rose-500/20',
+      text: 'text-rose-700 dark:text-rose-300 font-extrabold',
+      icon: <AlertTriangle className="w-4 h-4 text-rose-600 animate-bounce" />,
+      bar: 'bg-rose-600',
+      badgeText: `⚠️ PRE-BREACH (90%): ${formattedTime}`,
     },
     breached: {
       bg: 'bg-red-600 dark:bg-red-700 text-white animate-pulse',

@@ -8,6 +8,7 @@ import { useAuth } from '../../../hooks/use-mock-auth';
 import { useChats } from '../../../hooks/use-chats';
 import { exportChatTranscriptToPdf } from '../../../lib/export-utils';
 import { sendChatTranscriptEmail } from '../../../lib/chat-email-sender';
+import { getAiSolutionSuggestion } from '../../../lib/ai-solution-copilot';
 
 import { instaPassoDb } from '../../../lib/firebase';
 import { collection, getDocs, query, where } from 'firebase/firestore';
@@ -943,7 +944,39 @@ export default function ChatQueuePage() {
                   </div>
                 )}
                 
-                {/* Sugestão de Menção (se digitar @ em nota interna) */}
+                {/* Sugestão Inteligente de IA (@ia - Item 125) */}
+                {input.toLowerCase().includes('@ia') && (
+                  <div className="absolute bottom-full left-0 mb-2 w-80 bg-slate-900 border border-blue-500/40 rounded-2xl shadow-2xl overflow-hidden z-50 animate-in fade-in zoom-in-95">
+                    <div className="px-3.5 py-2.5 bg-blue-950/80 border-b border-blue-500/20 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm">🤖</span>
+                        <span className="text-xs font-bold text-blue-200 uppercase tracking-wider">IA Copiloto de Atendimento</span>
+                      </div>
+                      <span className="text-[10px] font-black bg-blue-600 text-white px-2 py-0.5 rounded-full">
+                        @IA ATIVO
+                      </span>
+                    </div>
+                    <div className="p-3 space-y-2">
+                      <p className="text-[11px] font-bold text-blue-300">
+                        {getAiSolutionSuggestion(input).title}
+                      </p>
+                      <p className="text-xs text-slate-300 bg-slate-950/60 p-2.5 rounded-xl border border-slate-800 line-clamp-3">
+                        {getAiSolutionSuggestion(input).suggestedText}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const suggestion = getAiSolutionSuggestion(input);
+                          setInput(suggestion.suggestedText);
+                          toast.success('Resposta da IA Copiloto inserida no campo!');
+                        }}
+                        className="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-blue-600/20 cursor-pointer"
+                      >
+                        ✨ Inserir Resposta Sugerida da IA
+                      </button>
+                    </div>
+                  </div>
+                )}
                 {isInternalNote && input.includes('@') && (
                     <div className="absolute bottom-full left-0 mb-2 w-64 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl overflow-hidden z-50">
                       <div className="px-3 py-2 bg-slate-50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-700/50">
