@@ -11,6 +11,13 @@ import { EquipmentDeliveryTermModal } from '../components/EquipmentDeliveryTermM
 import { B2bCompanyPerformanceModal } from '../components/B2bCompanyPerformanceModal';
 import { EncryptionComplianceWidget } from '../components/EncryptionComplianceWidget';
 import { PeriodicAuditReportModal } from '../components/PeriodicAuditReportModal';
+import { SessionTimeoutSettingsWidget } from '../components/SessionTimeoutSettingsWidget';
+import { LgpdUserAnonymizationWidget } from '../components/LgpdUserAnonymizationWidget';
+import { FrameAncestorsPolicyWidget } from '../components/FrameAncestorsPolicyWidget';
+import { SessionCookiePolicyWidget } from '../components/SessionCookiePolicyWidget';
+import { HttpSecurityHeadersWidget } from '../components/HttpSecurityHeadersWidget';
+import { AntiBruteForcePanelWidget } from '../components/AntiBruteForcePanelWidget';
+import { SecurityAuditLogsWidget } from '../components/SecurityAuditLogsWidget';
 
 /**
  * Definição estática de todas as ferramentas disponíveis no painel.
@@ -249,11 +256,34 @@ export default function ToolsPage() {
           onClose={() => setShowAuditReportModal(false)}
         />
 
-        {/* Módulo de Auditoria de Criptografia Exclusivo do InstaPasso (Item 111) */}
-        <EncryptionComplianceWidget />
+        {/* Central de Auditoria, Governança & Invasões ISO 27001 / InstaPasso SSO */}
+        <div className="space-y-6 pt-2 border-t border-slate-200 dark:border-slate-800">
+          <div className="bg-gradient-to-r from-slate-900 to-slate-800 text-white p-4 rounded-2xl flex items-center justify-between shadow-md">
+            <div>
+              <h3 className="font-extrabold text-sm flex items-center gap-2">
+                🛡️ Central de Auditoria, Hardening & Invasões ISO 27001 (InstaPasso SSO)
+              </h3>
+              <p className="text-xs text-slate-300">
+                Governança centralizada de acessos, criptografia, políticas LGPD e telemetria WAF em tempo real.
+              </p>
+            </div>
+            <span className="text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-3 py-1 rounded-full">
+              🟢 Proteção Ativa
+            </span>
+          </div>
+
+          <EncryptionComplianceWidget />
+          <SessionTimeoutSettingsWidget />
+          <LgpdUserAnonymizationWidget />
+          <FrameAncestorsPolicyWidget />
+          <SessionCookiePolicyWidget />
+          <HttpSecurityHeadersWidget />
+          <AntiBruteForcePanelWidget />
+          <SecurityAuditLogsWidget />
+        </div>
 
         {/* Iframe Embutido do Portal InstaPasso */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-lg overflow-hidden relative w-full">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-lg overflow-hidden relative w-full mt-6">
           <iframe
             src="https://insta-passo.vercel.app/"
             className="w-full min-h-[620px] h-[calc(100vh-200px)] border-0 rounded-2xl"

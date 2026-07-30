@@ -11,16 +11,7 @@ import { toast } from 'sonner';
 import { MOCK_CLIENTS, MOCK_MACROS } from '../../../../mocks/data';
 import { getSoundSettings, saveSoundSettings, playAlertSound, AlertTone } from '../../../../lib/sound-effects';
 import { useNotifications } from '../../../../hooks/use-notifications';
-import { SecurityAuditLogsWidget } from '../../components/SecurityAuditLogsWidget';
-import { AntiBruteForcePanelWidget } from '../../components/AntiBruteForcePanelWidget';
-import { HttpSecurityHeadersWidget } from '../../components/HttpSecurityHeadersWidget';
-import { SessionCookiePolicyWidget } from '../../components/SessionCookiePolicyWidget';
-import { FrameAncestorsPolicyWidget } from '../../components/FrameAncestorsPolicyWidget';
-import { LgpdUserAnonymizationWidget } from '../../components/LgpdUserAnonymizationWidget';
-import { SessionTimeoutSettingsWidget } from '../../components/SessionTimeoutSettingsWidget';
-import { EncryptionComplianceWidget } from '../../components/EncryptionComplianceWidget';
-
-type SettingsTab = 'identity' | 'business_hours' | 'holidays' | 'sso' | 'notifications' | 'modules' | 'macros' | 'security_audit';
+type SettingsTab = 'identity' | 'business_hours' | 'holidays' | 'sso' | 'notifications' | 'modules' | 'macros';
 
 const SETTINGS_TABS: { id: SettingsTab; title: string; desc: string; icon: React.ReactNode }[] = [
   { id: 'identity', title: 'Identidade', desc: 'Perfil, marca e cores', icon: <Building2 className="w-5 h-5" /> },
@@ -30,7 +21,6 @@ const SETTINGS_TABS: { id: SettingsTab; title: string; desc: string; icon: React
   { id: 'notifications', title: 'Notificações', desc: 'Alertas por e-mail e sistema', icon: <Bell className="w-5 h-5" /> },
   { id: 'modules', title: 'Módulos do Sistema', desc: 'Habilitar funcionalidades', icon: <LayoutGrid className="w-5 h-5" /> },
   { id: 'macros', title: 'Respostas Rápidas', desc: 'Mensagens pré-prontas do chat', icon: <MessageSquareText className="w-5 h-5" /> },
-  { id: 'security_audit', title: 'Auditoria & Invasões', desc: 'Log de acessos bloqueados (ISO 27001)', icon: <ShieldAlert className="w-5 h-5 text-red-500" /> },
 ];
 
 export default function AdminSettingsPage() {
@@ -1054,19 +1044,6 @@ export default function AdminSettingsPage() {
                 </tbody>
               </table>
             </div>
-          </div>
-        );
-
-      case 'security_audit':
-        return (
-          <div className="space-y-6">
-            <SessionTimeoutSettingsWidget />
-            <LgpdUserAnonymizationWidget />
-            <FrameAncestorsPolicyWidget />
-            <SessionCookiePolicyWidget />
-            <HttpSecurityHeadersWidget />
-            <AntiBruteForcePanelWidget />
-            <SecurityAuditLogsWidget />
           </div>
         );
     }
