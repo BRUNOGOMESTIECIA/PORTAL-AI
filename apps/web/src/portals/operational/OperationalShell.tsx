@@ -20,8 +20,6 @@ import { useTabNotification } from '../../hooks/use-tab-notification';
 import { OperatorStatusToggle } from './components/OperatorStatusToggle';
 import { useSessionIpGuard } from '../../hooks/use-session-ip-guard';
 import { SessionIpDriftModal } from './components/SessionIpDriftModal';
-import { usePasswordExpirationPolicy } from '../../hooks/use-password-expiration-policy';
-import { PasswordExpirationModal } from './components/PasswordExpirationModal';
 import { useTheme } from '../../components/theme-provider';
 import { Sun, Moon, Palette } from 'lucide-react';
 import { UserMenu } from '../../components/layout/UserMenu';
@@ -369,7 +367,6 @@ export default function OperationalShell() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const { isLocked, unlockSession } = useInactivityTimeout(30);
   const ipGuard = useSessionIpGuard();
-  const passPolicy = usePasswordExpirationPolicy();
 
   // Atalho global de teclado Ctrl+K / Cmd+K
   useEffect(() => {
@@ -858,13 +855,6 @@ export default function OperationalShell() {
         initialIp={ipGuard.initialIp}
         currentIp={ipGuard.currentIp}
         onResolve={ipGuard.resolveIpDrift}
-      />
-
-      {/* Modal de Renovação Periódica de Senha 90 Dias (Item 115) */}
-      <PasswordExpirationModal
-        isOpen={passPolicy.isExpired}
-        daysOld={passPolicy.diffDays}
-        onSuccess={passPolicy.updatePassword}
       />
     </div>
   );
