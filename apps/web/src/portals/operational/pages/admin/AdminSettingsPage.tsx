@@ -16,6 +16,8 @@ import { AntiBruteForcePanelWidget } from '../../components/AntiBruteForcePanelW
 import { HttpSecurityHeadersWidget } from '../../components/HttpSecurityHeadersWidget';
 import { SessionCookiePolicyWidget } from '../../components/SessionCookiePolicyWidget';
 import { FrameAncestorsPolicyWidget } from '../../components/FrameAncestorsPolicyWidget';
+import { LgpdUserAnonymizationWidget } from '../../components/LgpdUserAnonymizationWidget';
+import { SessionTimeoutSettingsWidget } from '../../components/SessionTimeoutSettingsWidget';
 
 type SettingsTab = 'identity' | 'business_hours' | 'holidays' | 'sso' | 'notifications' | 'modules' | 'macros' | 'security_audit';
 
@@ -1057,6 +1059,8 @@ export default function AdminSettingsPage() {
       case 'security_audit':
         return (
           <div className="space-y-6">
+            <SessionTimeoutSettingsWidget />
+            <LgpdUserAnonymizationWidget />
             <FrameAncestorsPolicyWidget />
             <SessionCookiePolicyWidget />
             <HttpSecurityHeadersWidget />

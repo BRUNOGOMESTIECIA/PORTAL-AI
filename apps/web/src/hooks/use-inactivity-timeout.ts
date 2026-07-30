@@ -6,11 +6,23 @@ import { toast } from 'sonner';
  * Monitora a inatividade do usuário (ausência de mouse, teclado, touch ou scroll).
  * Após o tempo limite (padrão: 30 minutos), bloqueia a sessão do operador por segurança (LGPD / ISO 27001).
  */
-export function useInactivityTimeout(timeoutMinutes = 30) {
+export function useInactivityTimeout(defaultTimeoutMinutes = 30) {
   const [isLocked, setIsLocked] = useState<boolean>(() => {
     return localStorage.getItem('portal_session_locked') === 'true';
   });
 
+  const getDynamicTimeoutMinutes = () => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('session_inactivity_timeout_minutes');
+      if (saved) {
+        const parsed = parseInt(saved, 10);
+        if (!isNaN(parsed) && parsed > 0) return parsed;
+      }
+    }
+    return defaultTimeoutMinutes;
+  };
+
+  const timeoutMinutes = getDynamicTimeoutMinutes();
   const timeoutMs = timeoutMinutes * 60 * 1000;
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
