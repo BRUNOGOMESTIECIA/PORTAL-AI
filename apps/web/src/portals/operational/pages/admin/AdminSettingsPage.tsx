@@ -14,6 +14,7 @@ import { useNotifications } from '../../../../hooks/use-notifications';
 import { SecurityAuditLogsWidget } from '../../components/SecurityAuditLogsWidget';
 import { AntiBruteForcePanelWidget } from '../../components/AntiBruteForcePanelWidget';
 import { HttpSecurityHeadersWidget } from '../../components/HttpSecurityHeadersWidget';
+import { SessionCookiePolicyWidget } from '../../components/SessionCookiePolicyWidget';
 
 type SettingsTab = 'identity' | 'business_hours' | 'holidays' | 'sso' | 'notifications' | 'modules' | 'macros' | 'security_audit';
 
@@ -1055,6 +1056,7 @@ export default function AdminSettingsPage() {
       case 'security_audit':
         return (
           <div className="space-y-6">
+            <SessionCookiePolicyWidget />
             <HttpSecurityHeadersWidget />
             <AntiBruteForcePanelWidget />
             <SecurityAuditLogsWidget />
