@@ -18,6 +18,8 @@ import { SessionCookiePolicyWidget } from '../components/SessionCookiePolicyWidg
 import { HttpSecurityHeadersWidget } from '../components/HttpSecurityHeadersWidget';
 import { AntiBruteForcePanelWidget } from '../components/AntiBruteForcePanelWidget';
 import { SecurityAuditLogsWidget } from '../components/SecurityAuditLogsWidget';
+import { LogTtlPolicyWidget } from '../components/LogTtlPolicyWidget';
+import { MfaPolicyEnforcementWidget } from '../components/MfaPolicyEnforcementWidget';
 
 /**
  * Definição estática de todas as ferramentas disponíveis no painel.
@@ -326,6 +328,8 @@ export default function ToolsPage() {
           </div>
         ) : (
           <div className="space-y-6 dark">
+            <MfaPolicyEnforcementWidget />
+            <LogTtlPolicyWidget />
             <EncryptionComplianceWidget />
             <SessionTimeoutSettingsWidget />
             <LgpdUserAnonymizationWidget />
