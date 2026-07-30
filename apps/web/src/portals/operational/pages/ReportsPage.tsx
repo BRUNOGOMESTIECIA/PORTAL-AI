@@ -10,6 +10,7 @@ import { exportTicketsToExcel, generateExecutivePdfReport } from '../../../lib/e
 import { useTickets } from '../../../hooks/use-tickets';
 import { formatTicketProtocol } from '../../../lib/audit-logger';
 import { StaffLeaderboardWidget } from '../components/StaffLeaderboardWidget';
+import { CsatTrendWidget } from '../components/CsatTrendWidget';
 
 const COLORS = ['#3b82f6', '#f59e0b', '#10b981', '#6366f1', '#ef4444', '#8b5cf6'];
 
@@ -382,6 +383,9 @@ export default function ReportsPage() {
           <div className="space-y-6">
             {/* Widget Leaderboard de Produtividade dos Atendentes (Item 081) */}
             <StaffLeaderboardWidget />
+
+            {/* Dashboard de Evolução Mensal de CSAT (Item 129) */}
+            <CsatTrendWidget />
 
             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
             <div className="flex items-center justify-between mb-4 border-b border-slate-100 dark:border-slate-800 pb-3">
