@@ -311,25 +311,21 @@ export default function ToolsPage() {
         />
 
         {/* Conteúdo da Aba Selecionada */}
-        {instaPassoTab === 'acessos' || instaPassoTab === 'equipe' ? (
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-lg overflow-hidden relative w-full">
+        {instaPassoTab === 'acessos' || instaPassoTab === 'equipe' || instaPassoTab === 'logs' ? (
+          <div className="bg-slate-950 rounded-2xl border border-slate-800 shadow-xl overflow-hidden relative w-full">
             <iframe
               src="https://insta-passo.vercel.app/"
-              className="w-full min-h-[680px] h-[calc(100vh-210px)] border-0 rounded-2xl"
+              className="w-full min-h-[720px] h-[calc(100vh-200px)] border-0 rounded-2xl"
               title="Portal InstaPasso Admin"
             />
           </div>
         ) : instaPassoTab === 'invasoes' ? (
-          <div className="space-y-6">
+          <div className="space-y-6 dark">
             <AntiBruteForcePanelWidget />
             <SecurityAuditLogsWidget />
           </div>
-        ) : instaPassoTab === 'logs' ? (
-          <div className="space-y-6">
-            <SecurityAuditLogsWidget />
-          </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-6 dark">
             <EncryptionComplianceWidget />
             <SessionTimeoutSettingsWidget />
             <LgpdUserAnonymizationWidget />
