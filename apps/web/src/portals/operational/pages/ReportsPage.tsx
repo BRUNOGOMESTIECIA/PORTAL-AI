@@ -9,6 +9,7 @@ import {
 import { exportTicketsToExcel, generateExecutivePdfReport } from '../../../lib/export-utils';
 import { useTickets } from '../../../hooks/use-tickets';
 import { formatTicketProtocol } from '../../../lib/audit-logger';
+import { StaffLeaderboardWidget } from '../components/StaffLeaderboardWidget';
 
 const COLORS = ['#3b82f6', '#f59e0b', '#10b981', '#6366f1', '#ef4444', '#8b5cf6'];
 
@@ -378,7 +379,11 @@ export default function ReportsPage() {
           : '5.0';
 
         return (
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
+          <div className="space-y-6">
+            {/* Widget Leaderboard de Produtividade dos Atendentes (Item 081) */}
+            <StaffLeaderboardWidget />
+
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
             <div className="flex items-center justify-between mb-4 border-b border-slate-100 dark:border-slate-800 pb-3">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-600">
@@ -453,7 +458,8 @@ export default function ReportsPage() {
               </table>
             </div>
           </div>
-        );
+        </div>
+      );
       })()}
     </div>
   );
