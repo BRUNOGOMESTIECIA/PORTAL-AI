@@ -16,6 +16,7 @@ import { NewManualTicketModal } from './components/NewManualTicketModal';
 import { SessionLockModal } from './components/SessionLockModal';
 import { GlobalSearchModal } from '../../components/layout/GlobalSearchModal';
 import { useInactivityTimeout } from '../../hooks/use-inactivity-timeout';
+import { useTabNotification } from '../../hooks/use-tab-notification';
 import { useTheme } from '../../components/theme-provider';
 import { Sun, Moon, Palette } from 'lucide-react';
 import { UserMenu } from '../../components/layout/UserMenu';
@@ -412,6 +413,9 @@ export default function OperationalShell() {
   };
 
   const unread = localNotifications.filter((n) => !n.read).length;
+  
+  // Alerta de Notificação em Aba Minimizada (Item 039)
+  useTabNotification(unread, '💬 (1) Nova Notificação no Portal!');
   const isActive = (path: string) => location.pathname.startsWith(path);
   const visible = (item: NavItem) => !item.permission || hasPermission(item.permission);
 
