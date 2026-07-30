@@ -688,42 +688,65 @@ export default function OperationalShell() {
               </button>
             )}
 
-            {/* Notifications */}
+            {/* Notifications (Item 041 - Sininho com Badge Contador Animado) */}
             <div className="relative" ref={notificationsRef}>
               <button
                 onClick={() => setShowNotifications(!showNotifications)}
-                className="relative p-2 rounded-lg hover:bg-slate-100 transition-colors"
+                title="Notificações e Alertas"
+                className="relative p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-600 dark:text-slate-300"
               >
-                <Bell className="h-4 w-4 text-slate-500" />
+                <Bell className={cn("h-4 w-4 transition-transform", unread > 0 && "animate-bounce text-slate-700 dark:text-slate-200")} />
                 {unread > 0 && (
-                  <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
-                    {unread}
+                  <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                    <span className="relative inline-flex h-4.5 w-4.5 items-center justify-center rounded-full bg-red-600 text-[10px] font-black text-white shadow-sm">
+                      {unread > 99 ? '99+' : unread}
+                    </span>
                   </span>
                 )}
               </button>
               {showNotifications && (
-                <div className="absolute right-0 top-full mt-1 w-80 rounded-xl border border-slate-200 bg-white shadow-xl z-50">
-                  <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-                    <p className="text-sm font-semibold text-slate-800">Notificações</p>
+                <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+                  <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-bold text-slate-900 dark:text-slate-100">Notificações</p>
+                      {unread > 0 && (
+                        <span className="bg-red-100 dark:bg-red-950 text-red-600 dark:text-red-400 text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-red-200 dark:border-red-800">
+                          {unread} nova{unread > 1 ? 's' : ''}
+                        </span>
+                      )}
+                    </div>
                     {unread > 0 && (
-                      <button onClick={markAllAsRead} className="text-xs text-blue-600 hover:text-blue-800 font-medium">
-                        Marcar como lido
+                      <button onClick={markAllAsRead} className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 font-semibold transition-colors">
+                        Marcar todas como lidas
                       </button>
                     )}
                   </div>
-                  <div className="max-h-72 overflow-y-auto">
+                  <div className="max-h-80 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
                     {localNotifications.length === 0 ? (
-                      <div className="p-4 text-center text-sm text-slate-500">Nenhuma notificação.</div>
+                      <div className="p-8 text-center text-sm text-slate-400">Nenhuma notificação recente.</div>
                     ) : (
                       localNotifications.map((n) => (
                         <div 
                           key={n.id} 
                           onClick={() => markAsRead(n.id)}
-                          className={cn('px-4 py-3 border-b border-slate-50 last:border-0 cursor-pointer hover:bg-slate-50 transition-colors', !n.read && 'bg-blue-50/50 hover:bg-blue-50')}
+                          className={cn(
+                            'p-3.5 flex items-start gap-3 cursor-pointer transition-colors',
+                            !n.read 
+                              ? 'bg-blue-50/40 dark:bg-blue-950/30 hover:bg-blue-50/80 dark:hover:bg-blue-950/50' 
+                              : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                          )}
                         >
-                          {!n.read && <div className="w-1.5 h-1.5 rounded-full bg-blue-500 float-right mt-1.5 ml-2" />}
-                          <p className={cn('text-xs font-semibold', n.read ? 'text-slate-600' : 'text-slate-800')}>{n.title}</p>
-                          <p className="text-xs text-slate-500 mt-0.5">{n.body}</p>
+                          <div className={cn(
+                            'w-2 h-2 rounded-full mt-1.5 flex-shrink-0',
+                            !n.read ? 'bg-blue-600' : 'bg-transparent'
+                          )} />
+                          <div className="flex-1 min-w-0">
+                            <p className={cn('text-xs font-bold leading-snug', n.read ? 'text-slate-600 dark:text-slate-400' : 'text-slate-900 dark:text-slate-100')}>
+                              {n.title}
+                            </p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">{n.body}</p>
+                          </div>
                         </div>
                       ))
                     )}
