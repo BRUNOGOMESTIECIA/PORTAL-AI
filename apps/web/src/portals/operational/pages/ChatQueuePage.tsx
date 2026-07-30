@@ -13,6 +13,7 @@ import { collection, getDocs, query, where } from 'firebase/firestore';
 import { EmojiStickerPicker } from '../../../components/chat/EmojiStickerPicker';
 import { playAlertSound } from '../../../lib/sound-effects';
 import { useNotifications } from '../../../hooks/use-notifications';
+import { TransferChatModal } from '../components/TransferChatModal';
 
 type ChatTab = 'entrada' | 'meus' | 'em_atendimento' | 'encerrados';
 
@@ -78,6 +79,7 @@ export default function ChatQueuePage() {
   const selected = chats.find(c => c.id === selectedId) || null;
   const [input, setInput] = useState('');
   const [replyTo, setReplyTo] = useState<{ id: string; senderName: string; body: string } | null>(null);
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<ChatTab>('em_atendimento');
   const [search, setSearch] = useState('');
   const [forceRender, setForceRender] = useState(0);
@@ -718,15 +720,11 @@ export default function ChatQueuePage() {
                   <>
                     <div className="relative" ref={transferRef}>
                       <button 
-                        onClick={() => !selected.pendingTransferTo && setShowTransferMenu(!showTransferMenu)}
-                        disabled={!!selected.pendingTransferTo || selected.status === 'closed'}
-                        className={`${selected.pendingTransferTo ? 'bg-slate-300 text-slate-500 cursor-wait' : 'bg-amber-500 hover:bg-amber-600 text-white'} text-xs font-semibold px-4 py-2 rounded-lg transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed`}
+                        onClick={() => setIsTransferModalOpen(true)}
+                        disabled={selected.status === 'closed'}
+                        className="bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        {selected.pendingTransferTo ? (
-                          <>Aguardando Aceite...</>
-                        ) : (
-                          <><ArrowRightLeft className="w-3.5 h-3.5" /> Transferir</>
-                        )}
+                        <ArrowRightLeft className="w-3.5 h-3.5" /> Transferir para N2
                       </button>
                       
                       {showTransferMenu && (
@@ -1030,6 +1028,32 @@ export default function ChatQueuePage() {
           />
         </div>
       </div>
+
+      {/* Modal de Transferência entre N1 e N2 com Nota Interna Confidencial (Item 118) */}
+      {selected && (
+        <TransferChatModal
+          isOpen={isTransferModalOpen}
+          onClose={() => setIsTransferModalOpen(false)}
+          chatId={selected.id}
+          clientName={selected.clientName}
+          currentAgentName={selected.agentName || user?.name}
+          onConfirmTransfer={(newQueue, newAgentName, internalNote) => {
+            const internalMsg: MockChatMessage = {
+              id: `m_internal_${Date.now()}`,
+              body: `🔒 [TRANSFERÊNCIA DE ATENDIMENTO PARA ${newQueue.toUpperCase()}] Nota Interna de Transbordo (${newAgentName}): ${internalNote}`,
+              senderName: user?.name || 'Operador N1',
+              senderType: 'internal',
+              createdAt: new Date().toISOString(),
+            };
+            const updatedMessages = [...selected.messages, internalMsg];
+            updateChat(selected.id, {
+              queue: newQueue,
+              agentName: newAgentName,
+              messages: updatedMessages,
+            } as any);
+          }}
+        />
+      )}
     </div>
   );
 }
