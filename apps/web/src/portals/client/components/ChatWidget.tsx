@@ -6,6 +6,7 @@ import { MockChatSession, MockChatMessage } from '../../../mocks/data';
 import { EmojiStickerPicker } from '../../../components/chat/EmojiStickerPicker';
 import { exportChatTranscriptToPdf } from '../../../lib/export-utils';
 import { formatTicketProtocol, logSecurityAudit } from '../../../lib/audit-logger';
+import { QueuePositionWidget } from './QueuePositionWidget';
 
 const BUSINESS_HOURS = [
   { days: 'Seg – Sex', hours: '08:00 – 18:00' },
@@ -222,7 +223,19 @@ export function ChatWidget() {
 
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-3 space-y-3 bg-slate-50 dark:bg-slate-900">
-            {messages.length === 0 && (
+            
+            {/* Widget de Posição na Fila em Tempo Real (Item 117) */}
+            {activeChat?.status === 'waiting' && (
+              <QueuePositionWidget
+                queueName={activeChat.queue || 'Atendimento N1 Operacional'}
+                position={(activeChat as any).position || 2}
+                estimatedMinutes={(activeChat as any).waitingMinutes ? Math.max(1, (activeChat as any).waitingMinutes + 2) : 3}
+                activeAgentsCount={4}
+                ticketProtocol={formatTicketProtocol(activeChat.ticketId || activeChat.id)}
+              />
+            )}
+
+            {messages.length === 0 && activeChat?.status !== 'waiting' && (
                <div className="text-center text-xs text-slate-400 my-4">
                  Envie uma mensagem para iniciar o atendimento.
                </div>
