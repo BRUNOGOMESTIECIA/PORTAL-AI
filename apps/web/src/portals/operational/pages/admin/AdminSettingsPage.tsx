@@ -12,6 +12,7 @@ import { MOCK_CLIENTS, MOCK_MACROS } from '../../../../mocks/data';
 import { getSoundSettings, saveSoundSettings, playAlertSound, AlertTone } from '../../../../lib/sound-effects';
 import { useNotifications } from '../../../../hooks/use-notifications';
 import { SecurityAuditLogsWidget } from '../../components/SecurityAuditLogsWidget';
+import { AntiBruteForcePanelWidget } from '../../components/AntiBruteForcePanelWidget';
 
 type SettingsTab = 'identity' | 'business_hours' | 'holidays' | 'sso' | 'notifications' | 'modules' | 'macros' | 'security_audit';
 
@@ -1051,7 +1052,12 @@ export default function AdminSettingsPage() {
         );
 
       case 'security_audit':
-        return <SecurityAuditLogsWidget />;
+        return (
+          <div className="space-y-6">
+            <AntiBruteForcePanelWidget />
+            <SecurityAuditLogsWidget />
+          </div>
+        );
     }
   };
 
