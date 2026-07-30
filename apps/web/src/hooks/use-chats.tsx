@@ -5,6 +5,7 @@ import {
   query 
 } from 'firebase/firestore';
 import { MockChatSession } from '../mocks/data';
+import { redactSensitiveData } from '../lib/redaction';
 
 interface ChatsContextValue {
   chats: MockChatSession[];
@@ -99,29 +100,47 @@ export function ChatsProvider({ children }: { children: React.ReactNode }) {
     return () => unsubscribe();
   }, [saveFallbackChats]);
 
+function sanitizeMessages(messages?: any[]): any[] | undefined {
+  if (!messages) return undefined;
+  return messages.map((m) => ({
+    ...m,
+    body: redactSensitiveData(m.body || ''),
+  }));
+}
+
   const createChat = useCallback(async (chat: MockChatSession) => {
-    const updated = [chat, ...fallbackChatsRef.current];
+    const sanitizedChat = {
+      ...chat,
+      messages: sanitizeMessages(chat.messages) || [],
+    };
+
+    const updated = [sanitizedChat, ...fallbackChatsRef.current];
     saveFallbackChats(updated);
     channelRef.current?.postMessage({ type: 'SYNC_CHATS', payload: updated });
 
     try {
-      await setDoc(doc(db, 'chat_sessions', chat.id), chat);
+      await setDoc(doc(db, 'chat_sessions', sanitizedChat.id), sanitizedChat);
     } catch (error) {
       console.warn("Erro ao salvar chat no Firestore:", error);
     }
   }, [saveFallbackChats]);
 
   const updateChat = useCallback(async (id: string, updates: Partial<MockChatSession>) => {
+    const sanitizedUpdates = {
+      ...updates,
+      ...(updates.messages ? { messages: sanitizeMessages(updates.messages) } : {}),
+    };
+
     const currentList = [...fallbackChatsRef.current];
     const idx = currentList.findIndex(c => c.id === id);
     if (idx > -1) {
-      currentList[idx] = { ...currentList[idx], ...updates };
+      currentList[idx] = { ...currentList[idx], ...sanitizedUpdates };
       saveFallbackChats(currentList);
       channelRef.current?.postMessage({ type: 'SYNC_CHATS', payload: currentList });
     }
 
     try {
-      await updateDoc(doc(db, 'chat_sessions', id), updates);
+      await updateDoc(doc(db, 'chat_sessions', id), sanitizedUpdates);
     } catch (error) {
       console.warn("Erro ao atualizar chat no Firestore:", error);
     }
