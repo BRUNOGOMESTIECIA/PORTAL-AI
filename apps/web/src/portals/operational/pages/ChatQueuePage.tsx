@@ -946,33 +946,41 @@ export default function ChatQueuePage() {
                 
                 {/* Sugestão Inteligente de IA (@ia - Item 125) */}
                 {input.toLowerCase().includes('@ia') && (
-                  <div className="absolute bottom-full left-0 mb-2 w-80 bg-slate-900 border border-blue-500/40 rounded-2xl shadow-2xl overflow-hidden z-50 animate-in fade-in zoom-in-95">
-                    <div className="px-3.5 py-2.5 bg-blue-950/80 border-b border-blue-500/20 flex items-center justify-between">
+                  <div className="absolute bottom-full left-0 mb-2 w-96 bg-slate-900 border border-blue-500/50 rounded-2xl shadow-2xl overflow-hidden z-50 animate-in fade-in zoom-in-95 text-slate-100">
+                    <div className="px-4 py-2.5 bg-blue-950 border-b border-blue-500/30 flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm">🤖</span>
+                        <span className="text-base">🤖</span>
                         <span className="text-xs font-bold text-blue-200 uppercase tracking-wider">IA Copiloto de Atendimento</span>
                       </div>
-                      <span className="text-[10px] font-black bg-blue-600 text-white px-2 py-0.5 rounded-full">
-                        @IA ATIVO
+                      <span className="text-[10px] font-black bg-blue-600 text-white px-2.5 py-0.5 rounded-full">
+                        @IA DETECTADO
                       </span>
                     </div>
-                    <div className="p-3 space-y-2">
-                      <p className="text-[11px] font-bold text-blue-300">
-                        {getAiSolutionSuggestion(input).title}
-                      </p>
-                      <p className="text-xs text-slate-300 bg-slate-950/60 p-2.5 rounded-xl border border-slate-800 line-clamp-3">
+                    <div className="p-4 space-y-3">
+                      <div>
+                        <p className="text-[11px] font-bold text-blue-400 uppercase tracking-wide">Sugestão Técnica Encontrada:</p>
+                        <p className="text-xs font-bold text-slate-100 mt-0.5">
+                          {getAiSolutionSuggestion(input).title}
+                        </p>
+                      </div>
+
+                      <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 font-medium text-xs text-slate-200 max-h-36 overflow-y-auto leading-relaxed">
                         {getAiSolutionSuggestion(input).suggestedText}
-                      </p>
+                      </div>
+
                       <button
                         type="button"
                         onClick={() => {
                           const suggestion = getAiSolutionSuggestion(input);
                           setInput(suggestion.suggestedText);
-                          toast.success('Resposta da IA Copiloto inserida no campo!');
+                          toast.success('✏️ Texto inserido no campo! Edite à vontade antes de enviar.', { duration: 4000 });
+                          setTimeout(() => {
+                            inputRef.current?.focus();
+                          }, 100);
                         }}
-                        className="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-blue-600/20 cursor-pointer"
+                        className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl transition-all shadow-lg shadow-blue-600/30 cursor-pointer flex items-center justify-center gap-2"
                       >
-                        ✨ Inserir Resposta Sugerida da IA
+                        ✨ Inserir no Campo para Editar Antes de Enviar
                       </button>
                     </div>
                   </div>
