@@ -60,6 +60,13 @@ export default function OperationalLoginPage() {
             )}
             Entrar com Google (Portal Operacional)
           </button>
+
+          {/* Aviso de Privacidade LGPD (Art. 7º & Art. 6º) */}
+          <div className="mt-8 pt-4 border-t border-slate-800 text-center">
+            <p className="text-[11px] text-slate-400 leading-relaxed">
+              🔒 <strong>Aviso de Privacidade LGPD (Lei 13.709/18):</strong> O acesso e os registros de conexão com IP são monitorados e auditados em conformidade com o Marco Civil da Internet e a LGPD (Art. 7º, V e IX).
+            </p>
+          </div>
         </div>
       </div>
     </div>

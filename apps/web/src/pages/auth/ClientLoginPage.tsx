@@ -65,6 +65,13 @@ export default function ClientLoginPage() {
             )}
             Entrar com Google (Portal Cliente)
           </button>
+
+          {/* Aviso de Privacidade LGPD (Art. 7º & Art. 6º) */}
+          <div className="mt-8 pt-4 border-t border-slate-200 text-center">
+            <p className="text-[11px] text-slate-500 leading-relaxed">
+              🔒 <strong>Aviso de Privacidade LGPD (Lei 13.709/18):</strong> Ao acessar, seu endereço IP e registros de conexão são coletados com segurança para fins de auditoria e cumprimento contratual (Art. 7º, V e IX).
+            </p>
+          </div>
         </div>
       </div>
     </div>

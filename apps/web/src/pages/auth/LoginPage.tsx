@@ -119,6 +119,13 @@ export default function LoginPage() {
               Microsoft
             </button>
           </div>
+
+          {/* Aviso de Privacidade LGPD */}
+          <div className="mt-6 pt-4 border-t border-border text-center">
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              🔒 <strong>Aviso de Privacidade LGPD (Lei 13.709/18):</strong> O acesso e os registros de conexão com IP são monitorados e auditados em conformidade com a legislação aplicável (Art. 7º, V e IX).
+            </p>
+          </div>
         </div>
       </div>
     </div>
