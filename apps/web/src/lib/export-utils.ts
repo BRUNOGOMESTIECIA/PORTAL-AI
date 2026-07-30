@@ -1,4 +1,5 @@
 import { formatTicketProtocol } from './audit-logger';
+import { logDlpAttachmentDownload } from './dlp-download-logger';
 
 /**
  * Utilitário de exportação para Excel (.xlsx / CSV corporativo com UTF-8 BOM e delimitador ;)
@@ -109,6 +110,15 @@ export function exportChatTranscriptToPdf(session: {
 }) {
   const protocol = formatTicketProtocol(session.protocol || session.id);
   const nowStr = new Date().toLocaleString('pt-BR');
+
+  // Rastreamento DLP ISO 27001 (Item 116)
+  logDlpAttachmentDownload({
+    fileName: `transcricao_chat_${protocol}.pdf`,
+    fileType: 'Transcrição de Chat em PDF',
+    protocol: protocol,
+    userName: session.clientName || 'Atendente',
+    userEmail: session.clientEmail || 'usuario@empresa.com.br',
+  });
 
   const printWindow = window.open('', '_blank', 'width=850,height=900');
   if (!printWindow) return;
