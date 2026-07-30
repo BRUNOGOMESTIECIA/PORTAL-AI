@@ -13,6 +13,8 @@ import { cn } from '../../lib/utils';
 import { useEffect, useRef } from 'react';
 import { useEscapeModal } from '../../hooks/use-escape-modal';
 import { NewManualTicketModal } from './components/NewManualTicketModal';
+import { SessionLockModal } from './components/SessionLockModal';
+import { useInactivityTimeout } from '../../hooks/use-inactivity-timeout';
 import { useTheme } from '../../components/theme-provider';
 import { Sun, Moon, Palette } from 'lucide-react';
 import { UserMenu } from '../../components/layout/UserMenu';
@@ -357,6 +359,7 @@ export default function OperationalShell() {
   const [showNewTicketModal, setShowNewTicketModal] = useState(false);
   const notificationsRef = useRef<HTMLDivElement>(null);
   const [pendingTransferChat, setPendingTransferChat] = useState<typeof chats[0] | null>(null);
+  const { isLocked, unlockSession } = useInactivityTimeout(30);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -774,6 +777,9 @@ export default function OperationalShell() {
           </div>
         </div>
       )}
+
+      {/* Modal de Bloqueio de Sessão por Inatividade (LGPD / ISO 27001) */}
+      {isLocked && <SessionLockModal onUnlock={unlockSession} />}
     </div>
   );
 }
