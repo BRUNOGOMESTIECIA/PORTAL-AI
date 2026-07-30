@@ -3,7 +3,7 @@ import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Ticket, MessageCircle, MessageSquare, BookOpen,
   ShoppingBag, BarChart3, Users, Settings, ChevronLeft, ChevronRight, ChevronUp, ChevronDown,
-  Bell, LogOut, User, ShieldCheck, Menu, X, Building2, Wrench, Plus, Clock, ArrowRightLeft, Volume2, VolumeX, BellRing
+  Bell, LogOut, User, ShieldCheck, Menu, X, Building2, Wrench, Plus, Clock, ArrowRightLeft, Volume2, VolumeX, BellRing, Search
 } from 'lucide-react';
 import { useAuth } from '../../hooks/use-mock-auth';
 import { MockStaff, MOCK_STAFF, MOCK_NOTIFICATIONS } from '../../mocks/data';
@@ -14,6 +14,7 @@ import { useEffect, useRef } from 'react';
 import { useEscapeModal } from '../../hooks/use-escape-modal';
 import { NewManualTicketModal } from './components/NewManualTicketModal';
 import { SessionLockModal } from './components/SessionLockModal';
+import { GlobalSearchModal } from '../../components/layout/GlobalSearchModal';
 import { useInactivityTimeout } from '../../hooks/use-inactivity-timeout';
 import { useTheme } from '../../components/theme-provider';
 import { Sun, Moon, Palette } from 'lucide-react';
@@ -359,7 +360,20 @@ export default function OperationalShell() {
   const [showNewTicketModal, setShowNewTicketModal] = useState(false);
   const notificationsRef = useRef<HTMLDivElement>(null);
   const [pendingTransferChat, setPendingTransferChat] = useState<typeof chats[0] | null>(null);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const { isLocked, unlockSession } = useInactivityTimeout(30);
+
+  // Atalho global de teclado Ctrl+K / Cmd+K
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
+        e.preventDefault();
+        setIsSearchOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -627,7 +641,24 @@ export default function OperationalShell() {
           <button onClick={() => setMobileOpen(true)} className="lg:hidden text-slate-500 hover:text-slate-800">
             <Menu className="h-5 w-5" />
           </button>
-          <div className="flex-1" />
+          
+          {/* Botão de Busca Global Ctrl+K */}
+          <div className="flex-1 max-w-md mx-4">
+            <button
+              onClick={() => setIsSearchOpen(true)}
+              className="w-full flex items-center justify-between px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-800 dark:hover:text-slate-100 transition-all cursor-pointer shadow-sm"
+            >
+              <div className="flex items-center gap-2 truncate">
+                <Search className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                <span className="hidden sm:inline truncate">Buscar tickets (#2026XXXX), ferramentas...</span>
+                <span className="sm:hidden">Pesquisar...</span>
+              </div>
+              <kbd className="hidden md:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-[10px] font-mono text-slate-500 flex-shrink-0 ml-1">
+                Ctrl+K
+              </kbd>
+            </button>
+          </div>
+
           <div className="flex items-center gap-2">
             
             <SystemClock />
@@ -780,6 +811,9 @@ export default function OperationalShell() {
 
       {/* Modal de Bloqueio de Sessão por Inatividade (LGPD / ISO 27001) */}
       {isLocked && <SessionLockModal onUnlock={unlockSession} />}
+
+      {/* Modal de Pesquisa Global Instantânea (Ctrl+K) */}
+      <GlobalSearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
     </div>
   );
 }
