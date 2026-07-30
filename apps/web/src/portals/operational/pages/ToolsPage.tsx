@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { EquipmentDeliveryTermModal } from '../components/EquipmentDeliveryTermModal';
 import { B2bCompanyPerformanceModal } from '../components/B2bCompanyPerformanceModal';
 import { EncryptionComplianceWidget } from '../components/EncryptionComplianceWidget';
+import { PeriodicAuditReportModal } from '../components/PeriodicAuditReportModal';
 
 /**
  * Definição estática de todas as ferramentas disponíveis no painel.
@@ -185,6 +186,7 @@ export default function ToolsPage() {
   const [activeEmbeddedTool, setActiveEmbeddedTool] = useState<string | null>(null);
   const [showTermModal, setShowTermModal] = useState(false);
   const [showB2bModal, setShowB2bModal] = useState(false);
+  const [showAuditReportModal, setShowAuditReportModal] = useState(false);
 
   // Regra de Acesso do InstaPasso: Administradores, Supervisores e equipe com permissões admin/tickets
   const canAccessInstaPasso = () => {
@@ -224,14 +226,28 @@ export default function ToolsPage() {
             </div>
           </div>
 
-          <button
-            onClick={() => window.open('https://insta-passo.vercel.app/', '_blank')}
-            className="flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-colors shadow-sm cursor-pointer"
-          >
-            <Maximize2 className="w-3.5 h-3.5" />
-            Abrir em Nova Aba
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowAuditReportModal(true)}
+              className="flex items-center justify-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-all shadow-sm shadow-blue-600/30 cursor-pointer"
+            >
+              📄 Emitir Laudo Mensal ISO 27001 (Item 112)
+            </button>
+            <button
+              onClick={() => window.open('https://insta-passo.vercel.app/', '_blank')}
+              className="flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-colors shadow-sm cursor-pointer"
+            >
+              <Maximize2 className="w-3.5 h-3.5" />
+              Abrir em Nova Aba
+            </button>
+          </div>
         </div>
+
+        {/* Modal do Laudo Mensal de Auditoria (Item 112) */}
+        <PeriodicAuditReportModal
+          isOpen={showAuditReportModal}
+          onClose={() => setShowAuditReportModal(false)}
+        />
 
         {/* Módulo de Auditoria de Criptografia Exclusivo do InstaPasso (Item 111) */}
         <EncryptionComplianceWidget />

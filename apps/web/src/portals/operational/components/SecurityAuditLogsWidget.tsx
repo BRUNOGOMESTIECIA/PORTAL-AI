@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { ShieldAlert, Lock, AlertTriangle, Globe, Monitor, RefreshCw, CheckCircle2, Search, Filter, Download } from 'lucide-react';
+import { PeriodicAuditReportModal } from './PeriodicAuditReportModal';
+import { FileCheck, ShieldAlert, Lock, AlertTriangle, Globe, Monitor, RefreshCw, CheckCircle2, Search, Filter, Download } from 'lucide-react';
 import { toast } from 'sonner';
 
 export interface SecurityAttemptLog {
@@ -67,24 +68,25 @@ export const MOCK_SECURITY_LOGS: SecurityAttemptLog[] = [
 ];
 
 export function SecurityAuditLogsWidget() {
-  const [filterReason, setFilterReason] = useState<string>('all');
-  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [reasonFilter, setReasonFilter] = useState<string>('all');
+  const [showPeriodicModal, setShowPeriodicModal] = useState(false);
 
   const filteredLogs = MOCK_SECURITY_LOGS.filter((log) => {
-    const matchesReason = filterReason === 'all' || log.reason === filterReason;
-    const matchesSearch =
+    const matchSearch =
       log.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.ip.includes(searchTerm) ||
+      log.ip.toLowerCase().includes(searchTerm.toLowerCase()) ||
       log.location.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesReason && matchesSearch;
+    const matchReason = reasonFilter === 'all' || log.reason === reasonFilter;
+    return matchSearch && matchReason;
   });
 
   const getReasonBadge = (reason: SecurityAttemptLog['reason']) => {
     switch (reason) {
       case 'unauthorized_email':
-        return <span className="bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700 text-[10px] font-bold px-2 py-0.5 rounded-full">E-mail Não Cadastrado</span>;
+        return <span className="bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300 border border-red-300 dark:border-red-700 text-[10px] font-bold px-2 py-0.5 rounded-full">E-mail Não Autorizado</span>;
       case 'brute_force':
-        return <span className="bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300 border border-red-300 dark:border-red-700 text-[10px] font-bold px-2 py-0.5 rounded-full">Bloqueio Anti-Brute Force</span>;
+        return <span className="bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700 text-[10px] font-bold px-2 py-0.5 rounded-full">Ataque Força Bruta</span>;
       case 'invalid_sso_domain':
         return <span className="bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700 text-[10px] font-bold px-2 py-0.5 rounded-full">Domínio SSO Não Autorizado</span>;
       case 'mfa_failed':
@@ -120,9 +122,9 @@ export function SecurityAuditLogsWidget() {
 
         <button
           onClick={handleExport}
-          className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition-all self-start sm:self-auto"
+          className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition-all self-start sm:self-auto cursor-pointer"
         >
-          <Download className="w-4 h-4" /> Exportar Logs (.CSV)
+          <Download className="w-4 h-4" /> Exportar CSV
         </button>
       </div>
 
@@ -160,8 +162,8 @@ export function SecurityAuditLogsWidget() {
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <Filter className="w-4 h-4 text-slate-400" />
           <select
-            value={filterReason}
-            onChange={(e) => setFilterReason(e.target.value)}
+            value={reasonFilter}
+            onChange={(e) => setReasonFilter(e.target.value)}
             className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-slate-100 outline-none"
           >
             <option value="all" className="bg-white text-slate-900 dark:bg-slate-900 dark:text-slate-100">Todos os Motivos</option>
@@ -215,6 +217,12 @@ export function SecurityAuditLogsWidget() {
           </tbody>
         </table>
       </div>
+
+      {/* Modal de Laudo Mensal de Auditoria ISO 27001 (Item 112) */}
+      <PeriodicAuditReportModal
+        isOpen={showPeriodicModal}
+        onClose={() => setShowPeriodicModal(false)}
+      />
     </div>
   );
 }
