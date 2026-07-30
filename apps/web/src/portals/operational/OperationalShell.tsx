@@ -17,6 +17,7 @@ import { SessionLockModal } from './components/SessionLockModal';
 import { GlobalSearchModal } from '../../components/layout/GlobalSearchModal';
 import { useInactivityTimeout } from '../../hooks/use-inactivity-timeout';
 import { useTabNotification } from '../../hooks/use-tab-notification';
+import { OperatorStatusToggle } from './components/OperatorStatusToggle';
 import { useTheme } from '../../components/theme-provider';
 import { Sun, Moon, Palette } from 'lucide-react';
 import { UserMenu } from '../../components/layout/UserMenu';
@@ -665,6 +666,9 @@ export default function OperationalShell() {
 
           <div className="flex items-center gap-2">
             
+            {/* Seletor de Status de Presença/Ausência do Operador (Item 120) */}
+            <OperatorStatusToggle />
+
             <SystemClock />
 
             {/* Sound Toggle */}
