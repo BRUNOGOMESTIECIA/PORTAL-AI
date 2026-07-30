@@ -7,6 +7,7 @@ import { ContextPanel } from '../components/ContextPanel';
 import { useAuth } from '../../../hooks/use-mock-auth';
 import { useChats } from '../../../hooks/use-chats';
 import { exportChatTranscriptToPdf } from '../../../lib/export-utils';
+import { sendChatTranscriptEmail } from '../../../lib/chat-email-sender';
 
 import { instaPassoDb } from '../../../lib/firebase';
 import { collection, getDocs, query, where } from 'firebase/firestore';
@@ -365,7 +366,25 @@ export default function ChatQueuePage() {
               }
             ];
           }
+
           await updateChat(chatInMock.id, updates);
+
+          // Disparo Automático de E-mail de Transcrição ao Encerrar Chat (Item 119)
+          if (newStatus === 'closed' || newStatus === 'finished') {
+            sendChatTranscriptEmail({
+              chatId: chatInMock.id,
+              protocol: chatInMock.ticketId || chatInMock.id,
+              clientName: chatInMock.clientName,
+              clientEmail: chatInMock.clientEmail || `${chatInMock.clientName.toLowerCase().replace(/\s+/g, '.')}@cliente.com.br`,
+              agentName: chatInMock.agentName || user?.name || 'Atendimento N1',
+              messages: chatInMock.messages.map((m: any) => ({
+                senderName: m.senderName,
+                text: m.body,
+                timestamp: new Date(m.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+                isAgent: m.senderType === 'agent' || m.senderType === 'staff'
+              }))
+            });
+          }
         }
       }
     }
