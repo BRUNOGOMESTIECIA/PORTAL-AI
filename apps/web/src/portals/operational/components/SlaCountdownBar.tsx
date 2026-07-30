@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, AlertTriangle, CheckCircle2, ShieldAlert } from 'lucide-react';
+import { Clock, AlertTriangle, CheckCircle2, ShieldAlert, PauseCircle } from 'lucide-react';
 import { differenceInSeconds } from 'date-fns';
+import { isSlaPausedNow } from '../../../lib/business-hours-sla';
 
 interface SlaCountdownBarProps {
   dueIsoString: string;
@@ -40,6 +41,7 @@ export default function SlaCountdownBar({
   const isResolved = status === 'resolved' || status === 'closed';
   const dueDate = new Date(dueIsoString);
   const createdDate = createdIsoString ? new Date(createdIsoString) : new Date(dueDate.getTime() - 4 * 3600 * 1000);
+  const pauseInfo = isSlaPausedNow(now);
 
   // Se já resolvido
   if (isResolved) {
@@ -62,6 +64,31 @@ export default function SlaCountdownBar({
         <div className="w-full h-1.5 bg-emerald-100 dark:bg-emerald-900/30 rounded-full overflow-hidden">
           <div className="h-full bg-emerald-500 rounded-full w-full" />
         </div>
+      </div>
+    );
+  }
+
+  // Se SLA estiver Pausado (Final de Semana, Feriado ou Fora do Expediente - Item 121)
+  if (pauseInfo.isPaused) {
+    if (compact) {
+      return (
+        <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 text-xs font-bold border border-amber-300 dark:border-amber-700" title={pauseInfo.label}>
+          <PauseCircle className="w-3.5 h-3.5 text-amber-500" />
+          <span>SLA Pausado</span>
+        </div>
+      );
+    }
+    return (
+      <div className="w-full space-y-1 bg-amber-50 dark:bg-amber-950/30 p-2.5 rounded-xl border border-amber-200 dark:border-amber-800">
+        <div className="flex items-center justify-between text-xs font-bold text-amber-700 dark:text-amber-300">
+          <span className="flex items-center gap-1.5">
+            <PauseCircle className="w-4 h-4 text-amber-500" /> {pauseInfo.label}
+          </span>
+          <span className="text-[10px] uppercase font-mono font-bold bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-100 px-2 py-0.5 rounded">Congelado</span>
+        </div>
+        <p className="text-[11px] text-amber-800 dark:text-amber-400">
+          A contagem será retomada automaticamente no próximo dia útil às 08h00.
+        </p>
       </div>
     );
   }
