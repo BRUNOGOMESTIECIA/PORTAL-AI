@@ -7,6 +7,7 @@ import { EmojiStickerPicker } from '../../../components/chat/EmojiStickerPicker'
 import { exportChatTranscriptToPdf } from '../../../lib/export-utils';
 import { formatTicketProtocol, logSecurityAudit } from '../../../lib/audit-logger';
 import { QueuePositionWidget } from './QueuePositionWidget';
+import { classifyTicketOrChatWithAi } from '../../../lib/ai-ticket-classifier';
 
 const BUSINESS_HOURS = [
   { days: 'Seg – Sex', hours: '08:00 – 18:00' },
@@ -76,6 +77,8 @@ export function ChatWidget() {
     
     const ticketNumber = String(Math.floor(Math.random() * 90000) + 10000);
     
+    const aiClassification = initialMessage ? classifyTicketOrChatWithAi(initialMessage) : null;
+
     const newChat: MockChatSession = {
       id: `chat_${Date.now()}`,
       ticketId: ticketNumber,
@@ -83,7 +86,7 @@ export function ChatWidget() {
       clientEmail: user.email,
       status: 'waiting',
       agentName: null,
-      queue: 'Atendimento Geral',
+      queue: aiClassification ? aiClassification.category : 'Atendimento Geral',
       waitingMinutes: 0,
       createdAt: new Date().toISOString(),
       messages: []

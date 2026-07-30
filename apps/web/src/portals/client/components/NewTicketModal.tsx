@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Link } from 'react-router-dom';
 import { useEscapeModal } from '../../../hooks/use-escape-modal';
+import { classifyTicketOrChatWithAi } from '../../../lib/ai-ticket-classifier';
 
 const TICKET_TYPES = ['Incidente', 'Solicitação', 'Dúvida'];
 
@@ -113,6 +114,26 @@ export function NewTicketModal({ initialTitle = '', onClose, onConfirm }: { init
                 ${errors.description ? 'border-red-300 focus:border-red-500 focus:ring-red-50' : 'border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-blue-50 hover:border-slate-300 dark:hover:border-slate-600'}`}
             />
             {errors.description && <p className="text-red-500 text-xs mt-1.5">{errors.description.message}</p>}
+            
+            {/* Badge de Triagem Automática por Leitura Inteligente (Item 126) */}
+            {watch('description') && watch('description').length >= 5 && (
+              <div className="mt-2.5 p-3 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-xl flex items-center justify-between animate-in fade-in duration-150">
+                <div className="flex items-center gap-2">
+                  <span className="text-base">{classifyTicketOrChatWithAi(watch('title') + ' ' + watch('description')).icon}</span>
+                  <div>
+                    <p className="text-[11px] font-bold text-blue-900 dark:text-blue-200">
+                      {classifyTicketOrChatWithAi(watch('title') + ' ' + watch('description')).aiBadgeText}
+                    </p>
+                    <p className="text-[10px] text-blue-700 dark:text-blue-300">
+                      Categoria: <strong>{classifyTicketOrChatWithAi(watch('title') + ' ' + watch('description')).category}</strong>
+                    </p>
+                  </div>
+                </div>
+                <span className="text-[10px] font-black uppercase bg-blue-600 text-white px-2 py-0.5 rounded-full">
+                  Prioridade {classifyTicketOrChatWithAi(watch('title') + ' ' + watch('description')).priority.toUpperCase()}
+                </span>
+              </div>
+            )}
           </div>
           
           <div>

@@ -9,6 +9,7 @@ import { useChats } from '../../../hooks/use-chats';
 import { exportChatTranscriptToPdf } from '../../../lib/export-utils';
 import { sendChatTranscriptEmail } from '../../../lib/chat-email-sender';
 import { getAiSolutionSuggestion } from '../../../lib/ai-solution-copilot';
+import { AiHandoverSummaryWidget } from '../components/AiHandoverSummaryWidget';
 
 import { instaPassoDb } from '../../../lib/firebase';
 import { collection, getDocs, query, where } from 'firebase/firestore';
@@ -1081,7 +1082,13 @@ export default function ChatQueuePage() {
             <X className="w-4 h-4" />
           </button>
         )}
-        <div className="w-full xl:w-72 h-full overflow-hidden">
+        <div className="w-full xl:w-72 h-full overflow-y-auto p-2 space-y-3">
+          {selected && selected.messages && selected.messages.length >= 2 && (
+            <AiHandoverSummaryWidget
+              title={`Atendimento - ${selected.clientName}`}
+              messages={selected.messages}
+            />
+          )}
           <ContextPanel 
             session={selected} 
             onStatusChange={handleStatusChange} 
