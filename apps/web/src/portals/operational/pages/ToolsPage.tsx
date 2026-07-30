@@ -9,6 +9,7 @@ import { useAuth } from '../../../hooks/use-mock-auth';
 import { toast } from 'sonner';
 import { EquipmentDeliveryTermModal } from '../components/EquipmentDeliveryTermModal';
 import { B2bCompanyPerformanceModal } from '../components/B2bCompanyPerformanceModal';
+import { EncryptionComplianceWidget } from '../components/EncryptionComplianceWidget';
 
 /**
  * Definição estática de todas as ferramentas disponíveis no painel.
@@ -231,6 +232,9 @@ export default function ToolsPage() {
             Abrir em Nova Aba
           </button>
         </div>
+
+        {/* Módulo de Auditoria de Criptografia Exclusivo do InstaPasso (Item 111) */}
+        <EncryptionComplianceWidget />
 
         {/* Iframe Embutido do Portal InstaPasso */}
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-lg overflow-hidden relative w-full">

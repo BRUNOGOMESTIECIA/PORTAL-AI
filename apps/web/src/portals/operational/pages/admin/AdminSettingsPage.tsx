@@ -18,6 +18,7 @@ import { SessionCookiePolicyWidget } from '../../components/SessionCookiePolicyW
 import { FrameAncestorsPolicyWidget } from '../../components/FrameAncestorsPolicyWidget';
 import { LgpdUserAnonymizationWidget } from '../../components/LgpdUserAnonymizationWidget';
 import { SessionTimeoutSettingsWidget } from '../../components/SessionTimeoutSettingsWidget';
+import { EncryptionComplianceWidget } from '../../components/EncryptionComplianceWidget';
 
 type SettingsTab = 'identity' | 'business_hours' | 'holidays' | 'sso' | 'notifications' | 'modules' | 'macros' | 'security_audit';
 
