@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Fingerprint, Monitor, LayoutGrid, Cloud, Gamepad2, Tv, HardDrive, Cpu, 
   ExternalLink, Printer, Package, Smartphone, Server, Send, ShieldCheck, 
-  ArrowLeft, Lock, Maximize2 
+  ArrowLeft, Lock, Maximize2, FileText
 } from 'lucide-react';
 import { useAuth } from '../../../hooks/use-mock-auth';
 import { toast } from 'sonner';
+import { EquipmentDeliveryTermModal } from '../components/EquipmentDeliveryTermModal';
 
 /**
  * Definição estática de todas as ferramentas disponíveis no painel.
@@ -147,6 +148,17 @@ const TOOLS = [
     border: 'hover:border-rose-400',
     badge: null,
   },
+  {
+    id: 'termo_entrega',
+    name: 'Termo de Entrega de Equipamentos',
+    description: 'Gerador de recibos de responsabilidade com assinatura digital (Item 099).',
+    icon: FileText,
+    color: 'text-blue-500',
+    bg: 'bg-blue-100 dark:bg-blue-500/10',
+    border: 'hover:border-blue-400 border-blue-300 dark:border-blue-700/50 shadow-blue-500/5',
+    badge: 'Assinatura Digital',
+    isTermModal: true,
+  },
 ];
 
 /**
@@ -158,6 +170,7 @@ export default function ToolsPage() {
   const navigate = useNavigate();
   const { user, hasPermission } = useAuth();
   const [activeEmbeddedTool, setActiveEmbeddedTool] = useState<string | null>(null);
+  const [showTermModal, setShowTermModal] = useState(false);
 
   // Regra de Acesso do InstaPasso: Administradores, Supervisores e equipe com permissões admin/tickets
   const canAccessInstaPasso = () => {
@@ -236,7 +249,9 @@ export default function ToolsPage() {
             <button
               key={tool.id}
               onClick={() => {
-                if ((tool as any).isInstaPasso) {
+                if ((tool as any).isTermModal) {
+                  setShowTermModal(true);
+                } else if ((tool as any).isInstaPasso) {
                   if (canAccessInstaPasso()) {
                     setActiveEmbeddedTool('instapasso');
                   } else {
@@ -282,6 +297,9 @@ export default function ToolsPage() {
           );
         })}
       </div>
+
+      {/* Modal Gerador do Termo de Entrega de Equipamento com Assinatura Digital (Item 099) */}
+      <EquipmentDeliveryTermModal isOpen={showTermModal} onClose={() => setShowTermModal(false)} />
     </div>
   );
 }
