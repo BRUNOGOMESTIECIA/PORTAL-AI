@@ -9,6 +9,8 @@ import { NewManualTicketModal } from '../components/NewManualTicketModal';
 import SlaCountdownBar from '../components/SlaCountdownBar';
 import { useAuth } from '../../../hooks/use-mock-auth';
 import { useTickets } from '../../../hooks/use-tickets';
+import { useTableDensity, DENSITY_CONFIGS } from '../../../hooks/use-table-density';
+import { TableDensitySelector } from '../components/TableDensitySelector';
 
 import { formatTicketProtocol } from '../../../lib/audit-logger';
 
@@ -52,6 +54,7 @@ export default function TicketsPage() {
   const [statusFilter, setStatusFilter]         = useState<StatusFilterType>('active');
   const [groupMode, setGroupMode]               = useState<GroupMode>('team');
   const [viewLayout, setViewLayout]             = useState<'kanban' | 'table'>('kanban');
+  const { density, setDensity, config: densityConfig } = useTableDensity();
   const [showNewTicketModal, setShowNewTicketModal] = useState(false);
   const [advancedFilters, setAdvancedFilters]   = useState<TicketFilters>({
     search: '', company: [], team: [], requesterName: [], assigneeName: [], period: []
@@ -165,22 +168,22 @@ export default function TicketsPage() {
   const TicketTable = ({ tickets, showCompany = false }: { tickets: MockTicket[]; showCompany?: boolean }) => (
     <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className={`w-full ${densityConfig.text}`}>
           <thead>
             <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
-              <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider w-20">Ticket</th>
-              <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Título</th>
-              <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider hidden sm:table-cell">Solicitante</th>
+              <th className={`text-left ${densityConfig.py} text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider w-20`}>Ticket</th>
+              <th className={`text-left ${densityConfig.py} text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider`}>Título</th>
+              <th className={`text-left ${densityConfig.py} text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider hidden sm:table-cell`}>Solicitante</th>
               {showCompany && (
-                <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider hidden md:table-cell">Mesa</th>
+                <th className={`text-left ${densityConfig.py} text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider hidden md:table-cell`}>Mesa</th>
               )}
               {!showCompany && (
-                <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider hidden md:table-cell">Empresa</th>
+                <th className={`text-left ${densityConfig.py} text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider hidden md:table-cell`}>Empresa</th>
               )}
-              <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider hidden lg:table-cell">Responsável</th>
-              <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Prioridade</th>
-              <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
-              <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider hidden sm:table-cell">SLA</th>
+              <th className={`text-left ${densityConfig.py} text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider hidden lg:table-cell`}>Responsável</th>
+              <th className={`text-left ${densityConfig.py} text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider`}>Prioridade</th>
+              <th className={`text-left ${densityConfig.py} text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider`}>Status</th>
+              <th className={`text-left ${densityConfig.py} text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider hidden sm:table-cell`}>SLA</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
@@ -189,8 +192,8 @@ export default function TicketsPage() {
               const pri = PRIORITY_CONFIG[ticket.priority];
               return (
                 <tr key={ticket.id} className="hover:bg-blue-50/50 dark:hover:bg-slate-800/50 transition-colors group">
-                  <td className="px-4 py-3 font-mono text-xs text-blue-600 dark:text-blue-400 font-bold whitespace-nowrap">{formatTicketProtocol(ticket.number)}</td>
-                  <td className="px-4 py-3">
+                  <td className={`${densityConfig.py} font-mono text-xs text-blue-600 dark:text-blue-400 font-bold whitespace-nowrap`}>{formatTicketProtocol(ticket.number)}</td>
+                  <td className={`${densityConfig.py}`}>
                     <Link
                       to={`/operacional/app/tickets/${ticket.id}`}
                       className="font-semibold text-slate-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-1"
@@ -198,29 +201,29 @@ export default function TicketsPage() {
                       {ticket.title}
                     </Link>
                   </td>
-                  <td className="px-4 py-3 text-slate-600 dark:text-slate-300 hidden sm:table-cell font-medium">{ticket.requesterName}</td>
+                  <td className={`${densityConfig.py} text-slate-600 dark:text-slate-300 hidden sm:table-cell font-medium`}>{ticket.requesterName}</td>
                   {showCompany ? (
-                    <td className="px-4 py-3 hidden md:table-cell">
+                    <td className={`${densityConfig.py} hidden md:table-cell`}>
                       <span className="text-xs text-slate-500 dark:text-slate-400">{ticket.team ?? <span className="text-slate-300 dark:text-slate-600">Triagem</span>}</span>
                     </td>
                   ) : (
-                    <td className="px-4 py-3 hidden md:table-cell">
+                    <td className={`${densityConfig.py} hidden md:table-cell`}>
                       <span className="text-sm text-slate-600 dark:text-slate-300 font-medium">{getCompany(ticket)}</span>
                     </td>
                   )}
-                  <td className="px-4 py-3 text-slate-500 dark:text-slate-400 hidden lg:table-cell">
+                  <td className={`${densityConfig.py} text-slate-500 dark:text-slate-400 hidden lg:table-cell`}>
                     {ticket.assigneeName ?? <span className="text-slate-300 dark:text-slate-600">—</span>}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className={`${densityConfig.py}`}>
                     <div className="flex items-center gap-1.5">
                       <div className={`w-2 h-2 rounded-full flex-shrink-0 ${pri.dot}`} />
                       <span className="text-slate-600 dark:text-slate-300 text-xs font-medium">{pri.label}</span>
                     </div>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className={`${densityConfig.py}`}>
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wide ${st.color}`}>{st.label}</span>
                   </td>
-                  <td className="px-4 py-3 text-xs hidden sm:table-cell">
+                  <td className={`${densityConfig.py} text-xs hidden sm:table-cell`}>
                     <SlaCountdownBar 
                       dueIsoString={ticket.slaResolutionDue} 
                       createdIsoString={ticket.createdAt} 
@@ -362,6 +365,9 @@ export default function TicketsPage() {
               <List className="w-3.5 h-3.5 text-slate-400" /> Tabela
             </button>
           </div>
+
+          {/* Seletor de Densidade de Tabela (Item 131) */}
+          <TableDensitySelector density={density} onDensityChange={setDensity} />
 
           {/* Agrupar por Mesa vs Cliente */}
           <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl p-1 flex-shrink-0">
