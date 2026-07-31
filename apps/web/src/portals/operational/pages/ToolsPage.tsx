@@ -24,6 +24,7 @@ import { FileUploadSanitizerWidget } from '../components/FileUploadSanitizerWidg
 import { WafCorporateFilterWidget } from '../components/WafCorporateFilterWidget';
 import { SlaBusinessCalendarWidget } from '../components/SlaBusinessCalendarWidget';
 import { OnboardingTourWidget } from '../../../components/shared/OnboardingTourWidget';
+import { LgpdCookieConsentBannerWidget } from '../../../components/shared/LgpdCookieConsentBannerWidget';
 
 /**
  * Definição estática de todas as ferramentas disponíveis no painel.
@@ -359,6 +360,9 @@ export default function ToolsPage() {
         {/* Tutorial Interativo no Primeiro Acesso (Item 090) */}
         <OnboardingTourWidget userId={user?.id || 'op_default'} autoStart={true} />
       </div>
+
+      {/* Banner de Gestão de Consentimento de Cookies & LGPD (Item 014) */}
+      <LgpdCookieConsentBannerWidget />
 
       {/* Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
