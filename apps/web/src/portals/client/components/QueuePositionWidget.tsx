@@ -97,6 +97,19 @@ export function QueuePositionWidget({
         </Link>
       </div>
 
+      {/* Converter para Ticket se a Fila Demorar */}
+      <div className="pt-1 text-center">
+        <button
+          type="button"
+          onClick={() => {
+            if (onCancelQueue) onCancelQueue();
+          }}
+          className="text-[10px] text-blue-300 hover:text-white underline transition-colors cursor-pointer"
+        >
+          Prefere não esperar? Clique para converter este chat em Ticket de Chamado.
+        </button>
+      </div>
+
     </div>
   );
 }
