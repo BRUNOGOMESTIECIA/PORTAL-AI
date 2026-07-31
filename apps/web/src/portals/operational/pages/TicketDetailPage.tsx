@@ -12,6 +12,7 @@ import { TicketCcObserversWidget } from '../../../components/tickets/TicketCcObs
 import { TicketChecklistWidget } from '../../../components/tickets/TicketChecklistWidget';
 import { TicketTimeTrackingWidget } from '../../../components/tickets/TicketTimeTrackingWidget';
 import { TicketRelatedIncidentsWidget } from '../../../components/tickets/TicketRelatedIncidentsWidget';
+import { TicketAuditLogTrailWidget } from '../../../components/tickets/TicketAuditLogTrailWidget';
 
 const STATUS_CONFIG: Record<TicketStatus, { label: string; color: string }> = {
   new: { label: 'Novo', color: 'bg-indigo-100 text-indigo-700' },
@@ -224,6 +225,15 @@ export default function TicketDetailPage() {
             onUpdateCcEmails={(newCcList) => {
               updateTicket(ticket.id, { ccEmails: newCcList } as any);
             }}
+          />
+        </div>
+
+        {/* Trilha de Auditoria & Alterações de Campos (Audit Log do Ticket) - Item 060 */}
+        <div className="mt-5">
+          <TicketAuditLogTrailWidget
+            ticketId={ticket.id}
+            protocolNumber={ticket.number}
+            auditLogs={(ticket as any).auditLogs}
           />
         </div>
         {(ticket as any).rating && (
