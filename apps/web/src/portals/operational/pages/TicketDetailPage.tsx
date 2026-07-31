@@ -15,6 +15,7 @@ import { TicketRelatedIncidentsWidget } from '../../../components/tickets/Ticket
 import { TicketAuditLogTrailWidget } from '../../../components/tickets/TicketAuditLogTrailWidget';
 import { TicketInternalNotesWithAiWidget } from '../../../components/tickets/TicketInternalNotesWithAiWidget';
 import { AiPastTicketSolutionSuggesterWidget } from '../../../components/tickets/AiPastTicketSolutionSuggesterWidget';
+import { AiImageErrorOcrWidget } from '../../../components/chat/AiImageErrorOcrWidget';
 
 const STATUS_CONFIG: Record<TicketStatus, { label: string; color: string }> = {
   new: { label: 'Novo', color: 'bg-indigo-100 text-indigo-700' },
@@ -236,6 +237,14 @@ export default function TicketDetailPage() {
             ticketId={ticket.id}
             protocolNumber={ticket.number}
             ticketTitle={ticket.title}
+          />
+        </div>
+
+        {/* Leitura de Prints & OCR de Código por IA - Item 073 */}
+        <div className="mt-5">
+          <AiImageErrorOcrWidget
+            ticketId={ticket.id}
+            protocolNumber={ticket.number}
           />
         </div>
 
