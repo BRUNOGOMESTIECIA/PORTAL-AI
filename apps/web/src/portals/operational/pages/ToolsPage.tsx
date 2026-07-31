@@ -32,6 +32,7 @@ import { InstaPassoSsoSyncWidget } from '../../../components/admin/InstaPassoSso
 import { MotionPreferenceWidget } from '../../../components/shared/MotionPreferenceWidget';
 import { SiemLogMirrorWidget } from '../../../components/admin/SiemLogMirrorWidget';
 import { RateLimitingPanelWidget } from '../../../components/admin/RateLimitingPanelWidget';
+import { DepartmentCostCenterWidget } from '../../../components/admin/DepartmentCostCenterWidget';
 
 
 
@@ -346,6 +347,7 @@ export default function ToolsPage() {
               {/* Coluna 2: Governança, Compliance e Políticas */}
               <div className="space-y-6">
                 <MultiDatabaseSeparationWidget />
+                <DepartmentCostCenterWidget />
                 <SiemLogMirrorWidget />
                 <EncryptedBackupsAuditWidget />
                 <EncryptionComplianceWidget />
