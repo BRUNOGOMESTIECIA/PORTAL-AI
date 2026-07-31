@@ -31,6 +31,7 @@ import { MultiDatabaseSeparationWidget } from '../../../components/admin/MultiDa
 import { InstaPassoSsoSyncWidget } from '../../../components/admin/InstaPassoSsoSyncWidget';
 import { MotionPreferenceWidget } from '../../../components/shared/MotionPreferenceWidget';
 import { SiemLogMirrorWidget } from '../../../components/admin/SiemLogMirrorWidget';
+import { RateLimitingPanelWidget } from '../../../components/admin/RateLimitingPanelWidget';
 
 
 
@@ -335,6 +336,7 @@ export default function ToolsPage() {
                 <MotionPreferenceWidget />
                 <WafCorporateFilterWidget />
                 <AntiBruteForcePanelWidget />
+                <RateLimitingPanelWidget />
                 <SecurityAuditLogsWidget />
                 <SessionTimeoutSettingsWidget />
                 <SessionCookiePolicyWidget />
