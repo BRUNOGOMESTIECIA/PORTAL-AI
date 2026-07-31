@@ -10,6 +10,7 @@ import { useEscapeModal } from '../../hooks/use-escape-modal';
 import { useTickets } from '../../hooks/use-tickets';
 import { formatTicketProtocol, logSecurityAudit } from '../../lib/audit-logger';
 import { CorporateFooterWidget } from '../../components/shared/CorporateFooterWidget';
+import { PageTransitionWrapper } from '../../components/shared/PageTransitionWrapper';
 
 export default function ClientShell() {
   const { user, logout } = useAuth();
@@ -253,7 +254,9 @@ export default function ClientShell() {
 
       {/* Main Content */}
       <main className="mx-auto max-w-5xl px-6 py-8 min-h-[calc(100vh-180px)]">
-        <Outlet />
+        <PageTransitionWrapper keyName={location.pathname}>
+          <Outlet />
+        </PageTransitionWrapper>
       </main>
 
       {/* Rodapé Corporativo LGPD (Item 102) */}

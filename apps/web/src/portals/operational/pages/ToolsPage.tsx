@@ -29,6 +29,7 @@ import { AtomicTicketCounterWidget } from '../../../components/tickets/AtomicTic
 import { EncryptedBackupsAuditWidget } from '../../../components/admin/EncryptedBackupsAuditWidget';
 import { MultiDatabaseSeparationWidget } from '../../../components/admin/MultiDatabaseSeparationWidget';
 import { InstaPassoSsoSyncWidget } from '../../../components/admin/InstaPassoSsoSyncWidget';
+import { MotionPreferenceWidget } from '../../../components/shared/MotionPreferenceWidget';
 
 
 
@@ -330,6 +331,7 @@ export default function ToolsPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
               {/* Coluna 1: Proteção Ativa, WAF e Logs */}
               <div className="space-y-6">
+                <MotionPreferenceWidget />
                 <WafCorporateFilterWidget />
                 <AntiBruteForcePanelWidget />
                 <SecurityAuditLogsWidget />
