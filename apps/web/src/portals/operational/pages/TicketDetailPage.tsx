@@ -10,6 +10,8 @@ import { formatTicketProtocol } from '../../../lib/audit-logger';
 import SlaCountdownBar from '../components/SlaCountdownBar';
 import { TicketCcObserversWidget } from '../../../components/tickets/TicketCcObserversWidget';
 import { TicketChecklistWidget } from '../../../components/tickets/TicketChecklistWidget';
+import { TicketTimeTrackingWidget } from '../../../components/tickets/TicketTimeTrackingWidget';
+import { TicketRelatedIncidentsWidget } from '../../../components/tickets/TicketRelatedIncidentsWidget';
 
 const STATUS_CONFIG: Record<TicketStatus, { label: string; color: string }> = {
   new: { label: 'Novo', color: 'bg-indigo-100 text-indigo-700' },
@@ -185,6 +187,30 @@ export default function TicketDetailPage() {
             items={(ticket as any).checklist}
             onUpdateChecklist={(newChecklist) => {
               updateTicket(ticket.id, { checklist: newChecklist } as any);
+            }}
+          />
+        </div>
+
+        {/* Incidentes Relacionados & Causa Raiz - Item 059 */}
+        <div className="mt-5">
+          <TicketRelatedIncidentsWidget
+            ticketId={ticket.id}
+            protocolNumber={ticket.number}
+            isParent={!(ticket as any).parentTicketId}
+            parentTicketId={(ticket as any).parentTicketId}
+            parentProtocolNumber={(ticket as any).parentProtocolNumber}
+            childTickets={(ticket as any).childTickets}
+          />
+        </div>
+
+        {/* Apontamento de Horas (Time Tracking) - Item 063 */}
+        <div className="mt-5">
+          <TicketTimeTrackingWidget
+            ticketId={ticket.id}
+            protocolNumber={ticket.number}
+            timeEntries={(ticket as any).timeEntries}
+            onUpdateTimeEntries={(newEntries) => {
+              updateTicket(ticket.id, { timeEntries: newEntries } as any);
             }}
           />
         </div>
