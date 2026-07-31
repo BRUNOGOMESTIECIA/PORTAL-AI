@@ -13,21 +13,21 @@ export interface DensityConfig {
 export const DENSITY_CONFIGS: Record<TableDensity, DensityConfig> = {
   compact: {
     id: 'compact',
-    label: 'Compacto',
+    label: 'Pequena',
     py: 'py-1.5 px-3',
     text: 'text-xs',
     icon: '⚡',
   },
   normal: {
     id: 'normal',
-    label: 'Normal',
+    label: 'Média',
     py: 'py-3 px-4',
     text: 'text-sm',
     icon: '📊',
   },
   expanded: {
     id: 'expanded',
-    label: 'Expandido',
+    label: 'Grande',
     py: 'py-4.5 px-5',
     text: 'text-base',
     icon: '📖',

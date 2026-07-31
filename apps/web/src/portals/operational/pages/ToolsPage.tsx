@@ -23,6 +23,7 @@ import { MfaPolicyEnforcementWidget } from '../components/MfaPolicyEnforcementWi
 import { FileUploadSanitizerWidget } from '../components/FileUploadSanitizerWidget';
 import { WafCorporateFilterWidget } from '../components/WafCorporateFilterWidget';
 import { SlaBusinessCalendarWidget } from '../components/SlaBusinessCalendarWidget';
+import { OnboardingTourWidget } from '../../../components/shared/OnboardingTourWidget';
 
 /**
  * Definição estática de todas as ferramentas disponíveis no painel.
@@ -347,11 +348,16 @@ export default function ToolsPage() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">Ferramentas</h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-          Acesso rápido às ferramentas administrativas e utilitários da equipe de TI.
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">Ferramentas</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            Acesso rápido às ferramentas administrativas e utilitários da equipe de TI.
+          </p>
+        </div>
+
+        {/* Tutorial Interativo no Primeiro Acesso (Item 090) */}
+        <OnboardingTourWidget userId={user?.id || 'op_default'} autoStart={true} />
       </div>
 
       {/* Grid */}
