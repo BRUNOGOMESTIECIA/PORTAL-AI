@@ -41,6 +41,7 @@ import { DirectInPlaceOperatorEditorWidget } from '../../../components/admin/Dir
 import { AiDuplicateDetectorAdminWidget } from '../../../components/admin/AiDuplicateDetectorAdminWidget';
 import { PasskeysFido2AdminWidget } from '../../../components/admin/PasskeysFido2AdminWidget';
 import { PasswordPolicyAdminWidget } from '../../../components/admin/PasswordPolicyAdminWidget';
+import { PwaOfflineSyncWidget } from '../../../components/shared/PwaOfflineSyncWidget';
 
 
 
@@ -360,6 +361,7 @@ export default function ToolsPage() {
               {/* Coluna 2: Governança, Compliance e Políticas */}
               <div className="space-y-6">
                 <MultiDatabaseSeparationWidget />
+                <PwaOfflineSyncWidget />
                 <UnifiedUserCreationWidget />
                 <DirectInPlaceOperatorEditorWidget />
                 <DepartmentCostCenterWidget />

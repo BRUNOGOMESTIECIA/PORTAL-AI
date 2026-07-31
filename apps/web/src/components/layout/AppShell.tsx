@@ -47,6 +47,8 @@ const ADMIN_ITEMS: NavItem[] = [
   { label: 'Configurações', path: '/admin/settings', icon: Cog, permission: 'admin.settings' },
 ];
 
+import { OfflineNetworkBanner } from '../shared/OfflineNetworkBanner';
+
 export function AppShell() {
   const { hasPermission, deviceInfo } = useAuth();
   const { theme, setTheme } = useTheme();
@@ -57,7 +59,9 @@ export function AppShell() {
   const visible = (item: NavItem) => !item.permission || hasPermission(item.permission);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="flex flex-col h-screen overflow-hidden bg-background">
+      <OfflineNetworkBanner />
+      <div className="flex flex-1 h-full overflow-hidden">
       {/* Sidebar */}
       <aside
         className={cn(
@@ -158,6 +162,7 @@ export function AppShell() {
         </main>
       </div>
     </div>
+  </div>
   );
 }
 
