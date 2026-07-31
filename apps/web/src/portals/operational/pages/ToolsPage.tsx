@@ -38,6 +38,7 @@ import { OperatorWorkScheduleWidget } from '../../../components/admin/OperatorWo
 import { UnifiedUserCreationWidget } from '../../../components/admin/UnifiedUserCreationWidget';
 import { AgentPublicProfileAdminWidget } from '../../../components/admin/AgentPublicProfileAdminWidget';
 import { DirectInPlaceOperatorEditorWidget } from '../../../components/admin/DirectInPlaceOperatorEditorWidget';
+import { AiDuplicateDetectorAdminWidget } from '../../../components/admin/AiDuplicateDetectorAdminWidget';
 
 
 
@@ -345,6 +346,7 @@ export default function ToolsPage() {
                 <RateLimitingPanelWidget />
                 <OperatorWorkScheduleWidget />
                 <AgentPublicProfileAdminWidget />
+                <AiDuplicateDetectorAdminWidget />
                 <SecurityAuditLogsWidget />
                 <SessionTimeoutSettingsWidget />
                 <SessionCookiePolicyWidget />
