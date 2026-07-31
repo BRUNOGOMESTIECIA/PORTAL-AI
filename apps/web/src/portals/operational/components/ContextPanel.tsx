@@ -323,11 +323,14 @@ export function ContextPanel({
           <div className="flex justify-between items-center mb-3">
             <span className="text-xs text-slate-500 font-medium">Status</span>
             <select 
-              disabled={session.status === 'closed'}
+              disabled={session.status === 'closed' || session.status === 'finished'}
+              value={session.status === 'closed' || session.status === 'finished' ? 'closed' : session.status}
+              onChange={(e) => onStatusChange && onStatusChange(e.target.value as any)}
               className="text-xs border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 rounded px-2 py-1 outline-none text-slate-700 dark:text-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <option>Em atendimento</option>
-              <option>Aguardando</option>
+              <option value="active">Em atendimento</option>
+              <option value="waiting">Aguardando</option>
+              <option value="closed">Encerrado / Auditado</option>
             </select>
           </div>
           <div className="mb-4">
@@ -335,7 +338,7 @@ export function ContextPanel({
             <div className="grid grid-cols-4 gap-1.5">
               {PRIORITIES.map(p => (
                 <button key={p.value} type="button"
-                  disabled={session.status === 'closed'}
+                  disabled={session.status === 'closed' || session.status === 'finished'}
                   onClick={() => onPriorityChange && onPriorityChange(p.value)}
                   className={`relative flex flex-col items-center justify-center gap-1 py-1.5 rounded-lg border-2 text-[10px] font-semibold transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed
                     ${priority === p.value
@@ -388,13 +391,15 @@ export function ContextPanel({
               ) : (
                 <>
                   <span className="text-slate-700 dark:text-slate-300 truncate" title={clientDetails.categoria}>{clientDetails.categoria}</span>
-                  <button 
-                    onClick={() => setEditingField('categoria')}
-                    className="opacity-0 group-hover:opacity-100 p-0.5 shrink-0 text-slate-400 hover:text-blue-500 transition-all rounded hover:bg-blue-50 dark:hover:bg-blue-900/30"
-                    title="Editar"
-                  >
-                    <Pencil className="w-3 h-3" />
-                  </button>
+                  {session.status !== 'closed' && session.status !== 'finished' && (
+                    <button 
+                      onClick={() => setEditingField('categoria')}
+                      className="opacity-0 group-hover:opacity-100 p-0.5 shrink-0 text-slate-400 hover:text-blue-500 transition-all rounded hover:bg-blue-50 dark:hover:bg-blue-900/30"
+                      title="Editar"
+                    >
+                      <Pencil className="w-3 h-3" />
+                    </button>
+                  )}
                 </>
               )}
             </div>

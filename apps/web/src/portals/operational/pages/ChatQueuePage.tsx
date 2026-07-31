@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Filter, Plus, Clock, MessageCircle, User, Send, CheckCircle, ArrowRightLeft, Image as ImageIcon, FileText, PanelRight, X, ChevronLeft, ChevronDown, ChevronUp, Reply, Download } from 'lucide-react';
+import { Search, Filter, Plus, Clock, MessageCircle, User, Send, CheckCircle, ArrowRightLeft, Image as ImageIcon, FileText, PanelRight, X, ChevronLeft, ChevronDown, ChevronUp, Reply, Download, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSearchParams } from 'react-router-dom';
 import { MockChatSession, MockChatMessage, MOCK_CLIENTS, MOCK_STAFF, MOCK_MACROS } from '../../../mocks/data';
@@ -980,185 +980,235 @@ export default function ChatQueuePage() {
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Input Wrapper */}
-            <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 shrink-0 flex flex-col">
-              {replyTo && (
-                <div className="flex items-center justify-between px-3 py-2 bg-blue-50 dark:bg-slate-800 border-l-4 border-blue-500 rounded-lg mb-2 text-xs">
-                  <div className="min-w-0 flex-1">
-                    <span className="font-bold text-blue-600 dark:text-blue-400">Respondendo a {replyTo.senderName}:</span>
-                    <p className="text-slate-600 dark:text-slate-300 truncate">{replyTo.body}</p>
+            {/* Input Wrapper / Strict Lockout Banner */}
+            {selected.status === 'closed' || selected.status === 'finished' ? (
+              <div className="p-4 bg-slate-900 border-t border-slate-800 shrink-0 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-slate-300">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-rose-500/10 text-rose-400 rounded-xl border border-rose-500/30 shrink-0">
+                    <Lock className="w-5 h-5" />
                   </div>
-                  <button type="button" onClick={() => setReplyTo(null)} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
-                    <X className="w-4 h-4" />
+                  <div>
+                    <h4 className="text-xs font-bold text-white flex items-center gap-2">
+                      Atendimento Encerrado & Imutável (ISO 27001)
+                      <span className="text-[10px] bg-rose-500/20 text-rose-300 border border-rose-500/30 px-2 py-0.5 rounded-full font-mono uppercase font-bold">
+                        Bloqueado para Edição
+                      </span>
+                    </h4>
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      Este registro foi finalizado e auditado. Nenhuma nova mensagem ou alteração é permitida neste chat.
+                    </p>
+                  </div>
+                </div>
+                
+                {((user?.role || '').trim().toUpperCase().includes('ADMINISTRAD')) && (
+                  <button
+                    onClick={() => {
+                      exportChatTranscriptToPdf({
+                        id: selected.id,
+                        protocol: selected.ticketId || selected.id,
+                        clientName: selected.clientName,
+                        clientEmail: selected.clientEmail || `${selected.clientName.toLowerCase().replace(/\s+/g, '.')}@cliente.com.br`,
+                        companyName: (selected as any).companyName || 'Empresa B2B',
+                        agentName: selected.agentName || 'Atendimento N1',
+                        clientIp: '187.52.190.44',
+                        messages: selected.messages.map(m => ({
+                          senderName: m.senderName,
+                          text: m.body,
+                          timestamp: new Date(m.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+                          isAgent: m.senderType === 'agent' || (m.senderType as string) === 'staff'
+                        }))
+                      });
+                    }}
+                    className="px-3 py-1.5 text-xs font-bold text-blue-300 bg-blue-950/80 hover:bg-blue-900 border border-blue-800 rounded-xl transition-all flex items-center gap-1.5 shrink-0 cursor-pointer"
+                  >
+                    <Download className="w-3.5 h-3.5" /> Exportar Transcrição PDF
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 shrink-0 flex flex-col">
+                {replyTo && (
+                  <div className="flex items-center justify-between px-3 py-2 bg-blue-50 dark:bg-slate-800 border-l-4 border-blue-500 rounded-lg mb-2 text-xs">
+                    <div className="min-w-0 flex-1">
+                      <span className="font-bold text-blue-600 dark:text-blue-400">Respondendo a {replyTo.senderName}:</span>
+                      <p className="text-slate-600 dark:text-slate-300 truncate">{replyTo.body}</p>
+                    </div>
+                    <button type="button" onClick={() => setReplyTo(null)} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+                <div className="flex gap-4 mb-3 px-1">
+                  <button 
+                    onClick={() => setIsInternalNote(false)}
+                    className={`text-xs font-bold pb-1.5 border-b-2 transition-colors ${!isInternalNote ? 'border-slate-800 dark:border-slate-200 text-slate-800 dark:text-slate-200' : 'border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
+                  >
+                    Mensagem Pública
+                  </button>
+                  <button 
+                    onClick={() => setIsInternalNote(true)}
+                    className={`text-xs font-bold pb-1.5 border-b-2 transition-colors flex items-center gap-1.5 ${isInternalNote ? 'border-amber-500 text-amber-600 dark:text-amber-400' : 'border-transparent text-slate-400 hover:text-amber-600/70 dark:hover:text-amber-400/70'}`}
+                  >
+                    🔒 Nota Interna
                   </button>
                 </div>
-              )}
-              <div className="flex gap-4 mb-3 px-1">
-                <button 
-                  onClick={() => setIsInternalNote(false)}
-                  className={`text-xs font-bold pb-1.5 border-b-2 transition-colors ${!isInternalNote ? 'border-slate-800 dark:border-slate-200 text-slate-800 dark:text-slate-200' : 'border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
-                >
-                  Mensagem Pública
-                </button>
-                <button 
-                  onClick={() => setIsInternalNote(true)}
-                  className={`text-xs font-bold pb-1.5 border-b-2 transition-colors flex items-center gap-1.5 ${isInternalNote ? 'border-amber-500 text-amber-600 dark:text-amber-400' : 'border-transparent text-slate-400 hover:text-amber-600/70 dark:hover:text-amber-400/70'}`}
-                >
-                  🔒 Nota Interna
-                </button>
-              </div>
-              <div className="relative">
-                {/* Sugestão de Macro (Exemplo se digitar /) */}
-                {input.startsWith('/') && (
-                  <div className="absolute bottom-full mb-2 left-0 w-64 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden z-10 flex flex-col max-h-[240px]">
-                    <div className="px-3 py-2 text-xs font-bold text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-700 shrink-0">Respostas Rápidas</div>
-                    <div className="overflow-y-auto flex-1">
-                    {macros.filter(m => m.command.toLowerCase().includes(input.toLowerCase())).length > 0 ? macros.filter(m => m.command.toLowerCase().includes(input.toLowerCase())).map(macro => (
-                      <button 
-                        key={macro.command}
-                        onClick={() => { setInput(macro.text); inputRef.current?.focus(); }} 
-                        className="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-blue-50 dark:hover:bg-slate-700 font-medium"
-                      >
-                        {macro.command}
-                      </button>
-                    )) : (
-                      <div className="px-3 py-3 text-xs text-slate-500 text-center">Nenhuma macro encontrada.</div>
-                    )}
+                <div className="relative">
+                  {/* Sugestão de Macro (Exemplo se digitar /) */}
+                  {input.startsWith('/') && (
+                    <div className="absolute bottom-full mb-2 left-0 w-64 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden z-10 flex flex-col max-h-[240px]">
+                      <div className="px-3 py-2 text-xs font-bold text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-700 shrink-0">Respostas Rápidas</div>
+                      <div className="overflow-y-auto flex-1">
+                      {macros.filter(m => m.command.toLowerCase().includes(input.toLowerCase())).length > 0 ? macros.filter(m => m.command.toLowerCase().includes(input.toLowerCase())).map(macro => (
+                        <button 
+                          key={macro.command}
+                          onClick={() => { setInput(macro.text); inputRef.current?.focus(); }} 
+                          className="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-blue-50 dark:hover:bg-slate-700 font-medium"
+                        >
+                          {macro.command}
+                        </button>
+                      )) : (
+                        <div className="px-3 py-3 text-xs text-slate-500 text-center">Nenhuma macro encontrada.</div>
+                      )}
+                      </div>
                     </div>
-                  </div>
-                )}
-                
-                {/* Sugestão Inteligente de IA (@ia - Item 125) */}
-                {input.toLowerCase().includes('@ia') && (
-                  <div className="absolute bottom-full left-0 mb-2 w-96 bg-slate-900 border border-blue-500/50 rounded-2xl shadow-2xl overflow-hidden z-50 animate-in fade-in zoom-in-95 text-slate-100">
-                    <div className="px-4 py-2.5 bg-blue-950 border-b border-blue-500/30 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="text-base">🤖</span>
-                        <span className="text-xs font-bold text-blue-200 uppercase tracking-wider">IA Copiloto de Atendimento</span>
-                      </div>
-                      <span className="text-[10px] font-black bg-blue-600 text-white px-2.5 py-0.5 rounded-full">
-                        @IA DETECTADO
-                      </span>
-                    </div>
-                    <div className="p-4 space-y-3">
-                      <div>
-                        <p className="text-[11px] font-bold text-blue-400 uppercase tracking-wide">Sugestão Técnica Encontrada:</p>
-                        <p className="text-xs font-bold text-slate-100 mt-0.5">
-                          {getAiSolutionSuggestion(input).title}
-                        </p>
-                      </div>
-
-                      <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 font-medium text-xs text-slate-200 max-h-36 overflow-y-auto leading-relaxed">
-                        {getAiSolutionSuggestion(input).suggestedText}
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const suggestion = getAiSolutionSuggestion(input);
-                          setInput(suggestion.suggestedText);
-                          toast.success('✏️ Texto inserido no campo! Edite à vontade antes de enviar.', { duration: 4000 });
-                          setTimeout(() => {
-                            inputRef.current?.focus();
-                          }, 100);
-                        }}
-                        className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl transition-all shadow-lg shadow-blue-600/30 cursor-pointer flex items-center justify-center gap-2"
-                      >
-                        ✨ Inserir no Campo para Editar Antes de Enviar
-                      </button>
-                    </div>
-                  </div>
-                )}
-                {isInternalNote && input.includes('@') && (
-                    <div className="absolute bottom-full left-0 mb-2 w-64 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl overflow-hidden z-50">
-                      <div className="px-3 py-2 bg-slate-50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-700/50">
-                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Mencionar Atendente</p>
-                      </div>
-                      <div className="max-h-48 overflow-y-auto py-1">
-                    {realStaff.filter(s => s.name.toLowerCase().includes(input.split('@').pop()?.toLowerCase() || '')).length > 0 ? realStaff.filter(s => s.name.toLowerCase().includes(input.split('@').pop()?.toLowerCase() || '')).map(staff => (
-                      <button 
-                        key={staff.id}
-                        onClick={() => { 
-                          const parts = input.split('@');
-                          parts.pop();
-                          setInput((parts.length > 0 ? parts.join('@') : '') + '@' + staff.name + ' ');
-                          inputRef.current?.focus(); 
-                        }} 
-                        className="w-full px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 font-medium flex items-center justify-between gap-2 transition-colors"
-                      >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <div className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center shrink-0">
-                            <User className="w-3 h-3 text-slate-500" />
-                          </div>
-                          <span className="truncate">{staff.name}</span>
-                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-500 shrink-0 ml-1">{staff.role}</span>
+                  )}
+                  
+                  {/* Sugestão Inteligente de IA (@ia - Item 125) */}
+                  {input.toLowerCase().includes('@ia') && (
+                    <div className="absolute bottom-full left-0 mb-2 w-96 bg-slate-900 border border-blue-500/50 rounded-2xl shadow-2xl overflow-hidden z-50 animate-in fade-in zoom-in-95 text-slate-100">
+                      <div className="px-4 py-2.5 bg-blue-950 border-b border-blue-500/30 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-base">🤖</span>
+                          <span className="text-xs font-bold text-blue-200 uppercase tracking-wider">IA Copiloto de Atendimento</span>
                         </div>
-                        <div className={`w-2 h-2 rounded-full shrink-0 ${staff.isOnline ? 'bg-emerald-500 shadow-[0_0_4px_rgba(16,185,129,0.5)]' : 'bg-red-500'}`} title={staff.isOnline ? 'Online' : 'Offline'} />
-                      </button>
-                    )) : (
-                      <div className="px-3 py-3 text-xs text-slate-500 text-center">Nenhum atendente encontrado.</div>
-                    )}
+                        <span className="text-[10px] font-black bg-blue-600 text-white px-2.5 py-0.5 rounded-full">
+                          @IA DETECTADO
+                        </span>
+                      </div>
+                      <div className="p-4 space-y-3">
+                        <div>
+                          <p className="text-[11px] font-bold text-blue-400 uppercase tracking-wide">Sugestão Técnica Encontrada:</p>
+                          <p className="text-xs font-bold text-slate-100 mt-0.5">
+                            {getAiSolutionSuggestion(input).title}
+                          </p>
+                        </div>
+
+                        <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 font-medium text-xs text-slate-200 max-h-36 overflow-y-auto leading-relaxed">
+                          {getAiSolutionSuggestion(input).suggestedText}
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const suggestion = getAiSolutionSuggestion(input);
+                            setInput(suggestion.suggestedText);
+                            toast.success('✏️ Texto inserido no campo! Edite à vontade antes de enviar.', { duration: 4000 });
+                            setTimeout(() => {
+                              inputRef.current?.focus();
+                            }, 100);
+                          }}
+                          className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl transition-all shadow-lg shadow-blue-600/30 cursor-pointer flex items-center justify-center gap-2"
+                        >
+                          ✨ Inserir no Campo para Editar Antes de Enviar
+                        </button>
+                      </div>
                     </div>
+                  )}
+                  {isInternalNote && input.includes('@') && (
+                      <div className="absolute bottom-full left-0 mb-2 w-64 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl overflow-hidden z-50">
+                        <div className="px-3 py-2 bg-slate-50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-700/50">
+                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Mencionar Atendente</p>
+                        </div>
+                        <div className="max-h-48 overflow-y-auto py-1">
+                      {realStaff.filter(s => s.name.toLowerCase().includes(input.split('@').pop()?.toLowerCase() || '')).length > 0 ? realStaff.filter(s => s.name.toLowerCase().includes(input.split('@').pop()?.toLowerCase() || '')).map(staff => (
+                        <button 
+                          key={staff.id}
+                          onClick={() => { 
+                            const parts = input.split('@');
+                            parts.pop();
+                            setInput((parts.length > 0 ? parts.join('@') : '') + '@' + staff.name + ' ');
+                            inputRef.current?.focus(); 
+                          }} 
+                          className="w-full px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 font-medium flex items-center justify-between gap-2 transition-colors"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center shrink-0">
+                              <User className="w-3 h-3 text-slate-500" />
+                            </div>
+                            <span className="truncate">{staff.name}</span>
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-500 shrink-0 ml-1">{staff.role}</span>
+                          </div>
+                          <div className={`w-2 h-2 rounded-full shrink-0 ${staff.isOnline ? 'bg-emerald-500 shadow-[0_0_4px_rgba(16,185,129,0.5)]' : 'bg-red-500'}`} title={staff.isOnline ? 'Online' : 'Offline'} />
+                        </button>
+                      )) : (
+                        <div className="px-3 py-3 text-xs text-slate-500 text-center">Nenhum atendente encontrado.</div>
+                      )}
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="flex gap-2">
+                    <input type="file" className="hidden" ref={fileInputRef} onChange={handleFileUpload} disabled={selected.status === 'closed' || selected.status === 'finished'} />
+                    <button 
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={selected.status === 'waiting' || selected.status === 'closed' || selected.status === 'finished' || !hasPermission('chat.attend')} 
+                      className="p-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl transition-colors shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Enviar foto ou arquivo"
+                    >
+                      <ImageIcon className="w-5 h-5" />
+                    </button>
+                    <button 
+                      onClick={() => { setInput('/'); inputRef.current?.focus(); }}
+                      disabled={selected.status === 'waiting' || selected.status === 'closed' || selected.status === 'finished' || !hasPermission('chat.attend')} 
+                      className="p-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl transition-colors shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Mensagens pré-prontas (Macros)"
+                    >
+                      <FileText className="w-5 h-5" />
+                    </button>
+                    <EmojiStickerPicker
+                      disabled={selected.status === 'waiting' || selected.status === 'closed' || selected.status === 'finished' || !hasPermission('chat.attend')}
+                      onSelectEmoji={(emoji) => {
+                        setInput(prev => prev + emoji);
+                        inputRef.current?.focus();
+                      }}
+                      onSelectSticker={(stickerText) => {
+                        setInput(stickerText);
+                        inputRef.current?.focus();
+                      }}
+                    />
+                    <input 
+                      type="text" 
+                      ref={inputRef}
+                      value={input}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setInput(val);
+                        if (val.trim()) {
+                          notifyTyping();
+                        } else {
+                          notifyStopTyping();
+                        }
+                      }}
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleSendMessage(); }}
+                      placeholder={selected.status === 'closed' || selected.status === 'finished' ? "Chat encerrado" : (selected.status === 'waiting' ? "Assuma o atendimento para responder..." : (isInternalNote ? "Digite uma nota interna (invisível para o cliente)..." : "Digite sua mensagem pública..."))}
+                      disabled={selected.status === 'waiting' || selected.status === 'closed' || selected.status === 'finished' || !hasPermission('chat.attend')}
+                      className={`flex-1 rounded-xl border px-4 py-3 text-[15px] outline-none transition shadow-sm disabled:cursor-not-allowed ${
+                        isInternalNote 
+                          ? 'border-amber-300 dark:border-amber-700/50 bg-amber-50 dark:bg-amber-900/10 text-amber-900 dark:text-amber-100 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 placeholder-amber-700/50 dark:placeholder-amber-400/50' 
+                          : 'border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-slate-100 disabled:dark:bg-slate-900'
+                      }`}
+                    />
+                    <button 
+                      onClick={handleSendMessage}
+                      disabled={!input.trim() || selected.status === 'waiting' || selected.status === 'closed' || selected.status === 'finished' || !hasPermission('chat.attend')} 
+                      className={`${isInternalNote ? 'bg-amber-600 hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600' : 'bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600'} disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-3 rounded-xl transition-colors shadow-sm flex items-center justify-center shrink-0`}
+                    >
+                      <Send className="h-4 w-4" />
+                    </button>
                   </div>
-                )}
-                
-                <div className="flex gap-2">
-                  <input type="file" className="hidden" ref={fileInputRef} onChange={handleFileUpload} disabled={selected.status === 'closed'} />
-                  <button 
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={selected.status === 'waiting' || selected.status === 'closed' || !hasPermission('chat.attend')} 
-                    className="p-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl transition-colors shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="Enviar foto ou arquivo"
-                  >
-                    <ImageIcon className="w-5 h-5" />
-                  </button>
-                  <button 
-                    onClick={() => { setInput('/'); inputRef.current?.focus(); }}
-                    disabled={selected.status === 'waiting' || selected.status === 'closed' || !hasPermission('chat.attend')} 
-                    className="p-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl transition-colors shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="Mensagens pré-prontas (Macros)"
-                  >
-                    <FileText className="w-5 h-5" />
-                  </button>
-                  <EmojiStickerPicker
-                    disabled={selected.status === 'waiting' || selected.status === 'closed' || !hasPermission('chat.attend')}
-                    onSelectEmoji={(emoji) => {
-                      setInput(prev => prev + emoji);
-                      inputRef.current?.focus();
-                    }}
-                    onSelectSticker={(stickerText) => {
-                      setInput(stickerText);
-                      inputRef.current?.focus();
-                    }}
-                  />
-                  <input 
-                    type="text" 
-                    ref={inputRef}
-                    value={input}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setInput(val);
-                      if (val.trim()) {
-                        notifyTyping();
-                      } else {
-                        notifyStopTyping();
-                      }
-                    }}
-                    onKeyDown={(e) => { if (e.key === 'Enter') handleSendMessage(); }}
-                    placeholder={selected.status === 'closed' ? "Chat encerrado" : (selected.status === 'waiting' ? "Assuma o atendimento para responder..." : (isInternalNote ? "Digite uma nota interna (invisível para o cliente)..." : "Digite sua mensagem pública..."))}
-                    disabled={selected.status === 'waiting' || selected.status === 'closed' || !hasPermission('chat.attend')}
-                    className={`flex-1 rounded-xl border px-4 py-3 text-[15px] outline-none transition shadow-sm disabled:cursor-not-allowed ${
-                      isInternalNote 
-                        ? 'border-amber-300 dark:border-amber-700/50 bg-amber-50 dark:bg-amber-900/10 text-amber-900 dark:text-amber-100 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 placeholder-amber-700/50 dark:placeholder-amber-400/50' 
-                        : 'border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-slate-100 disabled:dark:bg-slate-900'
-                    }`}
-                  />
-                  <button 
-                    onClick={handleSendMessage}
-                    disabled={!input.trim() || selected.status === 'waiting' || selected.status === 'closed' || !hasPermission('chat.attend')} 
-                    className={`${isInternalNote ? 'bg-amber-600 hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600' : 'bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600'} disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-3 rounded-xl transition-colors shadow-sm flex items-center justify-center shrink-0`}
-                  >
-                    <Send className="h-4 w-4" />
+                </div>
+              </div>
+            )}Send className="h-4 w-4" />
                   </button>
                 </div>
               </div>
