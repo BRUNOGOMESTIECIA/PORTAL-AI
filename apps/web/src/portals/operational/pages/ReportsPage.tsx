@@ -12,6 +12,7 @@ import { formatTicketProtocol } from '../../../lib/audit-logger';
 import { StaffLeaderboardWidget } from '../components/StaffLeaderboardWidget';
 import { CsatTrendWidget } from '../components/CsatTrendWidget';
 import { B2bCompanyPerformanceModal } from '../components/B2bCompanyPerformanceModal';
+import { FirstContactResolutionWidget } from '../components/FirstContactResolutionWidget';
 
 const COLORS = ['#3b82f6', '#f59e0b', '#10b981', '#6366f1', '#ef4444', '#8b5cf6'];
 
@@ -397,6 +398,9 @@ export default function ReportsPage() {
           <div className="space-y-6">
             {/* Widget Leaderboard de Produtividade dos Atendentes (Item 081) */}
             <StaffLeaderboardWidget />
+
+            {/* Métrica de Resolução no 1º Contato (First Contact Resolution - FCR) - Item 084 */}
+            <FirstContactResolutionWidget />
 
             {/* Dashboard de Evolução Mensal de CSAT (Item 129) */}
             <CsatTrendWidget />
