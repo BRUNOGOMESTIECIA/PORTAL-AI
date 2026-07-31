@@ -9,6 +9,7 @@ import { ptBR } from 'date-fns/locale';
 import { useEscapeModal } from '../../hooks/use-escape-modal';
 import { useTickets } from '../../hooks/use-tickets';
 import { formatTicketProtocol, logSecurityAudit } from '../../lib/audit-logger';
+import { CorporateFooterWidget } from '../../components/shared/CorporateFooterWidget';
 
 export default function ClientShell() {
   const { user, logout } = useAuth();
@@ -251,9 +252,12 @@ export default function ClientShell() {
       </nav>
 
       {/* Main Content */}
-      <main className="mx-auto max-w-5xl px-6 py-8">
+      <main className="mx-auto max-w-5xl px-6 py-8 min-h-[calc(100vh-180px)]">
         <Outlet />
       </main>
+
+      {/* Rodapé Corporativo LGPD (Item 102) */}
+      <CorporateFooterWidget />
 
       {/* Floating chat */}
       <ChatWidget />

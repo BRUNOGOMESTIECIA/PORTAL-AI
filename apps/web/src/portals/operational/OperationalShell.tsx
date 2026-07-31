@@ -23,6 +23,7 @@ import { SessionIpDriftModal } from './components/SessionIpDriftModal';
 import { useTheme } from '../../components/theme-provider';
 import { Sun, Moon, Palette } from 'lucide-react';
 import { UserMenu } from '../../components/layout/UserMenu';
+import { CorporateFooterWidget } from '../../components/shared/CorporateFooterWidget';
 import { toast } from 'sonner';
 import { ErrorBoundary } from '../../components/ErrorBoundary';
 import { getSoundSettings, saveSoundSettings, playAlertSound } from '../../lib/sound-effects';
@@ -777,10 +778,11 @@ export default function OperationalShell() {
         </header>
 
         {/* Page content */}
-        <main className={cn('flex-1 relative', location.pathname.includes('/chat') ? 'overflow-hidden' : 'overflow-y-auto p-4 sm:p-6')}>
+        <main className={cn('flex-1 relative flex flex-col justify-between', location.pathname.includes('/chat') ? 'overflow-hidden' : 'overflow-y-auto p-4 sm:p-6')}>
           <ErrorBoundary>
             <Outlet />
           </ErrorBoundary>
+          {!location.pathname.includes('/chat') && <CorporateFooterWidget />}
         </main>
       </div>
 
