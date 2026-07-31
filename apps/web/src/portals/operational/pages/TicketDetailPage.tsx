@@ -16,6 +16,7 @@ import { TicketAuditLogTrailWidget } from '../../../components/tickets/TicketAud
 import { TicketInternalNotesWithAiWidget } from '../../../components/tickets/TicketInternalNotesWithAiWidget';
 import { AiPastTicketSolutionSuggesterWidget } from '../../../components/tickets/AiPastTicketSolutionSuggesterWidget';
 import { AiImageErrorOcrWidget } from '../../../components/chat/AiImageErrorOcrWidget';
+import { useOperationalShortcuts } from '../../../hooks/use-operational-shortcuts';
 
 const STATUS_CONFIG: Record<TicketStatus, { label: string; color: string }> = {
   new: { label: 'Novo', color: 'bg-indigo-100 text-indigo-700' },
@@ -52,6 +53,21 @@ export default function TicketDetailPage() {
       </div>
     );
   }
+
+  // ⌨️ Atalhos Operacionais Seguros (Item 093): Alt+R (Responder), Alt+F (Fechar), Alt+A (Atribuir)
+  useOperationalShortcuts({
+    onReply: () => {
+      const replyArea = document.querySelector('textarea, input[type="text"]') as HTMLElement;
+      if (replyArea) replyArea.focus();
+    },
+    onCloseTicket: () => {
+      setStatusChangeRequest({ newStatus: 'closed' });
+    },
+    onAssign: () => {
+      const assigneeSelect = document.querySelector('select') as HTMLElement;
+      if (assigneeSelect) assigneeSelect.focus();
+    },
+  });
 
   const st = STATUS_CONFIG[ticket.status];
   const pri = PRIORITY_CONFIG[ticket.priority];
