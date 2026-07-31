@@ -49,7 +49,9 @@ export function AgentPublicProfileModal({ profile, isOpen, onClose }: AgentPubli
             <div className="flex items-center justify-center gap-1.5">
               <h3 className="font-extrabold text-base text-white">{profile.name}</h3>
               {profile.verifiedAgent && (
-                <CheckCircle2 className="w-4 h-4 text-blue-400 fill-blue-500/20" title="Atendente Verificado" />
+                <span title="Atendente Verificado">
+                  <CheckCircle2 className="w-4 h-4 text-blue-400 fill-blue-500/20" />
+                </span>
               )}
             </div>
             <p className="text-xs text-blue-300 font-medium mt-0.5">{profile.jobTitle}</p>
