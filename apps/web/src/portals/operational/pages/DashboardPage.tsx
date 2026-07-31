@@ -1,12 +1,13 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Ticket, MessageCircle, TrendingUp, AlertTriangle, Clock, CheckCircle2, ChevronRight, Star } from 'lucide-react';
+import { Ticket, MessageCircle, TrendingUp, AlertTriangle, Clock, CheckCircle2, ChevronRight, Star, Tv } from 'lucide-react';
 import { MOCK_DASHBOARD_STATS, MOCK_STAFF, MOCK_TICKETS } from '../../../mocks/data';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useTickets } from '../../../hooks/use-tickets';
 import { useChats } from '../../../hooks/use-chats';
 import { formatTicketProtocol } from '../../../lib/audit-logger';
+import { TvDashboardPresentationModeModal } from '../../../components/dashboard/TvDashboardPresentationModeModal';
 
 function StatCard({ label, value, sub, icon: Icon, color }: { label: string; value: string | number; sub?: string; icon: React.ComponentType<{ className?: string }>; color: string }) {
   return (
@@ -45,6 +46,7 @@ import { useState, useEffect } from 'react';
 export default function DashboardPage() {
   const { tickets, seedMockData: seedTickets } = useTickets();
   const { chats, seedMockData: seedChats } = useChats();
+  const [showTvModal, setShowTvModal] = useState(false);
   
   const [operators, setOperators] = useState<any[]>([]);
 
@@ -91,10 +93,26 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-slate-900">Dashboard</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Visão geral em tempo real</p>
+          <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">Dashboard</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Visão geral em tempo real da operação</p>
         </div>
+
+        {/* Modo Apresentação / TV NOC (Item 095) */}
+        <button
+          type="button"
+          onClick={() => setShowTvModal(true)}
+          className="flex items-center gap-2 bg-[#090d16] hover:bg-slate-800 text-white text-xs font-black px-4 py-2 rounded-xl transition-all shadow-lg border border-slate-700 cursor-pointer"
+          title="Abrir Dashboard em Modo Apresentação TV NOC em Tela Cheia"
+        >
+          <Tv className="w-4 h-4 text-red-500 animate-pulse" />
+          <span>Modo Apresentação / TV NOC</span>
+        </button>
       </div>
+
+      <TvDashboardPresentationModeModal
+        isOpen={showTvModal}
+        onClose={() => setShowTvModal(false)}
+      />
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
