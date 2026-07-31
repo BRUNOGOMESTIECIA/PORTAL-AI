@@ -9,6 +9,7 @@ import { useAuth } from '../../../hooks/use-mock-auth';
 import { formatTicketProtocol } from '../../../lib/audit-logger';
 import SlaCountdownBar from '../components/SlaCountdownBar';
 import { TicketCcObserversWidget } from '../../../components/tickets/TicketCcObserversWidget';
+import { TicketChecklistWidget } from '../../../components/tickets/TicketChecklistWidget';
 
 const STATUS_CONFIG: Record<TicketStatus, { label: string; color: string }> = {
   new: { label: 'Novo', color: 'bg-indigo-100 text-indigo-700' },
@@ -175,6 +176,18 @@ export default function TicketDetailPage() {
             ))}
           </div>
         )}
+
+        {/* Checklist de Tarefas Internas no Ticket - Item 062 */}
+        <div className="mt-5">
+          <TicketChecklistWidget
+            ticketId={ticket.id}
+            protocolNumber={ticket.number}
+            items={(ticket as any).checklist}
+            onUpdateChecklist={(newChecklist) => {
+              updateTicket(ticket.id, { checklist: newChecklist } as any);
+            }}
+          />
+        </div>
 
         {/* Observadores em Cópia (CC) - Item 061 */}
         <div className="mt-5">
