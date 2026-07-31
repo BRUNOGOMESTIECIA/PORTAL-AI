@@ -21,6 +21,8 @@ import { useNotifications } from '../../../hooks/use-notifications';
 import { useTypingIndicator } from '../../../hooks/use-typing-indicator';
 import { TypingIndicator } from '../../../components/TypingIndicator';
 import { validateAndSanitizeFile } from '../../../lib/file-upload-sanitizer';
+import { ChatTransferHandoffModal } from '../../../components/chat/ChatTransferHandoffModal';
+import { TransferTargetOption } from '../../../lib/chat-transfer-handoff';
 
 type ChatTab = 'entrada' | 'meus' | 'em_atendimento' | 'encerrados';
 
@@ -211,6 +213,8 @@ export default function ChatQueuePage() {
   }, [selectedId]);
   
   const [showTransferMenu, setShowTransferMenu] = useState(false);
+  const [selectedHandoffTarget, setSelectedHandoffTarget] = useState<TransferTargetOption | null>(null);
+  const [isHandoffModalOpen, setIsHandoffModalOpen] = useState(false);
   const transferRef = useRef<HTMLDivElement>(null);
 
   // Hook para detectar cliques fora do menu de transferência e fechá-lo
@@ -846,18 +850,22 @@ export default function ChatQueuePage() {
                       </button>
                       
                       {showTransferMenu && (
-                        <div className="absolute top-full mt-2 right-0 w-48 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg overflow-hidden z-20 animate-in fade-in slide-in-from-top-2">
+                        <div className="absolute top-full mt-2 right-0 w-52 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg overflow-hidden z-20 animate-in fade-in slide-in-from-top-2">
                           <div className="py-1 max-h-[300px] overflow-y-auto">
-                            <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Departamentos</div>
-                            {['Comercial', 'Logística'].map((dept) => (
+                            <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">DEPARTAMENTOS</div>
+                            {['Comercial', 'Logística', 'Suporte N2', 'Infraestrutura'].map((dept) => (
                               <button 
                                 key={dept}
                                 onClick={() => {
                                   setShowTransferMenu(false);
-                                  toast.success(`Chat transferido para ${dept}`);
-                                  handleStatusChange('closed');
+                                  setSelectedHandoffTarget({
+                                    id: `dept_${dept.toLowerCase()}`,
+                                    name: dept,
+                                    type: 'DEPARTMENT',
+                                  });
+                                  setIsHandoffModalOpen(true);
                                 }}
-                                className="w-full text-left px-3 py-1.5 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                                className="w-full text-left px-3 py-1.5 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors font-medium cursor-pointer"
                               >
                                 {dept}
                               </button>
@@ -865,30 +873,26 @@ export default function ChatQueuePage() {
                             
                             <div className="my-1 border-t border-slate-100 dark:border-slate-700" />
                             
-                            <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Atendentes</div>
+                            <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">ATENDENTES</div>
                             {realStaff.map((staff) => (
                               <button 
                                 key={staff.id}
                                 onClick={() => {
                                   setShowTransferMenu(false);
-                                  
-                                  // Marca como pendente de aprovação
-                                  if (selected) {
-                                    const chatInMock = chats.find(c => c.id === selected.id);
-                                    if (chatInMock) {
-                                      chatInMock.pendingTransferTo = staff.id;
-                                      chatInMock.pendingTransferFrom = user?.name || 'Sistema';
-                                      toast.success(`Transferência solicitada para ${staff.name}. Aguardando aceite.`);
-                                      // Force re-render to reflect state
-                                      setForceRender(prev => prev + 1);
-                                    }
-                                  }
+                                  setSelectedHandoffTarget({
+                                    id: staff.id,
+                                    name: staff.name,
+                                    type: 'AGENT',
+                                    roleBadge: staff.role,
+                                    onlineStatus: staff.isOnline ? 'ONLINE' : 'BUSY',
+                                  });
+                                  setIsHandoffModalOpen(true);
                                 }}
-                                className="w-full flex items-center justify-between px-3 py-1.5 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                                className="w-full flex items-center justify-between px-3 py-1.5 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
                               >
                                 <div className="flex items-center gap-2 min-w-0">
-                                  <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${staff.isOnline ? 'bg-emerald-500 shadow-[0_0_4px_rgba(16,185,129,0.5)]' : 'bg-red-500'}`} title={staff.isOnline ? 'Online' : 'Offline'} />
-                                  <span className="truncate">{staff.name}</span>
+                                  <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${staff.isOnline ? 'bg-emerald-500 shadow-[0_0_4px_rgba(16,185,129,0.5)]' : 'bg-red-500'}`} title={staff.isOnline ? 'Online' : 'Ocupado'} />
+                                  <span className="truncate font-medium">{staff.name}</span>
                                 </div>
                                 <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-500 shrink-0 ml-2">{staff.role}</span>
                               </button>
@@ -1262,6 +1266,28 @@ export default function ChatQueuePage() {
           />
         </div>
       </div>
+
+      {/* Modal do Item 042 / 141: Transferência N1 ➔ N2 com Nota Confidencial */}
+      {selected && (
+        <ChatTransferHandoffModal
+          isOpen={isHandoffModalOpen}
+          chatId={selected.id}
+          target={selectedHandoffTarget}
+          onClose={() => setIsHandoffModalOpen(false)}
+          onSuccess={(targetName, noteText) => {
+            if (selected) {
+              selected.messages.push({
+                id: `m_handoff_${Date.now()}`,
+                body: `🔒 [NOTA CONFIDENCIAL DE PASSAGEM DE BASTÃO]\nTransferido para: ${targetName}\nNota Técnica: "${noteText}"`,
+                senderName: user?.name || 'Atendente Operacional N1',
+                senderType: 'agent',
+                createdAt: new Date().toISOString()
+              });
+              setForceRender(prev => prev + 1);
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

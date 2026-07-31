@@ -37,6 +37,7 @@ import { SoftDeleteRetentionWidget } from '../../../components/admin/SoftDeleteR
 import { OperatorWorkScheduleWidget } from '../../../components/admin/OperatorWorkScheduleWidget';
 import { UnifiedUserCreationWidget } from '../../../components/admin/UnifiedUserCreationWidget';
 import { AgentPublicProfileAdminWidget } from '../../../components/admin/AgentPublicProfileAdminWidget';
+import { DirectInPlaceOperatorEditorWidget } from '../../../components/admin/DirectInPlaceOperatorEditorWidget';
 
 
 
@@ -354,6 +355,7 @@ export default function ToolsPage() {
               <div className="space-y-6">
                 <MultiDatabaseSeparationWidget />
                 <UnifiedUserCreationWidget />
+                <DirectInPlaceOperatorEditorWidget />
                 <DepartmentCostCenterWidget />
                 <SoftDeleteRetentionWidget />
                 <SiemLogMirrorWidget />
