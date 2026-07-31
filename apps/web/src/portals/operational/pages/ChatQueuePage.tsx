@@ -15,6 +15,7 @@ import { instaPassoDb } from '../../../lib/firebase';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { EmojiStickerPicker } from '../../../components/chat/EmojiStickerPicker';
 import { AiWritingCopilotWidget } from '../../../components/chat/AiWritingCopilotWidget';
+import { ChatAutoTranslationToggleWidget, translateMessageWithAi, TargetLanguage } from '../../../components/chat/ChatAutoTranslationToggleWidget';
 import { playAlertSound } from '../../../lib/sound-effects';
 import { useNotifications } from '../../../hooks/use-notifications';
 import { useTypingIndicator } from '../../../hooks/use-typing-indicator';
@@ -171,6 +172,8 @@ export default function ChatQueuePage() {
 
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(true);
   const [isInternalNote, setIsInternalNote] = useState(false);
+  const [isTranslationEnabled, setIsTranslationEnabled] = useState(false);
+  const [translationTargetLang, setTranslationTargetLang] = useState<TargetLanguage>('pt');
 
   useEffect(() => {
     const handleStorage = () => {
@@ -812,6 +815,14 @@ export default function ChatQueuePage() {
                   </button>
                 )}
 
+                {/* Auto-Tradução Multilíngue (Item 072) */}
+                <ChatAutoTranslationToggleWidget
+                  isEnabled={isTranslationEnabled}
+                  targetLang={translationTargetLang}
+                  onToggle={(enabled) => setIsTranslationEnabled(enabled)}
+                  onChangeLang={(lang) => setTranslationTargetLang(lang)}
+                />
+
                 <button 
                   onClick={() => setIsRightSidebarOpen(!isRightSidebarOpen)}
                   className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
@@ -968,7 +979,15 @@ export default function ChatQueuePage() {
                           />
                         </div>
                       ) : (
-                        msg.body
+                        <div>
+                          <p>{msg.body}</p>
+                          {isTranslationEnabled && (
+                            <div className="mt-1.5 pt-1 border-t border-slate-200/40 dark:border-slate-700/60 text-[11px] text-blue-600 dark:text-blue-300 font-medium flex items-center gap-1">
+                              <span className="font-bold shrink-0">🌐 Tradução ({translationTargetLang.toUpperCase()}):</span>
+                              <span className="italic">{translateMessageWithAi(msg.body, translationTargetLang)}</span>
+                            </div>
+                          )}
+                        </div>
                       )}
                       <div className={`text-[10px] mt-1 text-right ${
                         isInternal 
