@@ -6,9 +6,9 @@ import { formatDistanceToNow, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { useAuth } from '../../../hooks/use-mock-auth';
-import { useTickets } from '../../../hooks/use-tickets';
 import { formatTicketProtocol } from '../../../lib/audit-logger';
 import SlaCountdownBar from '../components/SlaCountdownBar';
+import { TicketCcObserversWidget } from '../../../components/tickets/TicketCcObserversWidget';
 
 const STATUS_CONFIG: Record<TicketStatus, { label: string; color: string }> = {
   new: { label: 'Novo', color: 'bg-indigo-100 text-indigo-700' },
@@ -176,7 +176,17 @@ export default function TicketDetailPage() {
           </div>
         )}
 
-        {/* Avaliação CSAT do Cliente */}
+        {/* Observadores em Cópia (CC) - Item 061 */}
+        <div className="mt-5">
+          <TicketCcObserversWidget
+            ticketId={ticket.id}
+            protocolNumber={ticket.number}
+            ccEmails={(ticket as any).ccEmails || ['gestor@empresa.com.br']}
+            onUpdateCcEmails={(newCcList) => {
+              updateTicket(ticket.id, { ccEmails: newCcList } as any);
+            }}
+          />
+        </div>
         {(ticket as any).rating && (
           <div className="mt-5 p-4 bg-amber-50/70 border border-amber-200/80 rounded-xl">
             <div className="flex items-center justify-between mb-2">
