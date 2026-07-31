@@ -40,6 +40,7 @@ import { AgentPublicProfileAdminWidget } from '../../../components/admin/AgentPu
 import { DirectInPlaceOperatorEditorWidget } from '../../../components/admin/DirectInPlaceOperatorEditorWidget';
 import { AiDuplicateDetectorAdminWidget } from '../../../components/admin/AiDuplicateDetectorAdminWidget';
 import { PasskeysFido2AdminWidget } from '../../../components/admin/PasskeysFido2AdminWidget';
+import { PasswordPolicyAdminWidget } from '../../../components/admin/PasswordPolicyAdminWidget';
 
 
 
@@ -345,6 +346,7 @@ export default function ToolsPage() {
                 <WafCorporateFilterWidget />
                 <AntiBruteForcePanelWidget />
                 <PasskeysFido2AdminWidget />
+                <PasswordPolicyAdminWidget />
                 <RateLimitingPanelWidget />
                 <OperatorWorkScheduleWidget />
                 <AgentPublicProfileAdminWidget />
