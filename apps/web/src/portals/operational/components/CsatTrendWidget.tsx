@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Star, TrendingUp, Award, ThumbsUp, Filter, BarChart3, ArrowUpRight } from 'lucide-react';
+import { ChartExportButton } from '../../../components/reports/ChartExportButton';
 
 export function CsatTrendWidget() {
   const [selectedTeam, setSelectedTeam] = useState<'all' | 'n1' | 'n2'>('all');
@@ -22,7 +23,7 @@ export function CsatTrendWidget() {
   ];
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-6">
+    <div id="csat-trend-chart-container" className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-6">
       {/* Topo do Widget */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
         <div>
@@ -41,38 +42,42 @@ export function CsatTrendWidget() {
           </div>
         </div>
 
-        {/* Filtros de Equipe */}
-        <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
-          <button
-            onClick={() => setSelectedTeam('all')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-              selectedTeam === 'all'
-                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm'
-                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
-            }`}
-          >
-            Todas as Equipes
-          </button>
-          <button
-            onClick={() => setSelectedTeam('n1')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-              selectedTeam === 'n1'
-                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm'
-                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
-            }`}
-          >
-            Suporte N1
-          </button>
-          <button
-            onClick={() => setSelectedTeam('n2')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-              selectedTeam === 'n2'
-                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm'
-                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
-            }`}
-          >
-            Infra N2
-          </button>
+        {/* Filtros de Equipe & Botão Baixar Imagem HD (Item 085) */}
+        <div className="flex flex-wrap items-center gap-2">
+          <ChartExportButton elementId="csat-trend-chart-container" chartTitle="Evolucao_Mensal_CSAT" />
+
+          <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+            <button
+              onClick={() => setSelectedTeam('all')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                selectedTeam === 'all'
+                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
+              }`}
+            >
+              Todas as Equipes
+            </button>
+            <button
+              onClick={() => setSelectedTeam('n1')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                selectedTeam === 'n1'
+                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
+              }`}
+            >
+              Suporte N1
+            </button>
+            <button
+              onClick={() => setSelectedTeam('n2')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                selectedTeam === 'n2'
+                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
+              }`}
+            >
+              Infra N2
+            </button>
+          </div>
         </div>
       </div>
 

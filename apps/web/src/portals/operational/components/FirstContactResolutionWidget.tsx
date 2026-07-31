@@ -1,5 +1,6 @@
 import React from 'react';
 import { Target, CheckCircle2, AlertCircle, ArrowUpRight, Award, MessageCircle, Globe, Mail } from 'lucide-react';
+import { ChartExportButton } from '../../../components/reports/ChartExportButton';
 
 export function FirstContactResolutionWidget() {
   const fcrMetrics = {
@@ -23,7 +24,7 @@ export function FirstContactResolutionWidget() {
   const isTargetMet = fcrMetrics.globalFcrPercent >= fcrMetrics.targetPercent;
 
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-5">
+    <div id="fcr-chart-container" className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-5">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
         <div className="flex items-center gap-3">
@@ -43,8 +44,10 @@ export function FirstContactResolutionWidget() {
           </div>
         </div>
 
-        {/* Target Met Badge */}
+        {/* Target Met Badge & Download HD Button */}
         <div className="flex items-center gap-2 shrink-0">
+          <ChartExportButton elementId="fcr-chart-container" chartTitle="Metricas_FCR_First_Contact" />
+
           <span
             className={`px-3 py-1.5 rounded-xl text-xs font-bold border flex items-center gap-1.5 shadow-sm ${
               isTargetMet
