@@ -25,6 +25,7 @@ import { WafCorporateFilterWidget } from '../components/WafCorporateFilterWidget
 import { SlaBusinessCalendarWidget } from '../components/SlaBusinessCalendarWidget';
 import { OnboardingTourWidget } from '../../../components/shared/OnboardingTourWidget';
 import { LgpdCookieConsentBannerWidget } from '../../../components/shared/LgpdCookieConsentBannerWidget';
+import { AtomicTicketCounterWidget } from '../../../components/tickets/AtomicTicketCounterWidget';
 
 /**
  * Definição estática de todas as ferramentas disponíveis no painel.
@@ -363,6 +364,9 @@ export default function ToolsPage() {
 
       {/* Banner de Gestão de Consentimento de Cookies & LGPD (Item 014) */}
       <LgpdCookieConsentBannerWidget />
+
+      {/* Contador Atômico de Tickets no Firestore (Item 017) */}
+      <AtomicTicketCounterWidget />
 
       {/* Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
