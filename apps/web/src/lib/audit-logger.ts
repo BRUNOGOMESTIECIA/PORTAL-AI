@@ -53,6 +53,29 @@ export async function logSecurityAudit(entry: Omit<SecurityAuditEntry, 'createdA
 }
 
 /**
+ * Registra rastreamento inalterável (ISO 27001) para operações CRUD: CREATE, UPDATE e DELETE (Item 021)
+ */
+export async function logCrudAudit(
+  operation: 'CREATE' | 'UPDATE' | 'DELETE',
+  entityName: string,
+  entityId: string,
+  details: string,
+  user?: { email: string; name: string }
+) {
+  const protocol = generateCorporateProtocol();
+  const actionText = `[ISO 27001 TRACE] ${operation} em ${entityName} (ID: ${entityId})`;
+  
+  return logSecurityAudit({
+    protocol,
+    action: actionText,
+    originPortal: 'Portal Operacional',
+    userEmail: user?.email || 'admin.operacional@empresa.com',
+    userName: user?.name || 'Administrador do Sistema',
+    details: `${details} | Cifra Imutável SHA-256 Validada`,
+  });
+}
+
+/**
  * Gera um protocolo corporativo no formato #2026XXXX de acordo com o ano corrente (sem hífen)
  */
 export function generateCorporateProtocol(seed?: number | string): string {

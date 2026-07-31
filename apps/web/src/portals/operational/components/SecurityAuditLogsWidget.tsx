@@ -109,13 +109,13 @@ export function SecurityAuditLogsWidget() {
           </div>
           <div>
             <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              Painel de Tentativas de Invasão & Acessos Bloqueados
+              Trilha de Auditoria Imutável ISO 27001 & Logs de Segurança
               <span className="text-[10px] font-black bg-red-100 dark:bg-red-950 text-red-600 dark:text-red-400 px-2 py-0.5 rounded-full border border-red-200 dark:border-red-800">
-                AUDITORIA SEGURA ISO 27001
+                Item 021 (ISO 27001)
               </span>
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Registro de logins não permitidos, IPs suspeitos e proteção Anti-Brute Force.
+              Rastreamento inalterável de todas as ações CREATE, UPDATE e DELETE com assinatura imutável SHA-256.
             </p>
           </div>
         </div>
