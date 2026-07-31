@@ -28,6 +28,8 @@ import { LgpdCookieConsentBannerWidget } from '../../../components/shared/LgpdCo
 import { AtomicTicketCounterWidget } from '../../../components/tickets/AtomicTicketCounterWidget';
 import { EncryptedBackupsAuditWidget } from '../../../components/admin/EncryptedBackupsAuditWidget';
 import { MultiDatabaseSeparationWidget } from '../../../components/admin/MultiDatabaseSeparationWidget';
+import { InstaPassoSsoSyncWidget } from '../../../components/admin/InstaPassoSsoSyncWidget';
+
 
 
 /**
@@ -313,12 +315,15 @@ export default function ToolsPage() {
 
         {/* Conteúdo da Aba Selecionada */}
         {instaPassoTab === 'acessos' || instaPassoTab === 'equipe' || instaPassoTab === 'logs' ? (
-          <div className="bg-slate-950 rounded-2xl border border-slate-800 shadow-xl overflow-hidden relative w-full">
-            <iframe
-              src="https://insta-passo.vercel.app/"
-              className="w-full min-h-[720px] h-[calc(100vh-200px)] border-0 rounded-2xl"
-              title="Portal InstaPasso Admin"
-            />
+          <div className="space-y-4">
+            <InstaPassoSsoSyncWidget />
+            <div className="bg-slate-950 rounded-2xl border border-slate-800 shadow-xl overflow-hidden relative w-full">
+              <iframe
+                src="https://insta-passo.vercel.app/"
+                className="w-full min-h-[720px] h-[calc(100vh-200px)] border-0 rounded-2xl"
+                title="Portal InstaPasso Admin"
+              />
+            </div>
           </div>
         ) : (
           <div className="dark">
