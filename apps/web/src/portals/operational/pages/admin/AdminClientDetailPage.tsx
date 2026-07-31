@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Save, Building2, Clock, BarChart, Users as UsersIcon, Link as LinkIcon, Lock, X } from 'lucide-react';
+import { ChevronLeft, Save, Building2, Clock, BarChart, Users as UsersIcon, Link as LinkIcon, Lock, X, Palette } from 'lucide-react';
 import { MOCK_COMPANIES, MOCK_CLIENTS, MockCompany } from '../../../../mocks/data';
 import { cn } from '../../../../lib/utils';
 import { useEscapeModal } from '../../../../hooks/use-escape-modal';
 import { SuccessModal } from '../../../../components/shared/SuccessModal';
+import { CompanyWhiteLabelCustomizerWidget } from '../../../../components/admin/CompanyWhiteLabelCustomizerWidget';
 
-type ClientTab = 'profile' | 'sla' | 'business_hours' | 'users' | 'sso';
+type ClientTab = 'profile' | 'whitelabel' | 'sla' | 'business_hours' | 'users' | 'sso';
 
 export default function AdminClientDetailPage() {
   const { id } = useParams();
@@ -58,6 +59,7 @@ export default function AdminClientDetailPage() {
 
   const TABS: { id: ClientTab; label: string; icon: React.ElementType }[] = [
     { id: 'profile', label: 'Perfil', icon: Building2 },
+    { id: 'whitelabel', label: 'Cores & Logo (White-Label)', icon: Palette },
     { id: 'sla', label: 'Políticas de SLA', icon: BarChart },
     { id: 'business_hours', label: 'Horários', icon: Clock },
     { id: 'users', label: 'Usuários Vinculados', icon: UsersIcon },
@@ -192,6 +194,13 @@ export default function AdminClientDetailPage() {
                   </div>
                 </div>
               </div>
+            )}
+
+            {activeTab === 'whitelabel' && (
+              <CompanyWhiteLabelCustomizerWidget
+                companyName={company.name || 'Nova Empresa'}
+                companySlug={company.slug || 'nova-empresa'}
+              />
             )}
 
             {activeTab === 'sla' && (
