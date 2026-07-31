@@ -30,6 +30,7 @@ import { EncryptedBackupsAuditWidget } from '../../../components/admin/Encrypted
 import { MultiDatabaseSeparationWidget } from '../../../components/admin/MultiDatabaseSeparationWidget';
 import { InstaPassoSsoSyncWidget } from '../../../components/admin/InstaPassoSsoSyncWidget';
 import { MotionPreferenceWidget } from '../../../components/shared/MotionPreferenceWidget';
+import { SiemLogMirrorWidget } from '../../../components/admin/SiemLogMirrorWidget';
 
 
 
@@ -343,6 +344,7 @@ export default function ToolsPage() {
               {/* Coluna 2: Governança, Compliance e Políticas */}
               <div className="space-y-6">
                 <MultiDatabaseSeparationWidget />
+                <SiemLogMirrorWidget />
                 <EncryptedBackupsAuditWidget />
                 <EncryptionComplianceWidget />
                 <FileUploadSanitizerWidget />
