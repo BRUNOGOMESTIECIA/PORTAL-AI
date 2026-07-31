@@ -18,6 +18,7 @@ import { playAlertSound } from '../../../lib/sound-effects';
 import { useNotifications } from '../../../hooks/use-notifications';
 import { useTypingIndicator } from '../../../hooks/use-typing-indicator';
 import { TypingIndicator } from '../../../components/TypingIndicator';
+import { validateAndSanitizeFile } from '../../../lib/file-upload-sanitizer';
 
 type ChatTab = 'entrada' | 'meus' | 'em_atendimento' | 'encerrados';
 
@@ -462,6 +463,50 @@ export default function ChatQueuePage() {
     }
   };
 
+  const [isDraggingFile, setIsDraggingFile] = useState(false);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement> | { target: { files: FileList | null } }) => {
+    const files = e.target.files;
+    if (!files || files.length === 0 || !selected) return;
+
+    const file = files[0];
+    toast.info(`Analisando ${file.name} no Antivírus ClamAV...`);
+    const sanitization = await validateAndSanitizeFile(file);
+
+    if (!sanitization.safe) {
+      toast.error(`[UPLOAD BLOQUEADO] ${sanitization.reason}`);
+      return;
+    }
+
+    const processMessage = (bodyText: string) => {
+      const newMsg: MockChatMessage = {
+        id: `m_agent_${Date.now()}`,
+        body: bodyText,
+        senderName: 'Você',
+        senderType: 'agent',
+        createdAt: new Date().toISOString(),
+      };
+      const chatInMock = chats.find((c) => c.id === selected.id);
+      if (chatInMock) {
+        updateChat(chatInMock.id, { messages: [...chatInMock.messages, newMsg] });
+      }
+    };
+
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const dataUrl = ev.target?.result as string;
+        processMessage(`[GIF: Imagem Anexada] (${dataUrl})`);
+        toast.success(`Imagem ${file.name} enviada!`);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      const sizeKb = (file.size / 1024).toFixed(1);
+      processMessage(`📄 [Arquivo Anexado: ${file.name}] (${sizeKb} KB)`);
+      toast.success(`Arquivo ${file.name} enviado!`);
+    }
+  };
+
   // ── Mock Filters ──
   const waiting = chats.filter(c => c.status === 'waiting');
   const active  = chats.filter(c => c.status === 'active' || c.status === 'waiting');
@@ -659,7 +704,35 @@ export default function ChatQueuePage() {
       </div>
 
       {/* ─── Coluna 2: Palco de Chat (Centro) ─── */}
-      <div className={`flex-1 flex flex-col min-w-0 bg-slate-50/50 dark:bg-slate-900 ${!selected ? 'hidden lg:flex' : 'flex'}`}>
+      <div
+        onDragOver={(e) => {
+          e.preventDefault();
+          if (selected && selected.status !== 'closed') setIsDraggingFile(true);
+        }}
+        onDragLeave={(e) => {
+          e.preventDefault();
+          setIsDraggingFile(false);
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          setIsDraggingFile(false);
+          if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            handleFileUpload({ target: { files: e.dataTransfer.files } });
+          }
+        }}
+        className={`flex-1 flex flex-col min-w-0 bg-slate-50/50 dark:bg-slate-900 relative overflow-hidden ${!selected ? 'hidden lg:flex' : 'flex'}`}
+      >
+        {/* Overlay de Drag-and-Drop (Item 045) */}
+        {isDraggingFile && selected && (
+          <div className="absolute inset-0 bg-blue-600/90 backdrop-blur-sm z-50 flex flex-col items-center justify-center text-white p-6 text-center animate-in fade-in duration-150 border-4 border-dashed border-white/60 m-4 rounded-2xl">
+            <ImageIcon className="w-12 h-12 animate-bounce mb-3 text-blue-200" />
+            <p className="font-extrabold text-lg">Solte o arquivo para enviar no chat</p>
+            <p className="text-xs text-blue-100 mt-1 font-medium">
+              Suporta Imagens (PNG, JPG), Documentos e PDFs até 25MB (Varredura ClamAV Ativa)
+            </p>
+          </div>
+        )}
+
         {!selected ? (
           <div className="h-full flex items-center justify-center">
             <div className="text-center">

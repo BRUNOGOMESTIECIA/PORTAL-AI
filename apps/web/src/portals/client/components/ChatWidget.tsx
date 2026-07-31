@@ -10,6 +10,8 @@ import { QueuePositionWidget } from './QueuePositionWidget';
 import { classifyTicketOrChatWithAi } from '../../../lib/ai-ticket-classifier';
 import { useTypingIndicator } from '../../../hooks/use-typing-indicator';
 import { TypingIndicator } from '../../../components/TypingIndicator';
+import { validateAndSanitizeFile } from '../../../lib/file-upload-sanitizer';
+import { toast } from 'sonner';
 
 const BUSINESS_HOURS = [
   { days: 'Seg – Sex', hours: '08:00 – 18:00' },
@@ -26,7 +28,33 @@ export function ChatWidget() {
   const [widgetCsatHovered, setWidgetCsatHovered] = useState(0);
   const [widgetCsatComment, setWidgetCsatComment] = useState('');
   const [widgetCsatSubmitted, setWidgetCsatSubmitted] = useState(false);
+  const [isDraggingFile, setIsDraggingFile] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const hiddenFileInputRef = useRef<HTMLInputElement>(null);
+
+  const processAndUploadFile = async (file: File) => {
+    toast.info(`Analisando ${file.name} no antivírus ClamAV...`);
+    const sanitization = await validateAndSanitizeFile(file);
+
+    if (!sanitization.safe) {
+      toast.error(`[DOWNLOAD BLOQUEADO] ${sanitization.reason}`);
+      return;
+    }
+
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const dataUrl = e.target?.result as string;
+        send(`[GIF: Imagem Anexada] (${dataUrl})`);
+        toast.success(`Imagem ${file.name} enviada com sucesso!`);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      const sizeKb = (file.size / 1024).toFixed(1);
+      send(`📄 [Arquivo Anexado: ${file.name}] (${sizeKb} KB)`);
+      toast.success(`Arquivo ${file.name} anexado ao chat!`);
+    }
+  };
 
   const activeChat = useMemo(() => {
     if (!user) return null;
@@ -165,7 +193,34 @@ export function ChatWidget() {
   return (
     <div className="fixed bottom-5 right-5 z-50 flex flex-col items-end gap-3">
       {open && !minimized && (
-        <div className="w-[calc(100vw-40px)] sm:w-80 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex flex-col" style={{ height: 420 }}>
+        <div
+          onDragOver={(e) => {
+            e.preventDefault();
+            setIsDraggingFile(true);
+          }}
+          onDragLeave={(e) => {
+            e.preventDefault();
+            setIsDraggingFile(false);
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            setIsDraggingFile(false);
+            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+              processAndUploadFile(e.dataTransfer.files[0]);
+            }
+          }}
+          className="w-[calc(100vw-40px)] sm:w-80 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex flex-col relative overflow-hidden"
+          style={{ height: 420 }}
+        >
+          {/* Overlay de Drag-and-Drop (Item 045) */}
+          {isDraggingFile && (
+            <div className="absolute inset-0 bg-blue-600/90 backdrop-blur-sm z-50 flex flex-col items-center justify-center text-white p-6 text-center animate-in fade-in duration-150 border-4 border-dashed border-white/60 m-2 rounded-xl">
+              <Paperclip className="w-10 h-10 animate-bounce mb-2" />
+              <p className="font-bold text-sm">Solte o arquivo para enviar</p>
+              <p className="text-[11px] text-blue-100 mt-1">Imagens, PDFs, documentos até 25MB (Varredura ClamAV)</p>
+            </div>
+          )}
+
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 bg-blue-600 text-white rounded-t-2xl">
             <div className="flex items-center gap-2">
@@ -408,7 +463,22 @@ export function ChatWidget() {
                 onSubmit={(e) => { e.preventDefault(); send(input); }}
                 className="flex items-center gap-2"
               >
-                <button type="button" className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors">
+                <input
+                  type="file"
+                  ref={hiddenFileInputRef}
+                  className="hidden"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files.length > 0) {
+                      processAndUploadFile(e.target.files[0]);
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => hiddenFileInputRef.current?.click()}
+                  className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors cursor-pointer"
+                  title="Anexar arquivo ou imagem"
+                >
                   <Paperclip className="h-4 w-4" />
                 </button>
                 <EmojiStickerPicker
