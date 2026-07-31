@@ -11,6 +11,7 @@ import { useTickets } from '../../../hooks/use-tickets';
 import { formatTicketProtocol } from '../../../lib/audit-logger';
 import { StaffLeaderboardWidget } from '../components/StaffLeaderboardWidget';
 import { CsatTrendWidget } from '../components/CsatTrendWidget';
+import { B2bCompanyPerformanceModal } from '../components/B2bCompanyPerformanceModal';
 
 const COLORS = ['#3b82f6', '#f59e0b', '#10b981', '#6366f1', '#ef4444', '#8b5cf6'];
 
@@ -24,6 +25,7 @@ export default function ReportsPage() {
   const [period, setPeriod] = useState('Últimos 30 dias');
   const [customStartDate, setCustomStartDate] = useState('2026-01-01');
   const [customEndDate, setCustomEndDate] = useState(new Date().toISOString().slice(0, 10));
+  const [showB2bModal, setShowB2bModal] = useState(false);
 
   const [team, setTeam] = useState('Todas as Equipes');
   const [source, setSource] = useState('Todos os Canais');
@@ -172,7 +174,14 @@ export default function ReportsPage() {
             </select>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => setShowB2bModal(true)}
+              className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium px-3.5 py-2 rounded-lg transition-colors shadow-sm cursor-pointer"
+              title="Laudo corporativo B2B por empresa cliente"
+            >
+              🏢 Extrato SLA B2B (QBR)
+            </button>
+
             <button
               onClick={() => exportTicketsToExcel(filteredTickets.length > 0 ? filteredTickets : tickets, activePeriodLabel)}
               className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium px-3.5 py-2 rounded-lg transition-colors shadow-sm cursor-pointer"
@@ -189,6 +198,11 @@ export default function ReportsPage() {
           </div>
         </div>
       </div>
+
+      <B2bCompanyPerformanceModal
+        isOpen={showB2bModal}
+        onClose={() => setShowB2bModal(false)}
+      />
 
       {/* ─── KPIS PREMIUM ─── */}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
