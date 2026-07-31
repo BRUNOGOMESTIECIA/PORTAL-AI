@@ -12,6 +12,7 @@ import { useTypingIndicator } from '../../../hooks/use-typing-indicator';
 import { TypingIndicator } from '../../../components/TypingIndicator';
 import { validateAndSanitizeFile } from '../../../lib/file-upload-sanitizer';
 import { ChatbotTriageWidget } from '../../../components/chat/ChatbotTriageWidget';
+import { ChatCsatSurveyWidget } from '../../../components/chat/ChatCsatSurveyWidget';
 import { toast } from 'sonner';
 
 const BUSINESS_HOURS = [
@@ -432,77 +433,25 @@ export function ChatWidget() {
               </div>
             )}
             {activeChat?.status === 'closed' ? (
-              <div className="text-center py-2.5 bg-slate-50 dark:bg-slate-900 rounded-xl p-3 border border-slate-200 dark:border-slate-700">
-                {widgetCsatSubmitted ? (
-                  <div>
-                    <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mb-2">✓ Avaliação enviada! Obrigado pelo seu feedback.</p>
-                    <button onClick={() => { setWidgetCsatSubmitted(false); setWidgetCsatScore(0); setWidgetCsatComment(''); startChat(); }} className="text-xs font-semibold text-blue-600 hover:underline cursor-pointer">
-                      Iniciar novo atendimento
-                    </button>
-                  </div>
-                ) : (
-                  <div>
-                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200 mb-1.5">Como você avalia este atendimento?</p>
-                    <div className="flex justify-center gap-1.5 mb-2">
-                      {[1, 2, 3, 4, 5].map((n) => (
-                        <button
-                          key={n}
-                          type="button"
-                          onClick={() => setWidgetCsatScore(n)}
-                          onMouseEnter={() => setWidgetCsatHovered(n)}
-                          onMouseLeave={() => setWidgetCsatHovered(0)}
-                          className="transition-transform hover:scale-110 cursor-pointer"
-                        >
-                          <Star
-                            className={`w-6 h-6 ${
-                              n <= (widgetCsatHovered || widgetCsatScore)
-                                ? 'fill-amber-400 text-amber-400'
-                                : 'text-slate-300 dark:text-slate-600'
-                            }`}
-                          />
-                        </button>
-                      ))}
-                    </div>
-
-                    <textarea
-                      value={widgetCsatComment}
-                      onChange={(e) => setWidgetCsatComment(e.target.value)}
-                      placeholder="Deixe seu comentário sobre o suporte (opcional)..."
-                      rows={2}
-                      className="w-full text-xs p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 outline-none focus:border-blue-500 mb-2"
-                    />
-
-                    <div className="flex items-center justify-between gap-2">
-                      <button onClick={() => startChat()} className="text-xs font-medium text-slate-500 hover:text-blue-600 transition-colors cursor-pointer">
-                        Iniciar novo
-                      </button>
-                      <button
-                        disabled={widgetCsatScore === 0}
-                        onClick={async () => {
-                          setWidgetCsatSubmitted(true);
-                          if (activeChat) {
-                            await updateChat(activeChat.id, {
-                              rating: widgetCsatScore,
-                              ratingComment: widgetCsatComment
-                            } as any);
-
-                            logSecurityAudit({
-                              protocol: formatTicketProtocol(activeChat.ticketId || activeChat.id),
-                              action: `Avaliação CSAT Chat (${widgetCsatScore} Estrelas)`,
-                              originPortal: 'Portal do Cliente',
-                              userName: user?.name || 'Cliente',
-                              userEmail: user?.email || '',
-                              details: widgetCsatComment ? `Comentário: ${widgetCsatComment}` : 'Sem comentário'
-                            });
-                          }
-                        }}
-                        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white font-semibold text-xs rounded-lg transition-colors cursor-pointer"
-                      >
-                        Enviar Avaliação
-                      </button>
-                    </div>
-                  </div>
-                )}
+              <div className="space-y-2">
+                <ChatCsatSurveyWidget
+                  chatId={activeChat.id}
+                  protocolNumber={activeChat.ticketId || activeChat.id}
+                  agentName={activeChat.agentName || 'Atendimento N1'}
+                  onSubmitted={async (r, c, tags) => {
+                    await updateChat(activeChat.id, {
+                      rating: r,
+                      ratingComment: c,
+                      csatTags: tags
+                    } as any);
+                  }}
+                />
+                <button
+                  onClick={() => startChat()}
+                  className="w-full py-2 text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900 border border-blue-200 dark:border-blue-800 rounded-xl transition-all text-center block cursor-pointer"
+                >
+                  Iniciar novo atendimento
+                </button>
               </div>
             ) : (
               <form
