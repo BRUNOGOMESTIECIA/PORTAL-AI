@@ -14,6 +14,7 @@ import { TicketTimeTrackingWidget } from '../../../components/tickets/TicketTime
 import { TicketRelatedIncidentsWidget } from '../../../components/tickets/TicketRelatedIncidentsWidget';
 import { TicketAuditLogTrailWidget } from '../../../components/tickets/TicketAuditLogTrailWidget';
 import { TicketInternalNotesWithAiWidget } from '../../../components/tickets/TicketInternalNotesWithAiWidget';
+import { AiPastTicketSolutionSuggesterWidget } from '../../../components/tickets/AiPastTicketSolutionSuggesterWidget';
 
 const STATUS_CONFIG: Record<TicketStatus, { label: string; color: string }> = {
   new: { label: 'Novo', color: 'bg-indigo-100 text-indigo-700' },
@@ -226,6 +227,15 @@ export default function TicketDetailPage() {
             onUpdateCcEmails={(newCcList) => {
               updateTicket(ticket.id, { ccEmails: newCcList } as any);
             }}
+          />
+        </div>
+
+        {/* Sugestão Inteligente de Soluções Passadas por IA (RAG) - Item 071 */}
+        <div className="mt-5">
+          <AiPastTicketSolutionSuggesterWidget
+            ticketId={ticket.id}
+            protocolNumber={ticket.number}
+            ticketTitle={ticket.title}
           />
         </div>
 
