@@ -36,6 +36,7 @@ import { DepartmentCostCenterWidget } from '../../../components/admin/Department
 import { SoftDeleteRetentionWidget } from '../../../components/admin/SoftDeleteRetentionWidget';
 import { OperatorWorkScheduleWidget } from '../../../components/admin/OperatorWorkScheduleWidget';
 import { UnifiedUserCreationWidget } from '../../../components/admin/UnifiedUserCreationWidget';
+import { AgentPublicProfileAdminWidget } from '../../../components/admin/AgentPublicProfileAdminWidget';
 
 
 
@@ -342,6 +343,7 @@ export default function ToolsPage() {
                 <AntiBruteForcePanelWidget />
                 <RateLimitingPanelWidget />
                 <OperatorWorkScheduleWidget />
+                <AgentPublicProfileAdminWidget />
                 <SecurityAuditLogsWidget />
                 <SessionTimeoutSettingsWidget />
                 <SessionCookiePolicyWidget />
