@@ -33,6 +33,7 @@ import { MotionPreferenceWidget } from '../../../components/shared/MotionPrefere
 import { SiemLogMirrorWidget } from '../../../components/admin/SiemLogMirrorWidget';
 import { RateLimitingPanelWidget } from '../../../components/admin/RateLimitingPanelWidget';
 import { DepartmentCostCenterWidget } from '../../../components/admin/DepartmentCostCenterWidget';
+import { SoftDeleteRetentionWidget } from '../../../components/admin/SoftDeleteRetentionWidget';
 
 
 
@@ -348,6 +349,7 @@ export default function ToolsPage() {
               <div className="space-y-6">
                 <MultiDatabaseSeparationWidget />
                 <DepartmentCostCenterWidget />
+                <SoftDeleteRetentionWidget />
                 <SiemLogMirrorWidget />
                 <EncryptedBackupsAuditWidget />
                 <EncryptionComplianceWidget />
