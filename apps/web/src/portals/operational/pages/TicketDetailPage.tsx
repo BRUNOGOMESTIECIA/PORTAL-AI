@@ -13,6 +13,7 @@ import { TicketChecklistWidget } from '../../../components/tickets/TicketCheckli
 import { TicketTimeTrackingWidget } from '../../../components/tickets/TicketTimeTrackingWidget';
 import { TicketRelatedIncidentsWidget } from '../../../components/tickets/TicketRelatedIncidentsWidget';
 import { TicketAuditLogTrailWidget } from '../../../components/tickets/TicketAuditLogTrailWidget';
+import { TicketInternalNotesWithAiWidget } from '../../../components/tickets/TicketInternalNotesWithAiWidget';
 
 const STATUS_CONFIG: Record<TicketStatus, { label: string; color: string }> = {
   new: { label: 'Novo', color: 'bg-indigo-100 text-indigo-700' },
@@ -224,6 +225,19 @@ export default function TicketDetailPage() {
             ccEmails={(ticket as any).ccEmails || ['gestor@empresa.com.br']}
             onUpdateCcEmails={(newCcList) => {
               updateTicket(ticket.id, { ccEmails: newCcList } as any);
+            }}
+          />
+        </div>
+
+        {/* Notas Internas Confidenciais & Copiloto IA (@ia) - Item 066 */}
+        <div className="mt-5">
+          <TicketInternalNotesWithAiWidget
+            ticketId={ticket.id}
+            protocolNumber={ticket.number}
+            notes={(ticket as any).internalNotes}
+            onAddNote={(newNote) => {
+              const prevNotes = (ticket as any).internalNotes || [];
+              updateTicket(ticket.id, { internalNotes: [...prevNotes, newNote] } as any);
             }}
           />
         </div>
