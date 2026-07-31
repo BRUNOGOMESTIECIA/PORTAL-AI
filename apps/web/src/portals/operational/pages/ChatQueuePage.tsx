@@ -16,6 +16,8 @@ import { collection, getDocs, query, where } from 'firebase/firestore';
 import { EmojiStickerPicker } from '../../../components/chat/EmojiStickerPicker';
 import { playAlertSound } from '../../../lib/sound-effects';
 import { useNotifications } from '../../../hooks/use-notifications';
+import { useTypingIndicator } from '../../../hooks/use-typing-indicator';
+import { TypingIndicator } from '../../../components/TypingIndicator';
 
 type ChatTab = 'entrada' | 'meus' | 'em_atendimento' | 'encerrados';
 
@@ -81,6 +83,12 @@ export default function ChatQueuePage() {
   const selected = chats.find(c => c.id === selectedId) || null;
   const [input, setInput] = useState('');
   const [replyTo, setReplyTo] = useState<{ id: string; senderName: string; body: string } | null>(null);
+
+  const { isPeerTyping, peerTypingName, notifyTyping, notifyStopTyping } = useTypingIndicator(
+    selected?.id,
+    'agent',
+    user?.name || 'Atendente'
+  );
   const [activeTab, setActiveTab] = useState<ChatTab>('em_atendimento');
   const [search, setSearch] = useState('');
   const [forceRender, setForceRender] = useState(0);
@@ -394,6 +402,7 @@ export default function ChatQueuePage() {
 
   const handleSendMessage = () => {
     if (!input.trim() || !selected || selected.status === 'waiting' || !hasPermission('chat.attend')) return;
+    notifyStopTyping();
 
     const newMsg: MockChatMessage = {
       id: `m_agent_${Date.now()}`,
@@ -894,6 +903,7 @@ export default function ChatQueuePage() {
                   </div>
                 );
               })}
+              <TypingIndicator isTyping={isPeerTyping} name={peerTypingName || selected?.clientName || 'Cliente'} />
               <div ref={messagesEndRef} />
             </div>
 
@@ -1051,7 +1061,16 @@ export default function ChatQueuePage() {
                   <input 
                     type="text" 
                     ref={inputRef}
-                    value={input} onChange={(e) => setInput(e.target.value)}
+                    value={input}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setInput(val);
+                      if (val.trim()) {
+                        notifyTyping();
+                      } else {
+                        notifyStopTyping();
+                      }
+                    }}
                     onKeyDown={(e) => { if (e.key === 'Enter') handleSendMessage(); }}
                     placeholder={selected.status === 'closed' ? "Chat encerrado" : (selected.status === 'waiting' ? "Assuma o atendimento para responder..." : (isInternalNote ? "Digite uma nota interna (invisível para o cliente)..." : "Digite sua mensagem pública..."))}
                     disabled={selected.status === 'waiting' || selected.status === 'closed' || !hasPermission('chat.attend')}

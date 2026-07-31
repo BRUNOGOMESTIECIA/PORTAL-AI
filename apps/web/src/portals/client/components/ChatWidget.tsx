@@ -8,6 +8,8 @@ import { exportChatTranscriptToPdf } from '../../../lib/export-utils';
 import { formatTicketProtocol, logSecurityAudit } from '../../../lib/audit-logger';
 import { QueuePositionWidget } from './QueuePositionWidget';
 import { classifyTicketOrChatWithAi } from '../../../lib/ai-ticket-classifier';
+import { useTypingIndicator } from '../../../hooks/use-typing-indicator';
+import { TypingIndicator } from '../../../components/TypingIndicator';
 
 const BUSINESS_HOURS = [
   { days: 'Seg – Sex', hours: '08:00 – 18:00' },
@@ -33,6 +35,12 @@ export function ChatWidget() {
     const active = userChats.find(c => c.status !== 'closed');
     return active || userChats[0];
   }, [chats, user]);
+
+  const { isPeerTyping, peerTypingName, notifyTyping, notifyStopTyping } = useTypingIndicator(
+    activeChat?.id,
+    'client',
+    user?.name || 'Cliente'
+  );
 
   const [open, setOpen] = useState(() => {
     const savedOpen = localStorage.getItem('portal_chat_open');
@@ -113,6 +121,7 @@ export function ChatWidget() {
     const msgBody = text.trim();
     if (!msgBody || !user) return;
     setInput('');
+    notifyStopTyping();
 
     if (!activeChat) {
       await startChat(msgBody);
@@ -289,6 +298,7 @@ export function ChatWidget() {
                 )}
               </div>
             ))}
+            <TypingIndicator isTyping={isPeerTyping} name={peerTypingName || 'Atendente N1'} />
             <div ref={bottomRef} />
           </div>
 
@@ -408,7 +418,15 @@ export function ChatWidget() {
                 <input
                   type="text"
                   value={input}
-                  onChange={(e) => setInput(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setInput(val);
+                    if (val.trim()) {
+                      notifyTyping();
+                    } else {
+                      notifyStopTyping();
+                    }
+                  }}
                   placeholder="Digite sua mensagem..."
                   className="flex-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full px-4 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 />
