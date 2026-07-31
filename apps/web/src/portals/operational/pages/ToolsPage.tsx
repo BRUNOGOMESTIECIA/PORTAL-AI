@@ -22,6 +22,7 @@ import { LogTtlPolicyWidget } from '../components/LogTtlPolicyWidget';
 import { MfaPolicyEnforcementWidget } from '../components/MfaPolicyEnforcementWidget';
 import { FileUploadSanitizerWidget } from '../components/FileUploadSanitizerWidget';
 import { WafCorporateFilterWidget } from '../components/WafCorporateFilterWidget';
+import { SlaBusinessCalendarWidget } from '../components/SlaBusinessCalendarWidget';
 
 /**
  * Definição estática de todas as ferramentas disponíveis no painel.
@@ -328,6 +329,7 @@ export default function ToolsPage() {
               
               {/* Coluna 2: Governança, Compliance e Políticas */}
               <div className="space-y-6">
+                <SlaBusinessCalendarWidget />
                 <FileUploadSanitizerWidget />
                 <MfaPolicyEnforcementWidget />
                 <EncryptionComplianceWidget />

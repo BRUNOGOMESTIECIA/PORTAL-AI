@@ -195,6 +195,16 @@ export default function SlaCountdownBar({
           />
         </div>
       )}
+
+      {/* Banner de Escalonamento Automático N2 ao atingir 90% (Item 056) */}
+      {(tier === 'pre_breach' || tier === 'breached') && !isResolved && (
+        <div className="pt-1.5 border-t border-rose-300 dark:border-rose-800 flex items-center justify-between gap-2 text-xs">
+          <div className="flex items-center gap-1.5 text-rose-800 dark:text-rose-200 font-bold text-[11px]">
+            <ShieldAlert className="w-4 h-4 text-rose-600 animate-bounce shrink-0" />
+            <span>🚨 ESCALONADO AUTOMÁTICO N2: Alerta enviado ao time N2 por atingir 90% do SLA.</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

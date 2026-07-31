@@ -346,6 +346,15 @@ export default function ChatQueuePage() {
       const chatInMock = chats.find(c => c.id === selected.id);
       if (chatInMock) {
         if (newStatus === 'active') {
+          // Trava de Limite de 3 Chats Simultâneos quando Modo Sun Tzu está ATIVADO (Item 050)
+          const myActiveChatsCount = chats.filter(c => c.status === 'active' && (c.agentName === (user?.name || 'Você') || c.agentName === 'Atendente')).length;
+          if (sunTzuMode && myActiveChatsCount >= 3) {
+            toast.error('🛑 [MODO SUN TZU ATIVO] Limite de 3 atendimentos simultâneos atingido! Conclua um chat em andamento antes de assumir um novo.', {
+              duration: 5000
+            });
+            return;
+          }
+
           const welcomeMsg: MockChatMessage = {
             id: `m_agent_${Date.now()}`,
             body: `Olá! Meu nome é ${user?.name || 'Atendente'}. Em que posso te ajudar hoje?`,
@@ -809,15 +818,22 @@ export default function ChatQueuePage() {
                 >
                   <PanelRight className="w-5 h-5" />
                 </button>
-                {selected.status === 'waiting' ? (
-                  <button 
-                    onClick={() => handleStatusChange('active')}
-                    disabled={!hasPermission('chat.attend') || isSunTzuBlocked} 
-                    className={`${isSunTzuBlocked ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white'} text-sm font-semibold px-4 py-2 rounded-lg transition-colors`}
-                  >
-                    {isSunTzuBlocked ? 'Modo Sun Tzu Ativo (Automático)' : 'Assumir Atendimento'}
-                  </button>
-                ) : (
+                {selected.status === 'waiting' ? (() => {
+                  const activeCount = chats.filter(c => c.status === 'active' && (c.agentName === (user?.name || 'Você') || c.agentName === 'Atendente')).length;
+                  const isLimitReached = sunTzuMode && activeCount >= 3;
+                  const isBlocked = isSunTzuBlocked || isLimitReached;
+
+                  return (
+                    <button 
+                      onClick={() => handleStatusChange('active')}
+                      disabled={!hasPermission('chat.attend') || isBlocked} 
+                      className={`${isBlocked ? 'bg-slate-300 dark:bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-300 dark:border-slate-700' : 'bg-blue-600 hover:bg-blue-700 text-white'} text-sm font-semibold px-4 py-2 rounded-lg transition-colors`}
+                      title={isLimitReached ? 'Limite de 3 chats atingido no Modo Sun Tzu' : undefined}
+                    >
+                      {isLimitReached ? '🛑 Limite Sun Tzu Atingido (3/3)' : (isSunTzuBlocked ? 'Modo Sun Tzu Ativo (Automático)' : 'Assumir Atendimento')}
+                    </button>
+                  );
+                })() : (
                   <>
                     <div className="relative" ref={transferRef}>
                       <button 
