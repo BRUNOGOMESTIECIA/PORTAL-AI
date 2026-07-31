@@ -196,7 +196,7 @@ export default function ToolsPage() {
   const [showTermModal, setShowTermModal] = useState(false);
   const [showB2bModal, setShowB2bModal] = useState(false);
   const [showAuditReportModal, setShowAuditReportModal] = useState(false);
-  const [instaPassoTab, setInstaPassoTab] = useState<'acessos' | 'equipe' | 'logs' | 'invasoes' | 'hardened'>('acessos');
+  const [instaPassoTab, setInstaPassoTab] = useState<'acessos' | 'equipe' | 'logs' | 'security'>('acessos');
 
   // Regra de Acesso do InstaPasso: Administradores, Supervisores e equipe com permissões admin/tickets
   const canAccessInstaPasso = () => {
@@ -284,24 +284,14 @@ export default function ToolsPage() {
               Logs de Auditoria
             </button>
             <button
-              onClick={() => setInstaPassoTab('invasoes')}
+              onClick={() => setInstaPassoTab('security')}
               className={`px-4 py-2 border-b-2 transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-                instaPassoTab === 'invasoes'
-                  ? 'border-rose-500 text-rose-400 font-extrabold'
-                  : 'border-transparent text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              🚨 Invasões & Acessos Bloqueados
-            </button>
-            <button
-              onClick={() => setInstaPassoTab('hardened')}
-              className={`px-4 py-2 border-b-2 transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-                instaPassoTab === 'hardened'
+                instaPassoTab === 'security'
                   ? 'border-blue-400 text-blue-400 font-extrabold'
                   : 'border-transparent text-slate-400 hover:text-slate-200'
               }`}
             >
-              🛡️ Governança & Criptografia ISO 27001
+              🛡️ Segurança & Governança ISO 27001
             </button>
           </div>
         </div>
@@ -321,23 +311,27 @@ export default function ToolsPage() {
               title="Portal InstaPasso Admin"
             />
           </div>
-        ) : instaPassoTab === 'invasoes' ? (
-          <div className="space-y-6 dark">
-            <AntiBruteForcePanelWidget />
-            <SecurityAuditLogsWidget />
-          </div>
         ) : (
-          <div className="space-y-6 dark">
-            <MfaPolicyEnforcementWidget />
-            <LogTtlPolicyWidget />
-            <EncryptionComplianceWidget />
-            <SessionTimeoutSettingsWidget />
-            <LgpdUserAnonymizationWidget />
-            <FrameAncestorsPolicyWidget />
-            <SessionCookiePolicyWidget />
-            <HttpSecurityHeadersWidget />
-            <AntiBruteForcePanelWidget />
-            <SecurityAuditLogsWidget />
+          <div className="dark">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+              {/* Coluna 1: Proteção Ativa e Logs */}
+              <div className="space-y-6">
+                <AntiBruteForcePanelWidget />
+                <SecurityAuditLogsWidget />
+                <SessionTimeoutSettingsWidget />
+                <SessionCookiePolicyWidget />
+                <HttpSecurityHeadersWidget />
+              </div>
+              
+              {/* Coluna 2: Governança, Compliance e Políticas */}
+              <div className="space-y-6">
+                <MfaPolicyEnforcementWidget />
+                <EncryptionComplianceWidget />
+                <LogTtlPolicyWidget />
+                <LgpdUserAnonymizationWidget />
+                <FrameAncestorsPolicyWidget />
+              </div>
+            </div>
           </div>
         )}
       </div>
