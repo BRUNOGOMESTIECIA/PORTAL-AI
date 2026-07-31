@@ -6,6 +6,7 @@ import { formatDistanceToNow, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { useAuth } from '../../../hooks/use-mock-auth';
+import { useTickets } from '../../../hooks/use-tickets';
 import { formatTicketProtocol } from '../../../lib/audit-logger';
 import SlaCountdownBar from '../components/SlaCountdownBar';
 import { TicketCcObserversWidget } from '../../../components/tickets/TicketCcObserversWidget';
@@ -43,7 +44,7 @@ export default function TicketDetailPage() {
   const [statusChangeRequest, setStatusChangeRequest] = useState<{ newStatus: TicketStatus } | null>(null);
   const [statusReason, setStatusReason] = useState('');
   
-  const ticket = tickets.find((t) => t.id === id);
+  const ticket = tickets.find((t: any) => t.id === id);
 
   if (!ticket) {
     return (
@@ -69,8 +70,8 @@ export default function TicketDetailPage() {
     },
   });
 
-  const st = STATUS_CONFIG[ticket.status];
-  const pri = PRIORITY_CONFIG[ticket.priority];
+  const st = STATUS_CONFIG[ticket.status as TicketStatus] || { label: ticket.status, color: 'bg-slate-100' };
+  const pri = PRIORITY_CONFIG[ticket.priority as TicketPriority] || { label: ticket.priority, color: 'text-slate-500 bg-slate-50' };
   const slaBreached = ticket.slaResolutionMet === false;
 
   return (
@@ -193,7 +194,7 @@ export default function TicketDetailPage() {
         {ticket.tags.length > 0 && (
           <div className="flex items-center gap-2 mt-4">
             <Tag className="h-3.5 w-3.5 text-slate-400" />
-            {ticket.tags.map((tag) => (
+            {ticket.tags.map((tag: string) => (
               <span key={tag} className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{tag}</span>
             ))}
           </div>
@@ -202,8 +203,8 @@ export default function TicketDetailPage() {
         {/* Checklist de Tarefas Internas no Ticket - Item 062 */}
         <div className="mt-5">
           <TicketChecklistWidget
-            ticketId={ticket.id}
-            protocolNumber={ticket.number}
+            ticketId={String(ticket.id)}
+            protocolNumber={formatTicketProtocol(ticket.number || ticket.id)}
             items={(ticket as any).checklist}
             onUpdateChecklist={(newChecklist) => {
               updateTicket(ticket.id, { checklist: newChecklist } as any);
@@ -214,8 +215,8 @@ export default function TicketDetailPage() {
         {/* Incidentes Relacionados & Causa Raiz - Item 059 */}
         <div className="mt-5">
           <TicketRelatedIncidentsWidget
-            ticketId={ticket.id}
-            protocolNumber={ticket.number}
+            ticketId={String(ticket.id)}
+            protocolNumber={formatTicketProtocol(ticket.number || ticket.id)}
             isParent={!(ticket as any).parentTicketId}
             parentTicketId={(ticket as any).parentTicketId}
             parentProtocolNumber={(ticket as any).parentProtocolNumber}
@@ -226,8 +227,8 @@ export default function TicketDetailPage() {
         {/* Apontamento de Horas (Time Tracking) - Item 063 */}
         <div className="mt-5">
           <TicketTimeTrackingWidget
-            ticketId={ticket.id}
-            protocolNumber={ticket.number}
+            ticketId={String(ticket.id)}
+            protocolNumber={formatTicketProtocol(ticket.number || ticket.id)}
             timeEntries={(ticket as any).timeEntries}
             onUpdateTimeEntries={(newEntries) => {
               updateTicket(ticket.id, { timeEntries: newEntries } as any);
@@ -238,8 +239,8 @@ export default function TicketDetailPage() {
         {/* Observadores em Cópia (CC) - Item 061 */}
         <div className="mt-5">
           <TicketCcObserversWidget
-            ticketId={ticket.id}
-            protocolNumber={ticket.number}
+            ticketId={String(ticket.id)}
+            protocolNumber={formatTicketProtocol(ticket.number || ticket.id)}
             ccEmails={(ticket as any).ccEmails || ['gestor@empresa.com.br']}
             onUpdateCcEmails={(newCcList) => {
               updateTicket(ticket.id, { ccEmails: newCcList } as any);
@@ -250,8 +251,8 @@ export default function TicketDetailPage() {
         {/* Sugestão Inteligente de Soluções Passadas por IA (RAG) - Item 071 */}
         <div className="mt-5">
           <AiPastTicketSolutionSuggesterWidget
-            ticketId={ticket.id}
-            protocolNumber={ticket.number}
+            ticketId={String(ticket.id)}
+            protocolNumber={formatTicketProtocol(ticket.number || ticket.id)}
             ticketTitle={ticket.title}
           />
         </div>
@@ -259,16 +260,16 @@ export default function TicketDetailPage() {
         {/* Leitura de Prints & OCR de Código por IA - Item 073 */}
         <div className="mt-5">
           <AiImageErrorOcrWidget
-            ticketId={ticket.id}
-            protocolNumber={ticket.number}
+            ticketId={String(ticket.id)}
+            protocolNumber={formatTicketProtocol(ticket.number || ticket.id)}
           />
         </div>
 
         {/* Notas Internas Confidenciais & Copiloto IA (@ia) - Item 066 */}
         <div className="mt-5">
           <TicketInternalNotesWithAiWidget
-            ticketId={ticket.id}
-            protocolNumber={ticket.number}
+            ticketId={String(ticket.id)}
+            protocolNumber={formatTicketProtocol(ticket.number || ticket.id)}
             notes={(ticket as any).internalNotes}
             onAddNote={(newNote) => {
               const prevNotes = (ticket as any).internalNotes || [];
@@ -280,8 +281,8 @@ export default function TicketDetailPage() {
         {/* Trilha de Auditoria & Alterações de Campos (Audit Log do Ticket) - Item 060 */}
         <div className="mt-5">
           <TicketAuditLogTrailWidget
-            ticketId={ticket.id}
-            protocolNumber={ticket.number}
+            ticketId={String(ticket.id)}
+            protocolNumber={formatTicketProtocol(ticket.number || ticket.id)}
             auditLogs={(ticket as any).auditLogs}
           />
         </div>
@@ -320,7 +321,7 @@ export default function TicketDetailPage() {
 
         {ticket.comments.length > 0 ? (
           <div className="space-y-3 mb-5">
-            {ticket.comments.map((comment) => (
+            {ticket.comments.map((comment: any) => (
               <div key={comment.id} className={`rounded-xl p-4 ${comment.isInternal ? 'bg-amber-50 border border-amber-100' : 'bg-slate-50 border border-slate-100'}`}>
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">

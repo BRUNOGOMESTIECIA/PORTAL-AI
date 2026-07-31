@@ -53,6 +53,20 @@ export async function logSecurityAudit(entry: Omit<SecurityAuditEntry, 'createdA
 }
 
 /**
+ * Alias para compatibilidade com chamadas logAuditEvent(action, details)
+ */
+export async function logAuditEvent(action: string, details: string) {
+  return logSecurityAudit({
+    protocol: generateCorporateProtocol(),
+    action,
+    originPortal: 'Portal Operacional',
+    userEmail: 'admin@empresa.com',
+    userName: 'Administrador',
+    details,
+  });
+}
+
+/**
  * Registra rastreamento inalterável (ISO 27001) para operações CRUD: CREATE, UPDATE e DELETE (Item 021)
  */
 export async function logCrudAudit(

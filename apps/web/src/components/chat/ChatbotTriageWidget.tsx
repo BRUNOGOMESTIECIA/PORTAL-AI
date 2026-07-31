@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bot, CheckCircle2, UserHeadphones, Sparkles, ArrowRight, Lightbulb, ChevronRight } from 'lucide-react';
+import { Bot, CheckCircle2, Headphones, Sparkles, ArrowRight, Lightbulb, ChevronRight } from 'lucide-react';
 import { CHATBOT_TRIAGE_TREE, TriageOption, TriageNode } from '../../lib/chatbot-triage-tree';
 
 interface ChatbotTriageWidgetProps {
@@ -69,7 +69,7 @@ export function ChatbotTriageWidget({ onSelectOption, onEscalateToHuman, onResol
               onClick={() => onEscalateToHuman(selectedSolutionOption.category, selectedSolutionOption.suggestedPriority)}
               className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition-all border border-slate-700 flex items-center justify-center gap-1.5 cursor-pointer"
             >
-              <UserHeadphones className="w-3.5 h-3.5 text-blue-400" />
+              <Headphones className="w-3.5 h-3.5 text-blue-400" />
               Chamar Humano N1
             </button>
           </div>

@@ -184,21 +184,6 @@ export default function ChatQueuePage() {
     return () => window.removeEventListener('storage', handleStorage);
   }, []);
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && selected) {
-      toast.success(`Anexo "${file.name}" enviado com sucesso.`);
-      const newMsg: MockChatMessage = {
-        id: 'attach_' + Date.now(),
-        body: `[Anexo enviado: ${file.name}]`,
-        senderName: user?.name || 'Agente',
-        senderType: 'agent',
-        createdAt: new Date().toISOString()
-      };
-      updateChat(selected.id, { messages: [...selected.messages, newMsg] });
-    }
-  };
-
   // Seleciona o chat automaticamente se a URL tiver o parâmetro chatId (ex: ao clicar no alerta)
   useEffect(() => {
     const chatId = searchParams.get('chatId');
@@ -1184,10 +1169,10 @@ export default function ChatQueuePage() {
                   )}
                   
                   <div className="flex gap-2">
-                    <input type="file" className="hidden" ref={fileInputRef} onChange={handleFileUpload} disabled={selected.status === 'closed' || selected.status === 'finished'} />
+                    <input type="file" className="hidden" ref={fileInputRef} onChange={handleFileUpload} disabled={(selected.status as any) === 'closed' || (selected.status as any) === 'finished'} />
                     <button 
                       onClick={() => fileInputRef.current?.click()}
-                      disabled={selected.status === 'waiting' || selected.status === 'closed' || selected.status === 'finished' || !hasPermission('chat.attend')} 
+                      disabled={selected.status === 'waiting' || (selected.status as any) === 'closed' || (selected.status as any) === 'finished' || !hasPermission('chat.attend')} 
                       className="p-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl transition-colors shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                       title="Enviar foto ou arquivo"
                     >
@@ -1195,14 +1180,14 @@ export default function ChatQueuePage() {
                     </button>
                     <button 
                       onClick={() => { setInput('/'); inputRef.current?.focus(); }}
-                      disabled={selected.status === 'waiting' || selected.status === 'closed' || selected.status === 'finished' || !hasPermission('chat.attend')} 
+                      disabled={selected.status === 'waiting' || (selected.status as any) === 'closed' || (selected.status as any) === 'finished' || !hasPermission('chat.attend')} 
                       className="p-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl transition-colors shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                       title="Mensagens pré-prontas (Macros)"
                     >
                       <FileText className="w-5 h-5" />
                     </button>
                     <EmojiStickerPicker
-                      disabled={selected.status === 'waiting' || selected.status === 'closed' || selected.status === 'finished' || !hasPermission('chat.attend')}
+                      disabled={selected.status === 'waiting' || (selected.status as any) === 'closed' || (selected.status as any) === 'finished' || !hasPermission('chat.attend')}
                       onSelectEmoji={(emoji) => {
                         setInput(prev => prev + emoji);
                         inputRef.current?.focus();
@@ -1216,7 +1201,7 @@ export default function ChatQueuePage() {
                     <AiWritingCopilotWidget
                       currentText={input}
                       onApplyText={(improved) => setInput(improved)}
-                      disabled={selected.status === 'waiting' || selected.status === 'closed' || selected.status === 'finished' || !hasPermission('chat.attend')}
+                      disabled={selected.status === 'waiting' || (selected.status as any) === 'closed' || (selected.status as any) === 'finished' || !hasPermission('chat.attend')}
                     />
                     <input 
                       type="text" 
@@ -1232,8 +1217,8 @@ export default function ChatQueuePage() {
                         }
                       }}
                       onKeyDown={(e) => { if (e.key === 'Enter') handleSendMessage(); }}
-                      placeholder={selected.status === 'closed' || selected.status === 'finished' ? "Chat encerrado" : (selected.status === 'waiting' ? "Assuma o atendimento para responder..." : (isInternalNote ? "Digite uma nota interna (invisível para o cliente)..." : "Digite sua mensagem pública..."))}
-                      disabled={selected.status === 'waiting' || selected.status === 'closed' || selected.status === 'finished' || !hasPermission('chat.attend')}
+                      placeholder={(selected.status as any) === 'closed' || (selected.status as any) === 'finished' ? "Chat encerrado" : (selected.status === 'waiting' ? "Assuma o atendimento para responder..." : (isInternalNote ? "Digite uma nota interna (invisível para o cliente)..." : "Digite sua mensagem pública..."))}
+                      disabled={selected.status === 'waiting' || (selected.status as any) === 'closed' || (selected.status as any) === 'finished' || !hasPermission('chat.attend')}
                       className={`flex-1 rounded-xl border px-4 py-3 text-[15px] outline-none transition shadow-sm disabled:cursor-not-allowed ${
                         isInternalNote 
                           ? 'border-amber-300 dark:border-amber-700/50 bg-amber-50 dark:bg-amber-900/10 text-amber-900 dark:text-amber-100 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 placeholder-amber-700/50 dark:placeholder-amber-400/50' 
@@ -1242,7 +1227,7 @@ export default function ChatQueuePage() {
                     />
                     <button 
                       onClick={handleSendMessage}
-                      disabled={!input.trim() || selected.status === 'waiting' || selected.status === 'closed' || selected.status === 'finished' || !hasPermission('chat.attend')} 
+                      disabled={!input.trim() || selected.status === 'waiting' || (selected.status as any) === 'closed' || (selected.status as any) === 'finished' || !hasPermission('chat.attend')} 
                       className={`${isInternalNote ? 'bg-amber-600 hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600' : 'bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600'} disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-3 rounded-xl transition-colors shadow-sm flex items-center justify-center shrink-0`}
                     >
                       <Send className="h-4 w-4" />

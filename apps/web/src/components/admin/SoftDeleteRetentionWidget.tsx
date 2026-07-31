@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trash2, UserX, ShieldCheck, Archive, RotateCc, CheckCircle2, UserCheck, AlertTriangle, FileText, Search } from 'lucide-react';
+import { Trash2, UserX, ShieldCheck, Archive, RotateCcw, CheckCircle2, UserCheck, AlertTriangle, FileText, Search } from 'lucide-react';
 import { 
   getUsersWithSoftDelete, 
   performSoftDelete, 
@@ -208,7 +208,7 @@ export function SoftDeleteRetentionWidget() {
                         onClick={() => handleRestoreUser(u)}
                         className="flex items-center gap-1 px-2.5 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 rounded-lg text-xs font-bold transition-all ml-auto cursor-pointer"
                       >
-                        <RotateCc className="w-3.5 h-3.5" />
+                        <RotateCcw className="w-3.5 h-3.5" />
                         Reativar Conta
                       </button>
                     ) : (

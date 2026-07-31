@@ -34,6 +34,8 @@ import { SiemLogMirrorWidget } from '../../../components/admin/SiemLogMirrorWidg
 import { RateLimitingPanelWidget } from '../../../components/admin/RateLimitingPanelWidget';
 import { DepartmentCostCenterWidget } from '../../../components/admin/DepartmentCostCenterWidget';
 import { SoftDeleteRetentionWidget } from '../../../components/admin/SoftDeleteRetentionWidget';
+import { OperatorWorkScheduleWidget } from '../../../components/admin/OperatorWorkScheduleWidget';
+import { UnifiedUserCreationWidget } from '../../../components/admin/UnifiedUserCreationWidget';
 
 
 
@@ -339,6 +341,7 @@ export default function ToolsPage() {
                 <WafCorporateFilterWidget />
                 <AntiBruteForcePanelWidget />
                 <RateLimitingPanelWidget />
+                <OperatorWorkScheduleWidget />
                 <SecurityAuditLogsWidget />
                 <SessionTimeoutSettingsWidget />
                 <SessionCookiePolicyWidget />
@@ -348,6 +351,7 @@ export default function ToolsPage() {
               {/* Coluna 2: Governança, Compliance e Políticas */}
               <div className="space-y-6">
                 <MultiDatabaseSeparationWidget />
+                <UnifiedUserCreationWidget />
                 <DepartmentCostCenterWidget />
                 <SoftDeleteRetentionWidget />
                 <SiemLogMirrorWidget />
