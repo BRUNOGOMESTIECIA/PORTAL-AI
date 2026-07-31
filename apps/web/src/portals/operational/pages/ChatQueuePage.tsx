@@ -14,6 +14,7 @@ import { AiHandoverSummaryWidget } from '../components/AiHandoverSummaryWidget';
 import { instaPassoDb } from '../../../lib/firebase';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { EmojiStickerPicker } from '../../../components/chat/EmojiStickerPicker';
+import { AiWritingCopilotWidget } from '../../../components/chat/AiWritingCopilotWidget';
 import { playAlertSound } from '../../../lib/sound-effects';
 import { useNotifications } from '../../../hooks/use-notifications';
 import { useTypingIndicator } from '../../../hooks/use-typing-indicator';
@@ -1191,6 +1192,12 @@ export default function ChatQueuePage() {
                         setInput(stickerText);
                         inputRef.current?.focus();
                       }}
+                    />
+                    {/* Co-Piloto de Redação IA com Edição Prévia (Item 075) */}
+                    <AiWritingCopilotWidget
+                      currentText={input}
+                      onApplyText={(improved) => setInput(improved)}
+                      disabled={selected.status === 'waiting' || selected.status === 'closed' || selected.status === 'finished' || !hasPermission('chat.attend')}
                     />
                     <input 
                       type="text" 
