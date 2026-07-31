@@ -20,6 +20,8 @@ import { AntiBruteForcePanelWidget } from '../components/AntiBruteForcePanelWidg
 import { SecurityAuditLogsWidget } from '../components/SecurityAuditLogsWidget';
 import { LogTtlPolicyWidget } from '../components/LogTtlPolicyWidget';
 import { MfaPolicyEnforcementWidget } from '../components/MfaPolicyEnforcementWidget';
+import { FileUploadSanitizerWidget } from '../components/FileUploadSanitizerWidget';
+import { WafCorporateFilterWidget } from '../components/WafCorporateFilterWidget';
 
 /**
  * Definição estática de todas as ferramentas disponíveis no painel.
@@ -314,8 +316,9 @@ export default function ToolsPage() {
         ) : (
           <div className="dark">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-              {/* Coluna 1: Proteção Ativa e Logs */}
+              {/* Coluna 1: Proteção Ativa, WAF e Logs */}
               <div className="space-y-6">
+                <WafCorporateFilterWidget />
                 <AntiBruteForcePanelWidget />
                 <SecurityAuditLogsWidget />
                 <SessionTimeoutSettingsWidget />
@@ -325,6 +328,7 @@ export default function ToolsPage() {
               
               {/* Coluna 2: Governança, Compliance e Políticas */}
               <div className="space-y-6">
+                <FileUploadSanitizerWidget />
                 <MfaPolicyEnforcementWidget />
                 <EncryptionComplianceWidget />
                 <LogTtlPolicyWidget />
