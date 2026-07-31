@@ -27,6 +27,8 @@ import { OnboardingTourWidget } from '../../../components/shared/OnboardingTourW
 import { LgpdCookieConsentBannerWidget } from '../../../components/shared/LgpdCookieConsentBannerWidget';
 import { AtomicTicketCounterWidget } from '../../../components/tickets/AtomicTicketCounterWidget';
 import { EncryptedBackupsAuditWidget } from '../../../components/admin/EncryptedBackupsAuditWidget';
+import { MultiDatabaseSeparationWidget } from '../../../components/admin/MultiDatabaseSeparationWidget';
+
 
 /**
  * Definição estática de todas as ferramentas disponíveis no painel.
@@ -333,6 +335,7 @@ export default function ToolsPage() {
               
               {/* Coluna 2: Governança, Compliance e Políticas */}
               <div className="space-y-6">
+                <MultiDatabaseSeparationWidget />
                 <EncryptedBackupsAuditWidget />
                 <EncryptionComplianceWidget />
                 <FileUploadSanitizerWidget />

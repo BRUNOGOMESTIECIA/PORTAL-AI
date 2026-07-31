@@ -198,7 +198,6 @@ export default function ReportsPage() {
             </button>
           </div>
         </div>
-      </div>
 
       <B2bCompanyPerformanceModal
         isOpen={showB2bModal}

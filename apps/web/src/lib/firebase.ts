@@ -31,4 +31,5 @@ export const auth = getAuth(app);
 export const instaPassoAuth = getAuth(instaPassoApp);
 export const db = getFirestore(app);
 export const instaPassoDb = getFirestore(instaPassoApp);
+export { instaPassoApp };
 export default app;
