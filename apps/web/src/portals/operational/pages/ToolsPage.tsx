@@ -39,6 +39,7 @@ import { UnifiedUserCreationWidget } from '../../../components/admin/UnifiedUser
 import { AgentPublicProfileAdminWidget } from '../../../components/admin/AgentPublicProfileAdminWidget';
 import { DirectInPlaceOperatorEditorWidget } from '../../../components/admin/DirectInPlaceOperatorEditorWidget';
 import { AiDuplicateDetectorAdminWidget } from '../../../components/admin/AiDuplicateDetectorAdminWidget';
+import { PasskeysFido2AdminWidget } from '../../../components/admin/PasskeysFido2AdminWidget';
 
 
 
@@ -343,6 +344,7 @@ export default function ToolsPage() {
                 <MotionPreferenceWidget />
                 <WafCorporateFilterWidget />
                 <AntiBruteForcePanelWidget />
+                <PasskeysFido2AdminWidget />
                 <RateLimitingPanelWidget />
                 <OperatorWorkScheduleWidget />
                 <AgentPublicProfileAdminWidget />
