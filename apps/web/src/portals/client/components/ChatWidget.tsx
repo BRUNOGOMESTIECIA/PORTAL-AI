@@ -11,6 +11,7 @@ import { classifyTicketOrChatWithAi } from '../../../lib/ai-ticket-classifier';
 import { useTypingIndicator } from '../../../hooks/use-typing-indicator';
 import { TypingIndicator } from '../../../components/TypingIndicator';
 import { validateAndSanitizeFile } from '../../../lib/file-upload-sanitizer';
+import { ChatbotTriageWidget } from '../../../components/chat/ChatbotTriageWidget';
 import { toast } from 'sonner';
 
 const BUSINESS_HOURS = [
@@ -293,13 +294,58 @@ export function ChatWidget() {
             
             {/* Widget de Posição na Fila em Tempo Real (Item 117) */}
             {activeChat?.status === 'waiting' && (
-              <QueuePositionWidget
-                queueName={activeChat.queue || 'Atendimento N1 Operacional'}
-                position={(activeChat as any).position || 2}
-                estimatedMinutes={(activeChat as any).waitingMinutes ? Math.max(1, (activeChat as any).waitingMinutes + 2) : 3}
-                activeAgentsCount={4}
-                ticketProtocol={formatTicketProtocol(activeChat.ticketId || activeChat.id)}
-              />
+              <>
+                <QueuePositionWidget
+                  queueName={activeChat.queue || 'Atendimento N1 Operacional'}
+                  position={(activeChat as any).position || 2}
+                  estimatedMinutes={(activeChat as any).waitingMinutes ? Math.max(1, (activeChat as any).waitingMinutes + 2) : 3}
+                  activeAgentsCount={4}
+                  ticketProtocol={formatTicketProtocol(activeChat.ticketId || activeChat.id)}
+                />
+                
+                {/* Chatbot de Triagem Inicial com Árvore de Opções (Item 047) */}
+                <ChatbotTriageWidget
+                  onSelectOption={(opt) => {
+                    send(`🤖 Escolheu: ${opt.label}`);
+                  }}
+                  onEscalateToHuman={async (cat, prio) => {
+                    if (activeChat) {
+                      await updateChat(activeChat.id, {
+                        queue: cat || activeChat.queue,
+                        messages: [
+                          ...activeChat.messages,
+                          {
+                            id: `m_bot_sys_${Date.now()}`,
+                            body: `🤖 [TRIAGEM BOT COMPLETA] Atendimento categorizado em "${cat || 'Geral'}" com prioridade ${prio || 'Média'}. Transferindo para a fila do Suporte N1.`,
+                            senderName: 'Assistente Virtual',
+                            senderType: 'system',
+                            createdAt: new Date().toISOString()
+                          }
+                        ]
+                      });
+                      toast.success('Solicitação encaminhada ao Suporte Humano N1 com sucesso!');
+                    }
+                  }}
+                  onResolvedByBot={async () => {
+                    if (activeChat) {
+                      await updateChat(activeChat.id, {
+                        status: 'closed',
+                        messages: [
+                          ...activeChat.messages,
+                          {
+                            id: `m_bot_sys_${Date.now()}`,
+                            body: `✅ Dúvida resolvida pelo Assistente Virtual da Base de Conhecimento. Atendimento concluído.`,
+                            senderName: 'Assistente Virtual',
+                            senderType: 'system',
+                            createdAt: new Date().toISOString()
+                          }
+                        ]
+                      });
+                      toast.success('Atendimento concluído pelo Assistente Virtual. Obrigado!');
+                    }
+                  }}
+                />
+              </>
             )}
 
             {messages.length === 0 && activeChat?.status !== 'waiting' && (
