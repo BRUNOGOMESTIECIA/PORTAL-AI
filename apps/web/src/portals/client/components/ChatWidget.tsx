@@ -176,13 +176,15 @@ export function ChatWidget() {
   const startChat = async (initialMessage?: string) => {
     if (!user) return;
     
-    const ticketNumber = String(Math.floor(Math.random() * 90000) + 10000);
+    // Gera o protocolo de ticket padronizado atômico #2026-XXXX (Item 017)
+    const { generateNextAtomicTicketProtocol } = await import('../../../lib/atomic-ticket-counter');
+    const { formatted } = await generateNextAtomicTicketProtocol();
     
     const aiClassification = initialMessage ? classifyTicketOrChatWithAi(initialMessage) : null;
 
     const newChat: MockChatSession = {
       id: `chat_${Date.now()}`,
-      ticketId: ticketNumber,
+      ticketId: formatted,
       clientName: user.name,
       clientEmail: user.email,
       status: 'waiting',

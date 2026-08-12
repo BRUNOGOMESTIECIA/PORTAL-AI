@@ -216,10 +216,21 @@ export function NewManualTicketModal({ onClose, initialData, onSuccess, isFromCh
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [formDataToSubmit, setFormDataToSubmit] = useState<FormData | null>(null);
   const [intendedStatus, setIntendedStatus] = useState<'resolved' | 'new' | 'pending'>('new');
-  const [createdNumber, setCreatedNumber] = useState(() => {
-    if (initialData?.ticketId) return Number(initialData.ticketId);
-    return Math.floor(Math.random() * 900) + 1100;
+  const [createdProtocol, setCreatedProtocol] = useState<string>(() => {
+    if (initialData?.ticketId) return formatTicketProtocol(initialData.ticketId);
+    return formatTicketProtocol(1043);
   });
+
+  // Inicialização assíncrona do protocolo atômico se não vier do chat
+  React.useEffect(() => {
+    if (!initialData?.ticketId) {
+      import('../../../lib/atomic-ticket-counter').then(m => {
+        m.generateNextAtomicTicketProtocol().then(res => {
+          setCreatedProtocol(res.formatted);
+        });
+      });
+    }
+  }, [initialData?.ticketId]);
   const [attachments, setAttachments] = useState<File[]>([]);
   const { chats } = useChats();
   const { createTicket } = useTickets();
@@ -298,7 +309,7 @@ export function NewManualTicketModal({ onClose, initialData, onSuccess, isFromCh
           }
           
           if (activeChat.ticketId) {
-            setCreatedNumber(Number(activeChat.ticketId));
+            setCreatedProtocol(formatTicketProtocol(activeChat.ticketId));
           }
           
           setValue('title', ''); // Solicitado para deixar o título em branco
@@ -363,10 +374,11 @@ export function NewManualTicketModal({ onClose, initialData, onSuccess, isFromCh
     if (formDataToSubmit) {
       const client = MOCK_CLIENTS.find(c => c.id === formDataToSubmit.requesterId);
       const assignee = MOCK_STAFF.find(s => s.id === formDataToSubmit.assigneeId);
+      const numOnly = parseInt(createdProtocol.replace(/\D/g, '').slice(-4)) || 1043;
       
       const newTicket: MockTicket = {
-        id: `t${Date.now()}`,
-        number: createdNumber,
+        id: createdProtocol,
+        number: numOnly,
         title: formDataToSubmit.title,
         description: formDataToSubmit.description,
         status: intendedStatus, 
@@ -400,10 +412,11 @@ export function NewManualTicketModal({ onClose, initialData, onSuccess, isFromCh
       createTicket(newTicket);
 
       if (isInfraTicket && infraDescription.trim() && infraTitle.trim()) {
+        const infraNum = numOnly + 1;
         const infraTicket: MockTicket = {
           ...newTicket,
-          id: `t${Date.now() + 1}`,
-          number: createdNumber + 1,
+          id: `#${new Date().getFullYear()}-${infraNum}`,
+          number: infraNum,
           title: infraTitle.trim(),
           description: infraDescription,
           team: 'Infraestrutura',
@@ -417,7 +430,7 @@ export function NewManualTicketModal({ onClose, initialData, onSuccess, isFromCh
     
     setShowConfirmModal(false);
     setSubmitted(true);
-    onSuccess?.(String(createdNumber));
+    onSuccess?.(createdProtocol);
   };
 
   // ─ Success screen ──────────────────────────────────────────────────────────
@@ -432,7 +445,7 @@ export function NewManualTicketModal({ onClose, initialData, onSuccess, isFromCh
           </div>
           <h2 className="text-lg font-bold text-slate-900 dark:text-slate-50 mb-1">Ticket criado!</h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">
-            Ticket <span className="font-bold text-slate-700 dark:text-slate-300">{formatTicketProtocol(createdNumber)}</span> adicionado ao board.
+            Ticket <span className="font-bold text-slate-700 dark:text-slate-300">{formatTicketProtocol(createdProtocol)}</span> adicionado ao board.
           </p>
           {selectedCompany && (
             <p className="text-xs text-slate-400 dark:text-slate-500 mb-1">
