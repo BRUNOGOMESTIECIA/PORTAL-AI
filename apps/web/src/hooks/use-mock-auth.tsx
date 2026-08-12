@@ -223,62 +223,83 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
       }
       
-      // REGRA DA EQUIPE INTERNA / OPERACIONAL (TIECIA OU AUTORIZADO)
+      // REGRA DA EQUIPE INTERNA / OPERACIONAL (AUTORIZAÇÃO ZERO-TRUST INSTAPASSO)
       if (expectedType === 'staff') {
          let opData: any = null;
          let opDocId: string = '';
+         const isTieciaOwner = email.toLowerCase().endsWith('@tiecia.com.br') || email.toLowerCase() === 'bg@tiecia.com.br';
 
          try {
            const qOp = query(collection(instaPassoDb, 'operators'), where('email', '==', email.toLowerCase()));
            const snapOp = await getDocs(qOp);
            
            if (!snapOp.empty) {
-             snapOp.forEach(doc => { 
-                opData = doc.data(); 
-                opDocId = doc.id; 
+             snapOp.forEach(d => { 
+                opData = d.data(); 
+                opDocId = d.id; 
              });
            }
          } catch (e) {
            console.warn('Erro ao consultar operadores no Firestore:', e);
          }
 
-         // Se não foi encontrado no Firestore, libera o acesso administrativo local para desenvolvimento
-         if (!opData) {
-           opData = {
-             status: 'ACTIVE',
-             role: 'Administrador',
-             fullName: credUser.displayName || email.split('@')[0],
-           };
+         // Se for e-mail da TIÉCIA e ainda não existir registro no Firestore, faz auto-seed do Super Admin
+         if (!opData && isTieciaOwner) {
+           try {
+             const newOpRef = doc(collection(instaPassoDb, 'operators'));
+             opData = {
+               id: newOpRef.id,
+               name: credUser.displayName || 'Bruno Gomes (TIÉCIA)',
+               email: email.toLowerCase(),
+               role: 'Super Administrador',
+               status: 'ACTIVE',
+               createdAt: new Date().toISOString(),
+               updatedAt: new Date().toISOString(),
+               modules: ['*']
+             };
+             await setDoc(newOpRef, opData);
+             opDocId = newOpRef.id;
+             console.log('[ZeroTrust] Primeiro Super Admin TIÉCIA registrado no Firestore com sucesso.');
+           } catch (seedErr) {
+             console.error('[ZeroTrust] Falha ao registrar Super Admin no Firestore:', seedErr);
+           }
          }
          
-         const isAdmin = opData.role === 'Super Administrador' || opData.role === 'Administrador' || true;
+         // BLOQUEIO ZERO-TRUST: Se não possuir cadastro ou não estiver ACTIVE, bloqueia e destrói sessão
+         if (!opData || opData.status !== 'ACTIVE') {
+            await signOut(instaPassoAuth);
+            throw new Error('Acesso Negado: Seu e-mail não possui autorização cadastrada no Painel de Permissões do InstaPasso.');
+         }
          
-         const mockUser: AppUser = {
-            id: credUser.uid,
-            email: email,
-            name: opData.fullName || credUser.displayName || email.split('@')[0],
-              type: 'staff',
-              role: isAdmin ? 'Administrator' : 'Agent',
-              department: opData.role || 'TI',
-              permissions: ['chat.attend', 'chat.view', 'tickets.view', 'admin.users', 'admin.settings', 'kb.view', 'catalog.view', 'reports.view']
-           };
+         const isAdmin = opData.role === 'Super Administrador' || opData.role === 'Administrador';
+         
+          const mockUser: AppUser = {
+             id: credUser.uid,
+             email: email,
+             name: opData.name || opData.fullName || credUser.displayName || email.split('@')[0],
+             type: 'staff',
+             role: isAdmin ? 'Administrator' : 'Agent',
+             department: opData.role || 'TI',
+             permissions: isAdmin 
+               ? ['chat.attend', 'chat.view', 'tickets.view', 'admin.users', 'admin.settings', 'kb.view', 'catalog.view', 'reports.view']
+               : ['chat.attend', 'chat.view', 'tickets.view', 'kb.view', 'catalog.view']
+          };
 
-           // Marca o operador como online no banco se tiver documento
-           if (opDocId) {
-             try {
-               const { updateDoc } = await import('firebase/firestore');
-               await updateDoc(doc(instaPassoDb, 'operators', opDocId), { isOnline: true });
-             } catch {}
-           }
+          // Marca o operador como online no banco se tiver documento
+          if (opDocId) {
+            try {
+              const { updateDoc } = await import('firebase/firestore');
+              await updateDoc(doc(instaPassoDb, 'operators', opDocId), { isOnline: true, lastLogin: new Date().toISOString() });
+            } catch {}
+          }
 
-           setUser(mockUser);
-           return mockUser;
-        }
+          setUser(mockUser);
+          return mockUser;
+      }
 
-        // REGRA B2B (CLIENTES / OUTROS DOMÍNIOS)
-        const domainName = `@${email.split('@')[1]?.toLowerCase()}`;
-        // Busca a lista de domínios cadastrados direto do Firestore (Nuvem)
-        let validationSystemDomains: any[] = [];
+      // REGRA B2B (CLIENTES / OUTROS DOMÍNIOS)
+      const domainName = `@${email.split('@')[1]?.toLowerCase()}`;
+      let validationSystemDomains: any[] = [];
         try {
            const q = query(collection(instaPassoDb, 'domains'), where('domainName', '==', domainName));
            const querySnapshot = await getDocs(q);
