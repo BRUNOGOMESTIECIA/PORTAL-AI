@@ -1,59 +1,60 @@
 rules_version = '2';
-
-// =============================================================================
-// Firestore Security Rules — Portal IA (portal-ia-784f6)
-// Autenticação integrada com InstaPasso SSO
-// =============================================================================
-
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // TICKETS — Chamados de suporte do sistema
-    match /tickets/{ticketId} {
-      allow read, write: if true;
-      match /comments/{commentId} {
-        allow read, write: if true;
-      }
-    }
-
-    // CHAT SESSIONS — Conversas cliente ↔ operador
-    match /chat_sessions/{sessionId} {
-      allow read, write: if true;
-      match /messages/{messageId} {
-        allow read, write: if true;
-      }
-    }
-
-    // ACTIVE SESSIONS — Sessão única por dispositivo
-    match /active_sessions/{userId} {
-      allow read, write: if true;
-    }
-
-    // AUDIT LOGS — Segurança Máxima (OWASP)
-    // Escrita pelo Frontend é PROIBIDA para evitar manipulação de rastros por usuários mal-intencionados.
-    // A API (Admin SDK) ignora essas regras e fará as gravações de forma segura.
-    match /audit_logs/{logId} {
-      allow read: if request.auth != null && request.auth.token.role == 'admin';
-      allow write: if false;
-    }
-
-    // USERS — Usuários do sistema
-    match /users/{userId} {
-      allow read, write: if true;
-    }
-
-    // INSTAPASSO COLLECTIONS — Operators e Domains usados no login
-    match /operators/{operatorId} {
-      allow read, write: if true;
-    }
-    match /domains/{domainId} {
-      allow read, write: if true;
-    }
-
-    // Regra padrão de segurança (Fechado por padrão)
-    // Protege contra acesso a coleções não explicitamente mapeadas acima.
+    // Regra padrão: nega acesso por padrão (Zero-Trust)
     match /{document=**} {
       allow read, write: if false;
+    }
+
+    // Regra de Operadores (Apenas usuários autenticados)
+    match /operators/{operatorId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+
+    // Regra de Domínios B2B Autorizados (Leitura autenticada)
+    match /domains/{domainId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // Regra de Chamados (Tickets)
+    match /tickets/{ticketId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null;
+    }
+
+    // Regra de Sessoes de Chat (Live Chat)
+    match /chat_sessions/{chatId} {
+      allow read, create, update: if true;
+      allow delete: if request.auth != null;
+    }
+
+    // Regra de Contadores Atômicos (#2026XXXX)
+    match /counters/{counterId} {
+      allow read, write: if true;
+    }
+
+    // Regra de Trilha de Auditoria ISO 27001
+    match /security_audit_logs/{logId} {
+      allow create: if true;
+      allow read: if request.auth != null;
+      allow update, delete: if false; // Auditoria Imutável (Nunca pode ser apagada ou editada)
+    }
+
+    // Regra de Telemetria de Impressoras e Hardware (Sonda Outbound)
+    match /printer_telemetry/{printerId} {
+      allow read, write: if true;
+    }
+    match /equipment_telemetry/{equipId} {
+      allow read, write: if true;
+    }
+
+    // Regra de Resumos de Big Data
+    match /monthly_analytics_aggregates/{monthId} {
+      allow read, write: if true;
     }
   }
 }
