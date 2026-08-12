@@ -227,7 +227,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (expectedType === 'staff') {
          let opData: any = null;
          let opDocId: string = '';
-         const isTieciaOwner = email.toLowerCase().endsWith('@tiecia.com.br') || email.toLowerCase() === 'bg@tiecia.com.br';
+         const isTieciaOwner = email.toLowerCase().endsWith('@tiecia.com.br') || 
+                               email.toLowerCase() === 'bg@tiecia.com.br' || 
+                               email.toLowerCase().includes('brunogomestiecia') ||
+                               email.toLowerCase().includes('tiecia');
 
          try {
            const qOp = query(collection(instaPassoDb, 'operators'), where('email', '==', email.toLowerCase()));
