@@ -227,10 +227,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (expectedType === 'staff') {
          let opData: any = null;
          let opDocId: string = '';
-         const isTieciaOwner = email.toLowerCase().endsWith('@tiecia.com.br') || 
-                               email.toLowerCase() === 'bg@tiecia.com.br' || 
-                               email.toLowerCase().includes('brunogomestiecia') ||
-                               email.toLowerCase().includes('tiecia');
+         // VULN-02 FIX: Verificação estrita de domínio — apenas @tiecia.com.br exato (não substring)
+         const emailDomain = email.toLowerCase().split('@')[1] || '';
+         const isTieciaOwner = emailDomain === 'tiecia.com.br';
+
+         // Lista de e-mails autorizados para auto-seed inicial do Super Admin (apenas o proprietário)
+         const BOOTSTRAP_ADMIN_EMAIL = 'bg@tiecia.com.br';
 
          try {
            const qOp = query(collection(instaPassoDb, 'operators'), where('email', '==', email.toLowerCase()));
@@ -246,8 +248,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
            console.warn('Erro ao consultar operadores no Firestore:', e);
          }
 
-         // Se for e-mail da TIÉCIA e ainda não existir registro no Firestore, faz auto-seed do Super Admin
-         if (!opData && isTieciaOwner) {
+         // Auto-seed EXCLUSIVO: Apenas o e-mail exato do proprietário e somente se não existir nenhum operador cadastrado
+         if (!opData && isTieciaOwner && email.toLowerCase() === BOOTSTRAP_ADMIN_EMAIL) {
            try {
              const newOpRef = doc(collection(instaPassoDb, 'operators'));
              opData = {
@@ -266,6 +268,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
            } catch (seedErr) {
              console.error('[ZeroTrust] Falha ao registrar Super Admin no Firestore:', seedErr);
            }
+         } else if (!opData && isTieciaOwner) {
+           // Outros e-mails @tiecia.com.br que não são o proprietário precisam ser cadastrados manualmente
+           logAuditEvent(
+             'AUTO_SEED_BLOCKED',
+             `🚨 [SEGURANÇA] Tentativa de auto-elevação bloqueada. E-mail: ${email}. Apenas ${BOOTSTRAP_ADMIN_EMAIL} pode ser auto-registrado. Demais operadores devem ser cadastrados no Painel de Permissões.`
+           );
          }
          
          // BLOQUEIO ZERO-TRUST: Se não possuir cadastro ou não estiver ACTIVE, bloqueia e destrói sessão
