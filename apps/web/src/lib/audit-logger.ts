@@ -100,21 +100,21 @@ export function generateCorporateProtocol(seed?: number | string): string {
   } else {
     numStr = numStr.slice(-4);
   }
-  return `#${currentYear}-${numStr.padStart(4, '0')}`;
+  return `#${currentYear}${numStr.padStart(4, '0')}`;
 }
 
 /**
- * Garante a formatação padronizada do Protocolo / Ticket no formato #2026-XXXX (com hífen)
+ * Garante a formatação padronizada do Protocolo / Ticket no formato #ANOXXXX (sem hífen, ex: #20261043 ou #20271001)
  */
 export function formatTicketProtocol(seed: any): string {
   if (!seed) {
     const year = new Date().getFullYear();
-    return `#${year}-1042`;
+    return `#${year}1042`;
   }
-  const str = String(seed).trim();
-  if (str.startsWith('#') && str.includes('-')) return str;
+  const str = String(seed).trim().replace(/-/g, '');
+  if (str.startsWith('#')) return str;
   const year = new Date().getFullYear();
   const numOnly = str.replace(/\D/g, '');
   const num = numOnly ? numOnly.slice(-4).padStart(4, '0') : '1042';
-  return `#${year}-${num}`;
+  return `#${year}${num}`;
 }

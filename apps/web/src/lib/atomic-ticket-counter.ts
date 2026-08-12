@@ -10,17 +10,25 @@ const CURRENT_YEAR = new Date().getFullYear();
  */
 export async function generateNextAtomicTicketProtocol(): Promise<{ number: number; formatted: string }> {
   const counterRef = doc(instaPassoDb, 'counters', 'tickets');
+  const currentYear = new Date().getFullYear();
 
   try {
     const nextNumber = await runTransaction(instaPassoDb, async (transaction) => {
       const counterDoc = await transaction.get(counterRef);
 
-      let currentSeq = 1042; // Valor base padrão da sequência de 2026
+      let currentSeq = 1042; // Sequência base para 2026
+      let storedYear = currentYear;
 
       if (counterDoc.exists()) {
         const data = counterDoc.data();
-        if (data && typeof data.currentSeq === 'number') {
-          currentSeq = data.currentSeq;
+        if (data) {
+          storedYear = data.year || currentYear;
+          // Se o ano mudou (ex: virou 2027), reseta a sequência para 1000
+          if (storedYear !== currentYear) {
+            currentSeq = 1000;
+          } else if (typeof data.currentSeq === 'number') {
+            currentSeq = data.currentSeq;
+          }
         }
       }
 
@@ -30,7 +38,7 @@ export async function generateNextAtomicTicketProtocol(): Promise<{ number: numb
         counterRef,
         {
           currentSeq: nextSeq,
-          year: CURRENT_YEAR,
+          year: currentYear,
           updatedAt: new Date().toISOString(),
         },
         { merge: true }
