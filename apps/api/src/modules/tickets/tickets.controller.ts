@@ -78,4 +78,14 @@ export class TicketsController {
   ) {
     return this.ticketsService.close(id, dto, user);
   }
+
+  @Post(':id/rate')
+  @ApiOperation({ summary: 'Enviar pesquisa CSAT de avaliação do atendimento' })
+  submitCsat(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: { score: number; comment?: string },
+  ) {
+    return this.ticketsService.submitCsat(id, body.score, body.comment);
+  }
 }
+

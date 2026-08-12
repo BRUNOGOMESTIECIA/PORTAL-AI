@@ -98,6 +98,28 @@ export class KnowledgeBaseService {
     );
   }
 
+  async update(id: string, data: { title?: string; content?: string; categoryId?: string; isPublic?: boolean }) {
+    const ds = getTenantDataSource();
+    const [article] = await ds.query(
+      `UPDATE kb_articles
+       SET title = COALESCE($1, title), content = COALESCE($2, content), category_id = COALESCE($3, category_id), updated_at = now()
+       WHERE id = $4 RETURNING *`,
+      [data.title ?? null, data.content ?? null, data.categoryId ?? null, id],
+    );
+    if (!article) throw new NotFoundException('Artigo não encontrado');
+    if (data.content) {
+      await this.updateContentVector(id, data.content);
+    }
+    return article;
+  }
+
+  async delete(id: string) {
+    const ds = getTenantDataSource();
+    await ds.query(`DELETE FROM kb_articles WHERE id = $1`, [id]);
+    return { success: true };
+  }
+
+
   private async updateContentVector(articleId: string, content: string) {
     const ds = getTenantDataSource();
     await ds.query(

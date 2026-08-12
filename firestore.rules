@@ -29,14 +29,31 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
+    // AUDIT LOGS — Segurança Máxima (OWASP)
+    // Escrita pelo Frontend é PROIBIDA para evitar manipulação de rastros por usuários mal-intencionados.
+    // A API (Admin SDK) ignora essas regras e fará as gravações de forma segura.
+    match /audit_logs/{logId} {
+      allow read: if request.auth != null && request.auth.token.role == 'admin';
+      allow write: if false;
+    }
+
     // USERS — Usuários do sistema
     match /users/{userId} {
       allow read, write: if true;
     }
 
-    // Regra padrão de leitura/escrita permissiva para evitar bloqueios de conexão
-    match /{document=**} {
+    // INSTAPASSO COLLECTIONS — Operators e Domains usados no login
+    match /operators/{operatorId} {
       allow read, write: if true;
+    }
+    match /domains/{domainId} {
+      allow read, write: if true;
+    }
+
+    // Regra padrão de segurança (Fechado por padrão)
+    // Protege contra acesso a coleções não explicitamente mapeadas acima.
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

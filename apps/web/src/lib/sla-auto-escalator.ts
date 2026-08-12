@@ -1,5 +1,6 @@
 import { logAuditEvent, formatTicketProtocol } from './audit-logger';
 import { toast } from 'sonner';
+import { calculateElapsedBusinessMs, getBusinessHoursConfig } from './business-hours-sla';
 
 export interface SlaEscalationStatus {
   ticketId: string;
@@ -12,17 +13,18 @@ export interface SlaEscalationStatus {
 }
 
 /**
- * Calcula a porcentagem consumida do SLA de resolução do ticket
+ * Calcula a porcentagem consumida do SLA de resolução do ticket usando horas úteis
  */
 export function calculateTicketSlaPercentage(createdAtIso: string, dueAtIso: string): SlaEscalationStatus {
-  const created = new Date(createdAtIso).getTime();
-  const due = new Date(dueAtIso).getTime();
-  const now = Date.now();
+  const config = getBusinessHoursConfig();
+  const created = new Date(createdAtIso);
+  const due = new Date(dueAtIso);
+  const now = new Date();
 
-  const totalDurationMs = due - created;
-  const elapsedMs = now - created;
+  const totalDurationMs = calculateElapsedBusinessMs(created, due, config) || 1;
+  const elapsedMs = calculateElapsedBusinessMs(created, now, config);
 
-  if (totalDurationMs <= 0) {
+  if (totalDurationMs <= 1) {
     return {
       ticketId: '',
       protocolNumber: '',
@@ -35,9 +37,9 @@ export function calculateTicketSlaPercentage(createdAtIso: string, dueAtIso: str
   }
 
   const percentage = Math.min(100, Math.max(0, Math.round((elapsedMs / totalDurationMs) * 100)));
-  const remainingMs = due - now;
+  const remainingMs = totalDurationMs - elapsedMs;
   const remainingMins = Math.max(0, Math.round(remainingMs / 60000));
-  const isBreached = now > due;
+  const isBreached = remainingMs <= 0;
   const isCritical90 = percentage >= 90;
 
   return {

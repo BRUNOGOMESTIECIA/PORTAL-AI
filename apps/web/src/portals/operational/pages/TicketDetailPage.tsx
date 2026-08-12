@@ -1,6 +1,77 @@
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ChevronLeft, Clock, User, Tag, MessageSquare, Lock, Send, Sparkles, Star } from 'lucide-react';
+import { ChevronLeft, Clock, User, Tag, MessageSquare, Lock, Send, Sparkles, Star, ChevronDown, Lightbulb, Eye, CheckSquare, History } from 'lucide-react';
+
+import { cn } from '../../../lib/utils';
+
+function DiscreteExpandableWidget({
+  title,
+  subtitle,
+  badge,
+  icon: Icon,
+  children
+}: {
+  title: string;
+  subtitle?: string;
+  badge?: string;
+  icon?: any;
+  children: React.ReactNode;
+}) {
+  const [isHovered, setIsHovered] = useState(false);
+  const [isPinned, setIsPinned] = useState(false);
+
+  const isOpen = isHovered || isPinned;
+
+  return (
+    <div 
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      className={cn(
+        "rounded-2xl border transition-all duration-300 ease-out overflow-hidden shadow-sm",
+        isOpen
+          ? "border-purple-500/50 dark:border-purple-500/40 shadow-xl ring-1 ring-purple-500/20 bg-slate-900 text-white transform scale-[1.006]"
+          : "border-slate-800 bg-slate-900/90 text-slate-200 opacity-95 hover:opacity-100"
+      )}
+    >
+      <div 
+        onClick={() => setIsPinned(!isPinned)}
+        className="px-5 py-3.5 flex items-center justify-between cursor-pointer select-none border-b border-slate-800/60 hover:bg-slate-800/40 transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          {Icon && <Icon className="w-4 h-4 text-purple-400 shrink-0" />}
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-extrabold tracking-wide uppercase text-slate-100">{title}</span>
+              {badge && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                  {badge}
+                </span>
+              )}
+            </div>
+            {subtitle && !isOpen && (
+              <p className="text-[11px] text-slate-400 mt-0.5 line-clamp-1">{subtitle}</p>
+            )}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 text-slate-400">
+          <span className="text-[10px] font-medium hidden sm:inline text-slate-400">
+            {isOpen ? (isPinned ? 'Fixado' : 'Passe o mouse ou clique para fixar') : 'Passe o mouse para expandir'}
+          </span>
+          {isOpen ? <ChevronDown className="w-4 h-4 rotate-180 transition-transform" /> : <ChevronDown className="w-4 h-4 animate-bounce text-purple-400" />}
+        </div>
+      </div>
+
+      <div className={cn(
+        "transition-all duration-300 ease-in-out",
+        isOpen ? "max-h-[2000px] opacity-100 p-2" : "max-h-0 opacity-0 p-0 overflow-hidden"
+      )}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
 import { TicketStatus, TicketPriority, MOCK_CATALOG_ITEMS } from '../../../mocks/data';
 import { formatDistanceToNow, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -202,15 +273,23 @@ export default function TicketDetailPage() {
 
         {/* Checklist de Tarefas Internas no Ticket - Item 062 */}
         <div className="mt-5">
-          <TicketChecklistWidget
-            ticketId={String(ticket.id)}
-            protocolNumber={formatTicketProtocol(ticket.number || ticket.id)}
-            items={(ticket as any).checklist}
-            onUpdateChecklist={(newChecklist) => {
-              updateTicket(ticket.id, { checklist: newChecklist } as any);
-            }}
-          />
+          <DiscreteExpandableWidget
+            title="Checklist de Tarefas Internas"
+            subtitle="Validação e execução de subtarefas técnicas de atendimento."
+            badge="ITEM 062"
+            icon={CheckSquare}
+          >
+            <TicketChecklistWidget
+              ticketId={String(ticket.id)}
+              protocolNumber={formatTicketProtocol(ticket.number || ticket.id)}
+              items={(ticket as any).checklist}
+              onUpdateChecklist={(newChecklist) => {
+                updateTicket(ticket.id, { checklist: newChecklist } as any);
+              }}
+            />
+          </DiscreteExpandableWidget>
         </div>
+
 
         {/* Incidentes Relacionados & Causa Raiz - Item 059 */}
         <div className="mt-5">
@@ -250,42 +329,72 @@ export default function TicketDetailPage() {
 
         {/* Sugestão Inteligente de Soluções Passadas por IA (RAG) - Item 071 */}
         <div className="mt-5">
-          <AiPastTicketSolutionSuggesterWidget
-            ticketId={String(ticket.id)}
-            protocolNumber={formatTicketProtocol(ticket.number || ticket.id)}
-            ticketTitle={ticket.title}
-          />
+          <DiscreteExpandableWidget
+            title="Sugestão Inteligente de Soluções Passadas (IA RAG)"
+            subtitle="A IA analisou chamados semelhantes resolvidos no passado para acelerar o diagnóstico."
+            badge="ITEM 071"
+            icon={Lightbulb}
+          >
+            <AiPastTicketSolutionSuggesterWidget
+              ticketId={String(ticket.id)}
+              protocolNumber={formatTicketProtocol(ticket.number || ticket.id)}
+              ticketTitle={ticket.title}
+            />
+          </DiscreteExpandableWidget>
         </div>
 
         {/* Leitura de Prints & OCR de Código por IA - Item 073 */}
         <div className="mt-5">
-          <AiImageErrorOcrWidget
-            ticketId={String(ticket.id)}
-            protocolNumber={formatTicketProtocol(ticket.number || ticket.id)}
-          />
+          <DiscreteExpandableWidget
+            title="Leitura de Prints & OCR de Código por IA"
+            subtitle="Análise de Visão Computacional para identificar códigos de erro em capturas de tela."
+            badge="ITEM 073"
+            icon={Eye}
+          >
+            <AiImageErrorOcrWidget
+              ticketId={String(ticket.id)}
+              protocolNumber={formatTicketProtocol(ticket.number || ticket.id)}
+            />
+          </DiscreteExpandableWidget>
         </div>
 
         {/* Notas Internas Confidenciais & Copiloto IA (@ia) - Item 066 */}
         <div className="mt-5">
-          <TicketInternalNotesWithAiWidget
-            ticketId={String(ticket.id)}
-            protocolNumber={formatTicketProtocol(ticket.number || ticket.id)}
-            notes={(ticket as any).internalNotes}
-            onAddNote={(newNote) => {
-              const prevNotes = (ticket as any).internalNotes || [];
-              updateTicket(ticket.id, { internalNotes: [...prevNotes, newNote] } as any);
-            }}
-          />
+          <DiscreteExpandableWidget
+            title="Notas Internas Confidenciais & Copiloto IA (@ia)"
+            subtitle="Espaço invisível para o cliente com suporte do assistente autônomo N2."
+            badge="ITEM 066"
+            icon={Lock}
+          >
+            <TicketInternalNotesWithAiWidget
+              ticketId={String(ticket.id)}
+              protocolNumber={formatTicketProtocol(ticket.number || ticket.id)}
+              notes={(ticket as any).internalNotes}
+              onAddNote={(newNote) => {
+                const prevNotes = (ticket as any).internalNotes || [];
+                updateTicket(ticket.id, { internalNotes: [...prevNotes, newNote] } as any);
+              }}
+            />
+          </DiscreteExpandableWidget>
         </div>
+
 
         {/* Trilha de Auditoria & Alterações de Campos (Audit Log do Ticket) - Item 060 */}
         <div className="mt-5">
-          <TicketAuditLogTrailWidget
-            ticketId={String(ticket.id)}
-            protocolNumber={formatTicketProtocol(ticket.number || ticket.id)}
-            auditLogs={(ticket as any).auditLogs}
-          />
+          <DiscreteExpandableWidget
+            title="Trilha de Auditoria & Alterações de Campos (Audit Log)"
+            subtitle="Histórico imutável ISO 27001 de alterações e interações no chamado."
+            badge="ITEM 060"
+            icon={History}
+          >
+            <TicketAuditLogTrailWidget
+              ticketId={String(ticket.id)}
+              protocolNumber={formatTicketProtocol(ticket.number || ticket.id)}
+              auditLogs={(ticket as any).auditLogs}
+            />
+          </DiscreteExpandableWidget>
         </div>
+
         {(ticket as any).rating && (
           <div className="mt-5 p-4 bg-amber-50/70 border border-amber-200/80 rounded-xl">
             <div className="flex items-center justify-between mb-2">

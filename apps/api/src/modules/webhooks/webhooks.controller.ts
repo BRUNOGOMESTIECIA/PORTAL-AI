@@ -16,6 +16,13 @@ export class WebhooksController {
   @RequirePermissions('admin.webhooks')
   findAll() { return this.webhooksService.findAll(); }
 
+  @Post()
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @RequirePermissions('admin.webhooks')
+  create(@Body() body: { name: string; url: string; events: string[] }) {
+    return this.webhooksService.createEndpoint(body);
+  }
+
   @Post('inbound')
   @Public()
   @ApiOperation({ summary: 'Receber webhook de sistema externo (bidirecional)' })
@@ -26,5 +33,12 @@ export class WebhooksController {
       body.event ?? body.eventType,
       body,
     );
+  }
+
+  @Post('whatsapp')
+  @Public()
+  @ApiOperation({ summary: 'Webhook conector WhatsApp Business (Z-API / Evolution API)' })
+  whatsappWebhook(@Body() body: any) {
+    return this.webhooksService.processWhatsAppWebhook(body);
   }
 }

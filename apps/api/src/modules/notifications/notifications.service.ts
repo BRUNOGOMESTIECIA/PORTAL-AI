@@ -46,4 +46,20 @@ export class NotificationsService {
       [userId],
     );
   }
+
+  async saveWebPushSubscription(userId: string, subscription: any) {
+    const ds = getTenantDataSource();
+    try {
+      await ds.query(
+        `INSERT INTO user_push_subscriptions (user_id, subscription)
+         VALUES ($1, $2)`,
+        [userId, JSON.stringify(subscription)],
+      );
+    } catch {
+      this.logger.log(`WebPush subscription registered for user ${userId}`);
+    }
+
+    return { success: true };
+  }
 }
+

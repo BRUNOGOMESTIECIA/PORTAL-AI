@@ -5,11 +5,20 @@ import { PermissionGuard } from '../../core/auth/guards/permission.guard';
 import { RequirePermissions } from '../../core/auth/decorators/permissions.decorator';
 import { UsersService } from './users.service';
 
+import { CurrentUser } from '../../core/auth/decorators/current-user.decorator';
+import { UserEntity } from '../../core/database/tenant/entities/user.entity';
+
 @ApiTags('Users')
 @Controller('users')
 @UseGuards(JwtAuthGuard, PermissionGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
+
+  @Get('me')
+  @ApiOperation({ summary: 'Obter perfil do usuário logado' })
+  getMe(@CurrentUser() user: UserEntity) {
+    return user;
+  }
 
   @Get()
   @RequirePermissions('admin.users')
@@ -17,6 +26,7 @@ export class UsersController {
   findAll(@Query('page') page?: number, @Query('limit') limit?: number) {
     return this.usersService.findAll(page, limit);
   }
+
 
   @Get(':id')
   @RequirePermissions('admin.users')

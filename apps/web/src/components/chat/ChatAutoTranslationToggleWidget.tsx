@@ -81,15 +81,15 @@ export function ChatAutoTranslationToggleWidget({
       <button
         type="button"
         onClick={handleToggle}
-        className={`px-2.5 py-1 rounded-lg font-bold text-[11px] flex items-center gap-1.5 transition-all cursor-pointer ${
+        className={`px-2 py-0.5 rounded font-semibold text-[10px] flex items-center gap-1 transition-all cursor-pointer ${
           isEnabled
-            ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+            ? 'bg-blue-600 text-white shadow-sm'
             : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
         }`}
         title="Ativar/Desativar Auto-tradução Multilíngue por IA (Item 072)"
       >
-        <Globe className={`w-3.5 h-3.5 ${isEnabled ? 'animate-pulse text-amber-300' : 'text-slate-400'}`} />
-        <span>🌐 Auto-Tradução: {isEnabled ? 'LIGADO' : 'DESLIGADO'}</span>
+        <Globe className={`w-3 h-3 ${isEnabled ? 'animate-pulse text-amber-300' : 'text-slate-400'}`} />
+        <span>Tradução: {isEnabled ? 'ON' : 'OFF'}</span>
       </button>
 
       {/* Seletor de Idioma */}

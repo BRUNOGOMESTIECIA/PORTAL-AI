@@ -3,6 +3,7 @@ import { MOCK_CATALOG_ITEMS, MockCatalogItem } from '../../../mocks/data';
 import { Plus, Edit2, Trash2, X, ChevronDown, FolderOpen, Check } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import { useEscapeModal } from '../../../hooks/use-escape-modal';
+import { apiClient } from '../../../lib/api-client';
 
 const EMOJI_OPTIONS = [
   '💻', '🖥️', '🖨️', '⌨️', '🖱️', '📱', '🔋', '🔌',
@@ -13,6 +14,26 @@ const EMOJI_OPTIONS = [
 export default function CatalogPage() {
   const [items, setItems] = useState<MockCatalogItem[]>(MOCK_CATALOG_ITEMS);
   const [managedCategories, setManagedCategories] = useState<string[]>(['Acesso e Segurança', 'Hardware', 'Software', 'Conectividade', 'Geral']);
+
+  useEffect(() => {
+    apiClient.get('/catalog/items')
+      .then((data: any[]) => {
+        if (Array.isArray(data) && data.length > 0) {
+          const mapped: MockCatalogItem[] = data.map((i: any) => ({
+            id: i.id,
+            name: i.name,
+            category: i.category_name || i.category || 'Geral',
+            description: i.description || '',
+            icon: i.icon || '💻',
+            slaAmount: i.sla_amount || 4,
+            slaType: i.sla_type || 'hours',
+          }));
+          setItems(mapped);
+        }
+      })
+      .catch(() => console.info('[CatalogPage] API offline, utilizando mock local.'));
+  }, []);
+
 
   // Modals state
   const [deleteId, setDeleteId] = useState<string | null>(null);

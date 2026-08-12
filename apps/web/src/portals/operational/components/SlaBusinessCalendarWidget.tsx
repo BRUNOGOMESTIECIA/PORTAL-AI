@@ -1,36 +1,51 @@
 import React, { useState } from 'react';
-import { Calendar as CalendarIcon, Clock, Plus, Trash2, PauseCircle, CheckCircle2, ShieldCheck, Sparkles, Sun, Moon } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, Plus, Trash2, ToggleLeft, ToggleRight } from 'lucide-react';
 import { toast } from 'sonner';
-import { DEFAULT_HOLIDAYS, isSlaPausedNow, SlaPauseInfo } from '../../../lib/business-hours-sla';
+import { getBusinessHoursConfig, saveBusinessHoursConfig, isSlaPausedNow, BusinessHoursConfig, SlaPauseInfo } from '../../../lib/business-hours-sla';
 import { logAuditEvent } from '../../../lib/audit-logger';
 
-export interface CorporateHoliday {
-  date: string; // YYYY-MM-DD
-  name: string;
-  type: 'nacional' | 'corporativo';
-}
-
-const INITIAL_HOLIDAYS: CorporateHoliday[] = [
-  { date: '2026-01-01', name: 'Confraternização Universal', type: 'nacional' },
-  { date: '2026-04-21', name: 'Tiradentes', type: 'nacional' },
-  { date: '2026-05-01', name: 'Dia do Trabalho', type: 'nacional' },
-  { date: '2026-09-07', name: 'Independência do Brasil', type: 'nacional' },
-  { date: '2026-10-12', name: 'Nossa Sra. Aparecida', type: 'nacional' },
-  { date: '2026-11-02', name: 'Finados', type: 'nacional' },
-  { date: '2026-11-15', name: 'Proclamação da República', type: 'nacional' },
-  { date: '2026-12-25', name: 'Natal', type: 'nacional' },
-];
-
 export function SlaBusinessCalendarWidget() {
-  const [holidays, setHolidays] = useState<CorporateHoliday[]>(INITIAL_HOLIDAYS);
+  const [config, setConfig] = useState<BusinessHoursConfig>(getBusinessHoursConfig());
   const [newDate, setNewDate] = useState('');
   const [newName, setNewName] = useState('');
-  const [pauseWeekends, setPauseWeekends] = useState(true);
-  const [pauseNightHours, setPauseNightHours] = useState(true);
-  const [businessStartHour, setBusinessStartHour] = useState(8);
-  const [businessEndHour, setBusinessEndHour] = useState(18);
 
-  const currentStatus: SlaPauseInfo = isSlaPausedNow(new Date());
+  const handleToggleDay = (dayIndex: number) => {
+    const updatedSchedule = config.schedule.map((s) =>
+      s.dayIndex === dayIndex ? { ...s, active: !s.active } : s
+    );
+    const newConfig = { ...config, schedule: updatedSchedule };
+    setConfig(newConfig);
+    saveBusinessHoursConfig(newConfig);
+    toast.success('Horário alterado com sucesso!');
+  };
+
+  const handleHourChange = (dayIndex: number, field: 'startHour' | 'endHour', val: number) => {
+    const updatedSchedule = config.schedule.map((s) =>
+      s.dayIndex === dayIndex ? { ...s, [field]: val } : s
+    );
+    const newConfig = { ...config, schedule: updatedSchedule };
+    setConfig(newConfig);
+    saveBusinessHoursConfig(newConfig);
+  };
+
+  const handleToggleAutoCollapse = () => {
+    const newConfig = {
+      ...config,
+      autoCollapseChatOutsideHours: !config.autoCollapseChatOutsideHours,
+    };
+    setConfig(newConfig);
+    saveBusinessHoursConfig(newConfig);
+    toast.success(
+      newConfig.autoCollapseChatOutsideHours
+        ? 'Auto-colapso do chat fora do expediente ATIVADO!'
+        : 'Auto-colapso do chat DESATIVADO!'
+    );
+
+    logAuditEvent(
+      'AUTO_COLLAPSE_CHAT_CONFIG',
+      `Auto-colapso do chat fora do expediente alterado para: ${newConfig.autoCollapseChatOutsideHours ? 'ATIVADO' : 'DESATIVADO'}`
+    );
+  };
 
   const handleAddHoliday = (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,143 +54,144 @@ export function SlaBusinessCalendarWidget() {
       return;
     }
 
-    if (holidays.some((h) => h.date === newDate)) {
+    if (config.holidays.includes(newDate)) {
       toast.warning('Esta data já está cadastrada como feriado.');
       return;
     }
 
-    const item: CorporateHoliday = {
-      date: newDate,
-      name: newName.trim(),
-      type: 'corporativo',
-    };
-
-    const updated = [...holidays, item].sort((a, b) => a.date.localeCompare(b.date));
-    setHolidays(updated);
+    const updatedHolidays = [...config.holidays, newDate].sort();
+    const newConfig = { ...config, holidays: updatedHolidays };
+    setConfig(newConfig);
+    saveBusinessHoursConfig(newConfig);
     setNewDate('');
     setNewName('');
 
     logAuditEvent(
       'SLA_HOLIDAY_ADDED',
-      `Novo feriado corporativo "${item.name}" (${item.date}) adicionado ao calendário de pausa de SLA.`
+      `Novo feriado corporativo "${newName.trim()}" (${newDate}) adicionado.`
     );
-    toast.success(`Feriado "${item.name}" adicionado ao calendário de SLA!`);
+    toast.success(`Feriado "${newName.trim()}" adicionado!`);
   };
 
-  const handleRemoveHoliday = (date: string) => {
-    const target = holidays.find((h) => h.date === date);
-    if (!target) return;
-
-    setHolidays(holidays.filter((h) => h.date !== date));
-    logAuditEvent(
-      'SLA_HOLIDAY_REMOVED',
-      `Feriado corporativo "${target.name}" (${target.date}) removido do calendário.`
-    );
-    toast.info(`Feriado "${target.name}" removido.`);
+  const handleDeleteHoliday = (dateStr: string) => {
+    const updatedHolidays = config.holidays.filter((h) => h !== dateStr);
+    const newConfig = { ...config, holidays: updatedHolidays };
+    setConfig(newConfig);
+    saveBusinessHoursConfig(newConfig);
+    toast.info('Feriado removido do calendário.');
   };
 
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-lg space-y-5">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 rounded-xl border border-blue-200 dark:border-blue-800">
-            <CalendarIcon className="w-5 h-5" />
-          </div>
-          <div>
-            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              Calendário de Horas Úteis & Pausa de SLA
-              <span className="text-[10px] bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded-full font-mono uppercase font-bold">
-                Item 054
-              </span>
+    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 space-y-6 shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <CalendarIcon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
+              Horário Comercial & Auto-Colapso do Chat
             </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Desconsidera finais de semana, feriados nacionais/corporativos e expediente noturno no cálculo de SLA.
-            </p>
           </div>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Configure os dias e horas de atendimento. O chat recolhe e avisa o cliente fora deste horário.
+          </p>
         </div>
 
-        {/* Live Status Badge */}
-        <div className="flex items-center gap-2 shrink-0">
-          <span
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold border flex items-center gap-1.5 shadow-sm ${
-              currentStatus.isPaused
-                ? 'bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
-                : 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
-            }`}
+        <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800/80 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700">
+          <div className="text-right">
+            <span className="block text-xs font-bold text-slate-800 dark:text-slate-200">
+              Auto-Colapso do Chat
+            </span>
+            <span className="text-[10px] text-slate-500 dark:text-slate-400">
+              {config.autoCollapseChatOutsideHours ? 'Ativo (Recolhe fora das horas)' : 'Desativado'}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={handleToggleAutoCollapse}
+            className="text-blue-600 dark:text-blue-400 hover:scale-105 transition-transform cursor-pointer"
           >
-            {currentStatus.isPaused ? (
-              <PauseCircle className="w-4 h-4 text-amber-500" />
+            {config.autoCollapseChatOutsideHours ? (
+              <ToggleRight className="w-8 h-8 text-blue-600 dark:text-blue-400" />
             ) : (
-              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+              <ToggleLeft className="w-8 h-8 text-slate-400" />
             )}
-            <span>{currentStatus.label}</span>
-          </span>
+          </button>
         </div>
       </div>
 
-      {/* Grid de Configurações do Expediente */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Card 1: Finais de Semana */}
-        <div className="p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/70 rounded-xl space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-              <Sun className="w-4 h-4 text-amber-500" /> Finais de Semana
-            </span>
-            <input
-              type="checkbox"
-              checked={pauseWeekends}
-              onChange={(e) => setPauseWeekends(e.target.checked)}
-              className="w-4 h-4 text-blue-600 rounded cursor-pointer"
-            />
-          </div>
-          <p className="text-[11px] text-slate-500 dark:text-slate-400">
-            Sábados e Domingos congelam automaticamente a contagem regressiva de SLA.
-          </p>
-        </div>
+      <div className="space-y-3">
+        <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-2">
+          <Clock className="w-4 h-4 text-blue-500" /> Grade Semanal de Atendimento (Dias e Horas)
+        </h4>
 
-        {/* Card 2: Horário Noturno */}
-        <div className="p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/70 rounded-xl space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-              <Moon className="w-4 h-4 text-indigo-400" /> Fora do Expediente
-            </span>
-            <input
-              type="checkbox"
-              checked={pauseNightHours}
-              onChange={(e) => setPauseNightHours(e.target.checked)}
-              className="w-4 h-4 text-blue-600 rounded cursor-pointer"
-            />
-          </div>
-          <div className="flex items-center gap-2 pt-1">
-            <span className="text-[10px] font-bold text-slate-500">Expediente:</span>
-            <span className="text-xs font-mono font-bold text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-900 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700">
-              {String(businessStartHour).padStart(2, '0')}:00 às {String(businessEndHour).padStart(2, '0')}:00
-            </span>
-          </div>
-        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3">
+          {config.schedule.map((day) => (
+            <div
+              key={day.dayIndex}
+              className={`p-3 rounded-xl border transition-all ${
+                day.active
+                  ? 'bg-blue-50/50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800/60 shadow-sm'
+                  : 'bg-slate-50/60 dark:bg-slate-800/30 border-slate-200 dark:border-slate-800 opacity-60'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-2 pb-2 border-b border-slate-200/50 dark:border-slate-700/50">
+                <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200">
+                  {day.dayName}
+                </span>
+                <input
+                  type="checkbox"
+                  checked={day.active}
+                  onChange={() => handleToggleDay(day.dayIndex)}
+                  className="w-4 h-4 text-blue-600 rounded cursor-pointer"
+                />
+              </div>
 
-        {/* Card 3: Pausa em Feriados */}
-        <div className="p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/70 rounded-xl space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-              <ShieldCheck className="w-4 h-4 text-emerald-500" /> Feriados & Pontes
-            </span>
-            <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 rounded-full">
-              {holidays.length} Feriados Ativos
-            </span>
-          </div>
-          <p className="text-[11px] text-slate-500 dark:text-slate-400">
-            Feriados cadastrados interrompem o relógio de SLA até o próximo dia útil.
-          </p>
+              {day.active ? (
+                <div className="space-y-2">
+                  <div>
+                    <label className="text-[10px] text-slate-500 dark:text-slate-400 font-medium block mb-0.5">Início</label>
+                    <select
+                      value={day.startHour}
+                      onChange={(e) => handleHourChange(day.dayIndex, 'startHour', parseInt(e.target.value))}
+                      className="w-full text-xs font-mono font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-1 text-slate-800 dark:text-slate-200"
+                    >
+                      {Array.from({ length: 24 }).map((_, h) => (
+                        <option key={h} value={h}>
+                          {String(h).padStart(2, '0')}:00h
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-slate-500 dark:text-slate-400 font-medium block mb-0.5">Fim</label>
+                    <select
+                      value={day.endHour}
+                      onChange={(e) => handleHourChange(day.dayIndex, 'endHour', parseInt(e.target.value))}
+                      className="w-full text-xs font-mono font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-1 text-slate-800 dark:text-slate-200"
+                    >
+                      {Array.from({ length: 24 }).map((_, h) => (
+                        <option key={h} value={h}>
+                          {String(h).padStart(2, '0')}:00h
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-4">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Fechado</span>
+                  <span className="text-[10px] text-slate-400">Sem atendimento</span>
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Gerenciamento de Feriados Corporativos */}
       <div className="space-y-3 pt-2">
         <div className="flex items-center justify-between">
           <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-            Feriados Nacionais & Folgas Corporativas ({holidays.length})
+            Feriados Nacionais & Folgas Corporativas ({config.holidays.length})
           </h4>
         </div>
 
@@ -204,31 +220,31 @@ export function SlaBusinessCalendarWidget() {
 
         {/* Grid de Cards de Feriados */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5 pt-1 max-h-48 overflow-y-auto pr-1">
-          {holidays.map((h) => {
-            const [yyyy, mm, dd] = h.date.split('-');
+          {config.holidays.map((hDate) => {
+            const parts = hDate.split('-');
+            if (parts.length < 3) return null;
+            const [yyyy, mm, dd] = parts;
             return (
               <div
-                key={h.date}
+                key={hDate}
                 className="p-2.5 bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 rounded-xl flex items-center justify-between gap-2 text-xs"
               >
                 <div className="min-w-0 pr-1">
                   <span className="font-mono font-bold text-blue-600 dark:text-blue-400 block text-[11px]">
                     {dd}/{mm}/{yyyy}
                   </span>
-                  <span className="font-semibold text-slate-800 dark:text-slate-200 truncate block text-[11px]" title={h.name}>
-                    {h.name}
+                  <span className="font-semibold text-slate-800 dark:text-slate-200 truncate block text-[11px]">
+                    Feriado / Folga
                   </span>
                 </div>
-                {h.type === 'corporativo' && (
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveHoliday(h.date)}
-                    className="p-1 text-slate-400 hover:text-rose-500 transition-colors shrink-0"
-                    title="Remover feriado"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => handleDeleteHoliday(hDate)}
+                  className="p-1 text-slate-400 hover:text-rose-500 transition-colors shrink-0"
+                  title="Remover feriado"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
               </div>
             );
           })}

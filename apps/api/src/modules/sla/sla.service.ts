@@ -105,6 +105,12 @@ export class SlaService {
           // Emit SLA breach notifications — NotificationsService injection would create circular dep
           // Use direct DB insert instead
           for (const ticket of breaching) {
+            // Eleva a prioridade para critical mantendo o N1 responsável
+            await ds.query(
+              `UPDATE tickets SET priority = 'critical', updated_at = now() WHERE id = $1`,
+              [ticket.id],
+            );
+
             if (ticket.assignee_id) {
               await ds.query(
                 `INSERT INTO notifications (user_id, type, title, body, data)
@@ -112,13 +118,14 @@ export class SlaService {
                  ON CONFLICT DO NOTHING`,
                 [
                   ticket.assignee_id,
-                  `SLA em risco: #${ticket.number}`,
-                  ticket.title,
-                  JSON.stringify({ ticketId: ticket.id }),
+                  `🚨 SLA Estourado / Em Risco: #${ticket.number}`,
+                  `Atenção N1: O chamado "${ticket.title}" precisa de sua resposta imediata!`,
+                  JSON.stringify({ ticketId: ticket.id, priority: 'critical' }),
                 ],
               );
             }
           }
+
         }
       } catch (err: unknown) {
         this.logger.error(`SLA check failed for ${tenant.slug}: ${(err as Error).message}`);

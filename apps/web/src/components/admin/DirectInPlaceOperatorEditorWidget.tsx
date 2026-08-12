@@ -35,6 +35,27 @@ export function DirectInPlaceOperatorEditorWidget() {
     setMetrics(getDirectInPlaceMetrics());
   };
 
+  const [dynamicRoles, setDynamicRoles] = useState<any[]>([]);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('instapasso_dynamic_roles');
+      if (stored) {
+        setDynamicRoles(JSON.parse(stored));
+      } else {
+        setDynamicRoles([
+          { id: '1', name: 'Analista de Suporte N1' },
+          { id: '2', name: 'Analista de Suporte N2' },
+          { id: '3', name: 'Especialista N3 Cloud & DevOps' },
+          { id: '4', name: 'Coordenador / Supervisor Operacional' },
+          { id: '5', name: 'Super Administrador / Supervisor' }
+        ]);
+      }
+    } catch (e) {
+      setDynamicRoles([]);
+    }
+  }, []);
+
   const handleStartEditing = (operatorId: string, fieldName: keyof EditableOperator, currentValue: string) => {
     setEditingCell({
       operatorId,
@@ -220,11 +241,9 @@ export function DirectInPlaceOperatorEditorWidget() {
                           onKeyDown={handleKeyDown}
                           className="bg-slate-900 border border-indigo-500 rounded px-2 py-1 text-xs text-white outline-none w-full font-bold"
                         >
-                          <option value="Analista de Suporte N1">Analista de Suporte N1</option>
-                          <option value="Analista de Suporte N2">Analista de Suporte N2</option>
-                          <option value="Especialista N3 Cloud & DevOps">Especialista N3 Cloud & DevOps</option>
-                          <option value="Coordenador / Supervisor Operacional">Coordenador / Supervisor Operacional</option>
-                          <option value="Super Administrador / Supervisor">Super Administrador / Supervisor</option>
+                          {dynamicRoles.map(role => (
+                            <option key={role.id} value={role.name}>{role.name}</option>
+                          ))}
                         </select>
                       ) : (
                         <div

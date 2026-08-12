@@ -8,6 +8,8 @@ import { toast } from 'sonner';
 import { instaPassoDb } from '../../../../lib/firebase';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 
+import { apiClient } from '../../../../lib/api-client';
+
 // Helper to group permissions by module
 const groupPermissions = () => {
   const groups: Record<string, string[]> = {};
@@ -20,6 +22,7 @@ const groupPermissions = () => {
 };
 
 const permissionGroups = groupPermissions();
+
 
 const moduleLabels: Record<string, string> = {
   tickets: 'Tickets',
@@ -88,6 +91,25 @@ export default function AdminUserDetailPage() {
     if (id) {
       const fetchOperator = async () => {
         try {
+          const apiUser = await apiClient.get(`/users/${id}`);
+          if (apiUser) {
+            setFormData({
+              name: apiUser.name || apiUser.fullName || '',
+              email: apiUser.email || '',
+              type: apiUser.type || 'staff',
+              role: apiUser.role || 'Support Agent',
+              company: apiUser.company || '',
+              companySlug: apiUser.companySlug || '',
+              password: '',
+              permissions: apiUser.permissions || ['tickets.view'],
+            });
+            return;
+          }
+        } catch {
+          // Ignora falha de API backend e tenta Firestore/Mock
+        }
+
+        try {
           const docRef = doc(instaPassoDb, 'operators', id);
           const snap = await getDoc(docRef);
           if (snap.exists()) {
@@ -125,6 +147,28 @@ export default function AdminUserDetailPage() {
       fetchOperator();
     }
   }, [id]);
+
+
+  const [dynamicRoles, setDynamicRoles] = useState<any[]>([]);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('instapasso_dynamic_roles');
+      if (stored) {
+        setDynamicRoles(JSON.parse(stored));
+      } else {
+        setDynamicRoles([
+          { id: '1', name: 'Analista de Suporte N1' },
+          { id: '2', name: 'Analista de Suporte N2' },
+          { id: '3', name: 'Especialista N3 Cloud & DevOps' },
+          { id: '4', name: 'Coordenador / Supervisor Operacional' },
+          { id: '5', name: 'Super Administrador / Supervisor' }
+        ]);
+      }
+    } catch (e) {
+      setDynamicRoles([]);
+    }
+  }, []);
 
   const toggleModule = (module: string) => {
     setCollapsedModules(prev => ({ ...prev, [module]: !prev[module] }));
@@ -325,10 +369,9 @@ export default function AdminUserDetailPage() {
                     onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                     className="w-full h-10 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900/30 transition"
                   >
-                    <option>Administrator</option>
-                    <option>Technician</option>
-                    <option>Support Agent</option>
-                    <option>Manager</option>
+                    {dynamicRoles.map(role => (
+                      <option key={role.id} value={role.name}>{role.name}</option>
+                    ))}
                   </select>
                 </div>
               ) : (

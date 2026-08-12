@@ -360,6 +360,8 @@ function DeviceDetail({ device, onBack }: { device: MockDevice; onBack: () => vo
  * junto com seu estado atual e alertas. 
  * Também renderiza um painel lateral quando um dispositivo é selecionado.
  */
+import { apiClient } from '../../../lib/api-client';
+
 export default function EquipmentMonitoringPage() {
   const { deviceId } = useParams<{ deviceId?: string }>();
   const navigate = useNavigate();
@@ -372,13 +374,13 @@ export default function EquipmentMonitoringPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'online' | 'offline' | 'warning'>('all');
 
   useEffect(() => {
-    fetch('/api/v1/assets/devices')
-      .then(res => res.json())
-      .then(data => {
-        setDevices(data);
+    apiClient.get('/assets/devices')
+      .then((data: any) => {
+        if (Array.isArray(data)) setDevices(data);
         setIsLoading(false);
       })
-      .catch(err => {
+      .catch((err) => {
+
         console.error('Failed to fetch devices, using mock for presentation:', err);
         setDevices([
           { 

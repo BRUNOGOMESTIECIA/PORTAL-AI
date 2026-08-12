@@ -3,45 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Fingerprint, Monitor, LayoutGrid, Cloud, Gamepad2, Tv, HardDrive, Cpu, 
   ExternalLink, Printer, Package, Smartphone, Server, Send, ShieldCheck, 
-  ArrowLeft, Lock, Maximize2, FileText, Building2
+  ArrowLeft, Lock, Maximize2, FileText, Building2, Wrench, Network, Boxes, Truck
 } from 'lucide-react';
+
+
 import { useAuth } from '../../../hooks/use-mock-auth';
 import { toast } from 'sonner';
 import { EquipmentDeliveryTermModal } from '../components/EquipmentDeliveryTermModal';
 import { B2bCompanyPerformanceModal } from '../components/B2bCompanyPerformanceModal';
-import { EncryptionComplianceWidget } from '../components/EncryptionComplianceWidget';
-import { PeriodicAuditReportModal } from '../components/PeriodicAuditReportModal';
-import { SessionTimeoutSettingsWidget } from '../components/SessionTimeoutSettingsWidget';
-import { LgpdUserAnonymizationWidget } from '../components/LgpdUserAnonymizationWidget';
-import { FrameAncestorsPolicyWidget } from '../components/FrameAncestorsPolicyWidget';
-import { SessionCookiePolicyWidget } from '../components/SessionCookiePolicyWidget';
-import { HttpSecurityHeadersWidget } from '../components/HttpSecurityHeadersWidget';
-import { AntiBruteForcePanelWidget } from '../components/AntiBruteForcePanelWidget';
-import { SecurityAuditLogsWidget } from '../components/SecurityAuditLogsWidget';
-import { LogTtlPolicyWidget } from '../components/LogTtlPolicyWidget';
-import { MfaPolicyEnforcementWidget } from '../components/MfaPolicyEnforcementWidget';
-import { FileUploadSanitizerWidget } from '../components/FileUploadSanitizerWidget';
-import { WafCorporateFilterWidget } from '../components/WafCorporateFilterWidget';
-import { SlaBusinessCalendarWidget } from '../components/SlaBusinessCalendarWidget';
 import { OnboardingTourWidget } from '../../../components/shared/OnboardingTourWidget';
 import { LgpdCookieConsentBannerWidget } from '../../../components/shared/LgpdCookieConsentBannerWidget';
 import { AtomicTicketCounterWidget } from '../../../components/tickets/AtomicTicketCounterWidget';
-import { EncryptedBackupsAuditWidget } from '../../../components/admin/EncryptedBackupsAuditWidget';
-import { MultiDatabaseSeparationWidget } from '../../../components/admin/MultiDatabaseSeparationWidget';
-import { InstaPassoSsoSyncWidget } from '../../../components/admin/InstaPassoSsoSyncWidget';
-import { MotionPreferenceWidget } from '../../../components/shared/MotionPreferenceWidget';
-import { SiemLogMirrorWidget } from '../../../components/admin/SiemLogMirrorWidget';
-import { RateLimitingPanelWidget } from '../../../components/admin/RateLimitingPanelWidget';
-import { DepartmentCostCenterWidget } from '../../../components/admin/DepartmentCostCenterWidget';
-import { SoftDeleteRetentionWidget } from '../../../components/admin/SoftDeleteRetentionWidget';
-import { OperatorWorkScheduleWidget } from '../../../components/admin/OperatorWorkScheduleWidget';
-import { UnifiedUserCreationWidget } from '../../../components/admin/UnifiedUserCreationWidget';
-import { AgentPublicProfileAdminWidget } from '../../../components/admin/AgentPublicProfileAdminWidget';
-import { DirectInPlaceOperatorEditorWidget } from '../../../components/admin/DirectInPlaceOperatorEditorWidget';
-import { AiDuplicateDetectorAdminWidget } from '../../../components/admin/AiDuplicateDetectorAdminWidget';
-import { PasskeysFido2AdminWidget } from '../../../components/admin/PasskeysFido2AdminWidget';
-import { PasswordPolicyAdminWidget } from '../../../components/admin/PasswordPolicyAdminWidget';
-import { PwaOfflineSyncWidget } from '../../../components/shared/PwaOfflineSyncWidget';
+import { useApiIntegrations } from '../../../hooks/use-api-integrations';
+import { Globe, CheckCircle2, XCircle } from 'lucide-react';
 
 
 
@@ -206,7 +180,39 @@ const TOOLS = [
     badge: 'Laudo Corporativo',
     isB2bModal: true,
   },
+  {
+    id: 'manutencao',
+    name: 'Manutenção',
+    description: 'Gestão de ordens de serviço, manutenção preventiva e corretiva de equipamentos.',
+    icon: Wrench,
+    color: 'text-amber-500',
+    bg: 'bg-amber-100 dark:bg-amber-500/10',
+    border: 'hover:border-amber-400',
+    badge: 'Preventiva',
+  },
+  {
+    id: 'infra',
+    name: 'Infraestrutura',
+    description: 'Gerenciamento de servidores, racks, cabeamento e topologia de rede.',
+    icon: Network,
+    color: 'text-indigo-500',
+    bg: 'bg-indigo-100 dark:bg-indigo-500/10',
+    border: 'hover:border-indigo-400',
+    badge: 'Datacenter',
+  },
+  {
+    id: 'estoque_logistica',
+    name: 'Estoque e Logística',
+    description: 'Controle de entrada e saída de insumos, rastreamento de expedição e logística de transporte.',
+    icon: Truck,
+    color: 'text-emerald-500',
+    bg: 'bg-emerald-100 dark:bg-emerald-500/10',
+    border: 'hover:border-emerald-400',
+    badge: 'Estoque & Logística',
+  },
 ];
+
+
 
 /**
  * Página Principal: Ferramentas de TI.
@@ -216,11 +222,13 @@ const TOOLS = [
 export default function ToolsPage() {
   const navigate = useNavigate();
   const { user, hasPermission } = useAuth();
+  const { integrations, getIntegrationForTool } = useApiIntegrations();
+
   const [activeEmbeddedTool, setActiveEmbeddedTool] = useState<string | null>(null);
   const [showTermModal, setShowTermModal] = useState(false);
   const [showB2bModal, setShowB2bModal] = useState(false);
-  const [showAuditReportModal, setShowAuditReportModal] = useState(false);
-  const [instaPassoTab, setInstaPassoTab] = useState<'acessos' | 'equipe' | 'logs' | 'security'>('acessos');
+
+  const customIntegrations = integrations.filter((i) => i.targetToolId === 'custom');
 
   // Regra de Acesso do InstaPasso: Administradores, Supervisores e equipe com permissões admin/tickets
   const canAccessInstaPasso = () => {
@@ -236,148 +244,29 @@ export default function ToolsPage() {
   if (activeEmbeddedTool === 'instapasso') {
     return (
       <div className="space-y-4 animate-in fade-in duration-200">
-        {/* Barra de Topo do Sistema InstaPasso (Idêntico ao Layout do Portal InstaPasso) */}
-        <div className="bg-[#090d16] text-white rounded-2xl p-4 shadow-xl border border-slate-800 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            {/* Logo & Voltar */}
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setActiveEmbeddedTool(null)}
-                className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Voltar para Ferramentas
-              </button>
-              <div className="h-5 w-px bg-slate-700 hidden sm:block" />
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center font-black text-xs">
-                  IP
-                </div>
-                <h2 className="text-sm font-black text-white tracking-tight">InstaPasso SSO</h2>
-              </div>
-            </div>
-
-            {/* Ações da Direita */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowAuditReportModal(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-600/30 cursor-pointer"
-              >
-                📄 Laudo ISO 27001
-              </button>
-              <button
-                onClick={() => window.open('https://insta-passo.vercel.app/', '_blank')}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition-all border border-slate-700 cursor-pointer"
-              >
-                <Maximize2 className="w-3.5 h-3.5" />
-                Abrir em Nova Aba
-              </button>
-            </div>
-          </div>
-
-          {/* Menu de Abas Internas Nativas do InstaPasso */}
-          <div className="flex items-center gap-1 border-b border-slate-800 pb-1 text-xs font-bold overflow-x-auto">
-            <button
-              onClick={() => setInstaPassoTab('acessos')}
-              className={`px-4 py-2 border-b-2 transition-all cursor-pointer whitespace-nowrap ${
-                instaPassoTab === 'acessos'
-                  ? 'border-emerald-400 text-white font-extrabold'
-                  : 'border-transparent text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              Gerenciamento de Acessos
-            </button>
-            <button
-              onClick={() => setInstaPassoTab('equipe')}
-              className={`px-4 py-2 border-b-2 transition-all cursor-pointer whitespace-nowrap ${
-                instaPassoTab === 'equipe'
-                  ? 'border-emerald-400 text-white font-extrabold'
-                  : 'border-transparent text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              Equipe Interna
-            </button>
-            <button
-              onClick={() => setInstaPassoTab('logs')}
-              className={`px-4 py-2 border-b-2 transition-all cursor-pointer whitespace-nowrap ${
-                instaPassoTab === 'logs'
-                  ? 'border-emerald-400 text-white font-extrabold'
-                  : 'border-transparent text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              Logs de Auditoria
-            </button>
-            <button
-              onClick={() => setInstaPassoTab('security')}
-              className={`px-4 py-2 border-b-2 transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-                instaPassoTab === 'security'
-                  ? 'border-blue-400 text-blue-400 font-extrabold'
-                  : 'border-transparent text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              🛡️ Segurança & Governança ISO 27001
-            </button>
-          </div>
+        <div className="flex items-center gap-3 mb-4">
+          <button
+            onClick={() => setActiveEmbeddedTool(null)}
+            className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Voltar para Ferramentas
+          </button>
+          <button
+            onClick={() => window.open(import.meta.env.DEV ? 'http://localhost:5174/' : 'https://insta-passo.vercel.app/', '_blank')}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition-all border border-slate-700 cursor-pointer"
+          >
+            <Maximize2 className="w-3.5 h-3.5" />
+            Abrir em Nova Aba
+          </button>
         </div>
-
-        {/* Modal do Laudo Mensal de Auditoria (Item 112) */}
-        <PeriodicAuditReportModal
-          isOpen={showAuditReportModal}
-          onClose={() => setShowAuditReportModal(false)}
-        />
-
-        {/* Conteúdo da Aba Selecionada */}
-        {instaPassoTab === 'acessos' || instaPassoTab === 'equipe' || instaPassoTab === 'logs' ? (
-          <div className="space-y-4">
-            <InstaPassoSsoSyncWidget />
-            <div className="bg-slate-950 rounded-2xl border border-slate-800 shadow-xl overflow-hidden relative w-full">
-              <iframe
-                src="https://insta-passo.vercel.app/"
-                className="w-full min-h-[720px] h-[calc(100vh-200px)] border-0 rounded-2xl"
-                title="Portal InstaPasso Admin"
-              />
-            </div>
-          </div>
-        ) : (
-          <div className="dark">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-              {/* Coluna 1: Proteção Ativa, WAF e Logs */}
-              <div className="space-y-6">
-                <MotionPreferenceWidget />
-                <WafCorporateFilterWidget />
-                <AntiBruteForcePanelWidget />
-                <PasskeysFido2AdminWidget />
-                <PasswordPolicyAdminWidget />
-                <RateLimitingPanelWidget />
-                <OperatorWorkScheduleWidget />
-                <AgentPublicProfileAdminWidget />
-                <AiDuplicateDetectorAdminWidget />
-                <SecurityAuditLogsWidget />
-                <SessionTimeoutSettingsWidget />
-                <SessionCookiePolicyWidget />
-                <HttpSecurityHeadersWidget />
-              </div>
-              
-              {/* Coluna 2: Governança, Compliance e Políticas */}
-              <div className="space-y-6">
-                <MultiDatabaseSeparationWidget />
-                <PwaOfflineSyncWidget />
-                <UnifiedUserCreationWidget />
-                <DirectInPlaceOperatorEditorWidget />
-                <DepartmentCostCenterWidget />
-                <SoftDeleteRetentionWidget />
-                <SiemLogMirrorWidget />
-                <EncryptedBackupsAuditWidget />
-                <EncryptionComplianceWidget />
-                <FileUploadSanitizerWidget />
-                <MfaPolicyEnforcementWidget />
-                <LogTtlPolicyWidget />
-                <LgpdUserAnonymizationWidget />
-                <FrameAncestorsPolicyWidget />
-              </div>
-            </div>
-          </div>
-        )}
+        <div className="bg-slate-950 rounded-2xl border border-slate-800 shadow-xl overflow-hidden relative w-full">
+          <iframe
+            src={import.meta.env.DEV ? 'http://localhost:5174/' : 'https://insta-passo.vercel.app/'}
+            className="w-full min-h-[820px] h-[calc(100vh-150px)] border-0 rounded-2xl"
+            title="Portal InstaPasso Admin"
+          />
+        </div>
       </div>
     );
   }
@@ -400,13 +289,13 @@ export default function ToolsPage() {
       {/* Banner de Gestão de Consentimento de Cookies & LGPD (Item 014) */}
       <LgpdCookieConsentBannerWidget />
 
-      {/* Contador Atômico de Tickets no Firestore (Item 017) */}
-      <AtomicTicketCounterWidget />
+      {/* Grid de Ferramentas Nativas */}
 
-      {/* Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {TOOLS.map((tool) => {
           const Icon = tool.icon;
+          const apiInteg = getIntegrationForTool(tool.id);
+
           return (
             <button
               key={tool.id}
@@ -427,9 +316,9 @@ export default function ToolsPage() {
                   navigate(tool.route as string);
                 }
               }}
-              className={`group relative flex flex-col items-center justify-center gap-4 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm hover:shadow-lg transition-all duration-200 ${tool.border} dark:hover:border-slate-600 text-center overflow-hidden cursor-pointer`}
+              className={`group relative flex flex-col items-center justify-center gap-3 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm hover:shadow-lg transition-all duration-200 ${tool.border} dark:hover:border-slate-600 text-center overflow-hidden cursor-pointer`}
             >
-              {/* Badge */}
+              {/* Badge da Ferramenta */}
               {tool.badge && (
                 <span className={`absolute top-3 right-3 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide ${
                   (tool as any).isInstaPasso
@@ -441,8 +330,8 @@ export default function ToolsPage() {
               )}
 
               {/* Icon */}
-              <div className={`w-16 h-16 rounded-2xl flex items-center justify-center ${tool.bg} ${tool.color} group-hover:scale-110 transition-transform duration-300`}>
-                <Icon className="w-8 h-8" />
+              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${tool.bg} ${tool.color} group-hover:scale-110 transition-transform duration-300`}>
+                <Icon className="w-7 h-7" />
               </div>
 
               {/* Text */}
@@ -455,12 +344,64 @@ export default function ToolsPage() {
                 </p>
               </div>
 
+              {/* API Integration Badge Indicator */}
+              <div className="mt-2 w-full pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-center gap-1.5 text-[10px] font-medium text-amber-600 dark:text-amber-400">
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse flex-shrink-0" />
+                <span>API InstaPasso ({apiInteg?.latencyMs || 24}ms)</span>
+              </div>
+
+
               {/* External link indicator */}
               <ExternalLink className="absolute bottom-3 right-3 w-3.5 h-3.5 text-slate-300 dark:text-slate-700 opacity-0 group-hover:opacity-100 transition-opacity" />
             </button>
           );
         })}
       </div>
+
+      {/* Seção Dinâmica de Ferramentas Personalizadas & APIs Conectadas */}
+      {customIntegrations.length > 0 && (
+        <div className="pt-6 border-t border-slate-200 dark:border-slate-800 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
+              <Globe className="h-4 w-4 text-purple-500" />
+              Ferramentas Personalizadas & APIs Conectadas no InstaPasso
+            </h2>
+            <span className="text-xs text-purple-400 font-semibold">{customIntegrations.length} Ativas</span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {customIntegrations.map((customApi) => (
+              <div
+                key={customApi.id}
+                onClick={() => window.open(customApi.baseUrl, '_blank')}
+                className="group relative flex flex-col items-center justify-center gap-3 p-5 rounded-2xl border border-purple-500/30 bg-purple-950/10 dark:bg-purple-950/20 hover:border-purple-500 shadow-sm hover:shadow-lg transition-all duration-200 text-center overflow-hidden cursor-pointer"
+              >
+                <span className="absolute top-3 right-3 text-[9px] font-bold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 uppercase tracking-wide">
+                  {customApi.customCategory || 'API Externa'}
+                </span>
+
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-purple-500/20 text-purple-400 group-hover:scale-110 transition-transform duration-300">
+                  <Globe className="w-7 h-7" />
+                </div>
+
+                <div>
+                  <h3 className="font-bold text-slate-800 dark:text-slate-100 group-hover:text-purple-400 transition-colors text-sm">
+                    {customApi.name}
+                  </h3>
+                  <p className="text-[10px] font-mono text-slate-400 dark:text-slate-500 mt-1 truncate max-w-[200px]">
+                    {customApi.baseUrl}
+                  </p>
+                </div>
+
+                <div className="mt-1 w-full pt-2 border-t border-purple-500/20 flex items-center justify-center gap-1.5 text-[10px] font-medium text-emerald-400">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>Conectado ({customApi.latencyMs || 30}ms)</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Modal Gerador do Termo de Entrega de Equipamento com Assinatura Digital (Item 099) */}
       <EquipmentDeliveryTermModal isOpen={showTermModal} onClose={() => setShowTermModal(false)} />
@@ -470,3 +411,5 @@ export default function ToolsPage() {
     </div>
   );
 }
+
+

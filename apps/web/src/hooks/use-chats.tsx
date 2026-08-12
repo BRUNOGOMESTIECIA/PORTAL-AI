@@ -6,6 +6,8 @@ import {
 } from 'firebase/firestore';
 import { MockChatSession } from '../mocks/data';
 import { redactSensitiveData } from '../lib/redaction';
+import { apiClient } from '../lib/api-client';
+import { getSocket, joinTenantRoom } from '../lib/socket';
 
 interface ChatsContextValue {
   chats: MockChatSession[];
@@ -17,8 +19,14 @@ interface ChatsContextValue {
 
 const ChatsContext = createContext<ChatsContextValue | null>(null);
 
+/**
+ * HOOK DE GERENCIAMENTO DE CHATS (TEMPO REAL VIA SOCKET.IO + API REST + MOCK FALLBACK)
+ * 
+ * Gerencia as conversas ao vivo.
+ * Conectado ao `Socket.io` para receber mensagens e atualizações de status em tempo real
+ * emitidas pelo `WsGateway` da API NestJS.
+ */
 export function ChatsProvider({ children }: { children: React.ReactNode }) {
-  // Inicializa limpo (sem injetar bots/mock data se o localStorage for limpo)
   const [chats, setChats] = useState<MockChatSession[]>(() => {
     try {
       const saved = localStorage.getItem('portal_fallback_chats');
@@ -34,6 +42,7 @@ export function ChatsProvider({ children }: { children: React.ReactNode }) {
 
   const [isLoading, setIsLoading] = useState(true);
   const fallbackChatsRef = useRef<MockChatSession[]>(chats);
+  const channelRef = useRef<BroadcastChannel | null>(null);
 
   const saveFallbackChats = useCallback((newChats: MockChatSession[]) => {
     fallbackChatsRef.current = newChats;
@@ -45,8 +54,45 @@ export function ChatsProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const channelRef = useRef<BroadcastChannel | null>(null);
+  // Inicializa a escuta via Socket.io em tempo real
+  useEffect(() => {
+    try {
+      const socket = getSocket();
+      joinTenantRoom();
 
+      socket.on('chat:message:new', (msgData: any) => {
+        console.info('[Socket.io] Nova mensagem recebida via WebSocket:', msgData);
+        // Atualiza chat com nova mensagem se pertencer a uma sessão conhecida
+        const currentList = [...fallbackChatsRef.current];
+        const idx = currentList.findIndex(c => c.id === msgData.sessionId);
+        if (idx > -1) {
+          const currentMsgs = currentList[idx].messages || [];
+          currentList[idx] = {
+            ...currentList[idx],
+            messages: [
+              ...currentMsgs,
+              {
+                id: msgData.id || `msg_${Date.now()}`,
+                senderName: msgData.senderName || 'Atendente',
+                body: redactSensitiveData(msgData.body || ''),
+                timestamp: msgData.createdAt || new Date().toISOString(),
+                isAgent: msgData.senderType === 'agent',
+              } as any
+            ]
+          };
+          saveFallbackChats(currentList);
+        }
+      });
+
+      socket.on('chat:session:status', (statusData: any) => {
+        console.info('[Socket.io] Status de sessão alterado:', statusData);
+      });
+    } catch (err) {
+      console.info('[Socket.io] Não foi possível conectar ao WsGateway:', err);
+    }
+  }, [saveFallbackChats]);
+
+  // Sincronização BroadcastChannel entre abas locais
   useEffect(() => {
     try {
       channelRef.current = new BroadcastChannel('chat_sync_fallback');
@@ -61,8 +107,45 @@ export function ChatsProvider({ children }: { children: React.ReactNode }) {
     return () => channelRef.current?.close();
   }, []);
 
-  // Escuta diretamente na coleção 'chat_sessions' do Firestore em tempo real
+  // Tenta carregar sessões de chat via API REST NestJS primeiro
+  const fetchChatsFromApi = useCallback(async () => {
+    try {
+      const data = await apiClient.get<any[]>('/chat-external/sessions');
+      if (Array.isArray(data) && data.length > 0) {
+        const formatted: MockChatSession[] = data.map((c: any) => ({
+          id: c.id,
+          clientName: c.requesterName || 'Cliente',
+          clientEmail: c.requesterEmail || '',
+          status: c.status || 'waiting',
+          agentName: c.agentName || null,
+          queue: c.queueName || 'Chat ao vivo',
+          waitingMinutes: c.waitingMinutes ?? 0,
+          messages: (c.messages || []).map((m: any) => ({
+            id: m.id,
+            senderName: m.senderName || 'Usuário',
+            body: redactSensitiveData(m.body || ''),
+            timestamp: m.createdAt || new Date().toISOString(),
+            isAgent: m.senderType === 'agent',
+          })),
+          createdAt: c.createdAt || new Date().toISOString(),
+          ticketId: c.ticketId,
+          rating: c.rating,
+          ratingComment: c.ratingComment
+        }));
+        saveFallbackChats(formatted);
+        setIsLoading(false);
+        return true;
+      }
+    } catch (err: any) {
+      console.info('[Chat API] Servidor REST em standby. Usando Firestore/localStorage.', err?.message);
+    }
+    return false;
+  }, [saveFallbackChats]);
+
+  // Escuta diretamente na coleção 'chat_sessions' do Firestore em tempo real como fallback
   useEffect(() => {
+    fetchChatsFromApi();
+
     const q = query(collection(db, 'chat_sessions'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const firestoreChats: MockChatSession[] = [];
@@ -98,15 +181,15 @@ export function ChatsProvider({ children }: { children: React.ReactNode }) {
     });
 
     return () => unsubscribe();
-  }, [saveFallbackChats]);
+  }, [fetchChatsFromApi, saveFallbackChats]);
 
-function sanitizeMessages(messages?: any[]): any[] | undefined {
-  if (!messages) return undefined;
-  return messages.map((m) => ({
-    ...m,
-    body: redactSensitiveData(m.body || ''),
-  }));
-}
+  function sanitizeMessages(messages?: any[]): any[] | undefined {
+    if (!messages) return undefined;
+    return messages.map((m) => ({
+      ...m,
+      body: redactSensitiveData(m.body || ''),
+    }));
+  }
 
   const createChat = useCallback(async (chat: MockChatSession) => {
     const sanitizedChat = {
@@ -117,6 +200,17 @@ function sanitizeMessages(messages?: any[]): any[] | undefined {
     const updated = [sanitizedChat, ...fallbackChatsRef.current];
     saveFallbackChats(updated);
     channelRef.current?.postMessage({ type: 'SYNC_CHATS', payload: updated });
+
+    // Envia via API NestJS real
+    try {
+      await apiClient.post('/chat-external/sessions', {
+        queueId: chat.queue || 'default',
+        requesterId: chat.clientEmail,
+      });
+      console.info('[Chat API] Sessão criada no banco de dados real com sucesso!');
+    } catch (err: any) {
+      console.info('[Chat API] Falha ao enviar para API REST (salvo em fallback):', err?.message);
+    }
 
     try {
       await setDoc(doc(db, 'chat_sessions', sanitizedChat.id), sanitizedChat);
@@ -137,6 +231,19 @@ function sanitizeMessages(messages?: any[]): any[] | undefined {
       currentList[idx] = { ...currentList[idx], ...sanitizedUpdates };
       saveFallbackChats(currentList);
       channelRef.current?.postMessage({ type: 'SYNC_CHATS', payload: currentList });
+    }
+
+    // Tenta atualizar via API NestJS real se houver nova mensagem
+    if (updates.messages && updates.messages.length > 0) {
+      const lastMsg = updates.messages[updates.messages.length - 1];
+      try {
+        await apiClient.post(`/chat-external/sessions/${id}/messages`, {
+          body: lastMsg.body,
+          senderType: (lastMsg as any).isAgent ? 'agent' : 'user',
+        });
+      } catch (err: any) {
+        console.info('[Chat API] Mensagem enviada em modo fallback:', err?.message);
+      }
     }
 
     try {

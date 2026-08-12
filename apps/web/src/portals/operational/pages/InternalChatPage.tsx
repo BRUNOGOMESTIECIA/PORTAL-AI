@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Send, Hash, Users, Plus, Trash2, MessageSquare, SmilePlus, Pencil, X, CornerDownRight } from 'lucide-react';
 import { MOCK_CHANNELS, MOCK_INTERNAL_MESSAGES, MOCK_STAFF, MockChatMessage } from '../../../mocks/data';
 import { cn } from '../../../lib/utils';
 import { useEscapeModal } from '../../../hooks/use-escape-modal';
 import { useAuth } from '../../../hooks/use-mock-auth';
+import { apiClient } from '../../../lib/api-client';
+import { getSocket } from '../../../lib/socket';
 
 export default function InternalChatPage() {
   const [channels, setChannels] = useState(MOCK_CHANNELS);
@@ -27,6 +29,48 @@ export default function InternalChatPage() {
 
   const currentUser = user;
   const canManage = hasPermission('chat.manage');
+
+  // Carrega canais da API NestJS real
+  useEffect(() => {
+    apiClient.get('/internal/channels')
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setChannels(data.map((c: any) => ({
+            id: c.id,
+            name: c.name || 'canal',
+            type: c.type || 'team',
+            unread: c.unread_count || 0,
+            lastMessage: c.last_message || ''
+          })));
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  // Escuta mensagens do Socket.io em tempo real
+  useEffect(() => {
+    try {
+      const socket = getSocket();
+      socket.on('internal:message:new', (msgData: any) => {
+        if (msgData.channel_id) {
+          const formatted: MockChatMessage = {
+            id: msgData.id,
+            body: msgData.body,
+            senderName: msgData.sender_name || 'Atendente',
+            senderType: 'agent',
+            createdAt: msgData.created_at || new Date().toISOString()
+          };
+          setMessagesMap(prev => ({
+            ...prev,
+            [msgData.channel_id]: [...(prev[msgData.channel_id] || []), formatted]
+          }));
+        }
+      });
+      return () => {
+        socket.off('internal:message:new');
+      };
+    } catch {}
+  }, []);
 
   const channel = channels.find((c) => c.id === channelId);
   const messages = messagesMap[channelId] || [];
@@ -52,21 +96,32 @@ export default function InternalChatPage() {
   };
 
   // ─── LÓGICA DE MENSAGENS ──────────────────────────────────────────────────────
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!input.trim() || !currentUser) return;
+    const text = input.trim();
+    setInput('');
+
     const newMsg: MockChatMessage = {
       id: `msg_${Date.now()}`,
-      body: input,
+      body: text,
       senderName: currentUser.name,
       senderType: 'agent',
       createdAt: new Date().toISOString(),
     };
+
     setMessagesMap(prev => ({
       ...prev,
       [channelId]: [...(prev[channelId] || []), newMsg]
     }));
-    setInput('');
+
+    // Envia para a API NestJS real
+    try {
+      await apiClient.post(`/internal/channels/${channelId}/messages`, { body: text });
+    } catch (err) {
+      console.info('[Chat Interno API] Mensagem enviada em modo local (fallback).');
+    }
   };
+
 
   const handleDeleteMessage = (msgId: string) => {
     setDeleteTarget({ id: msgId, type: 'message' });

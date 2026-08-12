@@ -8,6 +8,8 @@ import {
 import { useAuth } from '../../../hooks/use-mock-auth';
 import { MockClient } from '../../../mocks/data';
 import { toast } from 'sonner';
+import { apiClient } from '../../../lib/api-client';
+
 
 function GoogleIcon() {
   return (
@@ -88,14 +90,26 @@ function NotifRow({ label, desc, checked, onChange }: { label: string; desc: str
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
+
 export default function ClientProfilePage() {
   const { user, logout } = useAuth();
   const client = user as MockClient;
 
-  // Editable fields (mock only)
+  // Editable fields
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(client?.name ?? '');
   const [phone, setPhone] = useState('(11) 98765-4321');
+
+  React.useEffect(() => {
+    apiClient.get('/users/me')
+      .then((me: any) => {
+        if (me && me.name) {
+          setName(me.name);
+          if (me.phone) setPhone(me.phone);
+        }
+      })
+      .catch(() => console.info('[ClientProfilePage] API offline, utilizando mock de usuário.'));
+  }, []);
 
   // Read-only fields from integration
   const cargo = 'Analista de TI';
@@ -109,6 +123,7 @@ export default function ClientProfilePage() {
     slaAlerts: false,
     newsletter: false,
   });
+
 
   function startEdit() {
     setDraft({ name, phone });
@@ -151,7 +166,7 @@ export default function ClientProfilePage() {
                   <input
                     value={draft.name}
                     onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))}
-                    className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition"
+                    className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition"
                   />
                 </div>
                 <div>
@@ -160,7 +175,7 @@ export default function ClientProfilePage() {
                     value={draft.phone}
                     onChange={(e) => setDraft((d) => ({ ...d, phone: e.target.value }))}
                     placeholder="(11) 99999-9999"
-                    className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition"
+                    className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition"
                   />
                 </div>
                 <div className="flex gap-2 pt-1">

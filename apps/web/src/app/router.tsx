@@ -34,6 +34,7 @@ const ClientHomePage = safeLazy(() => import('../portals/client/pages/ClientHome
 const ClientTicketsPage = safeLazy(() => import('../portals/client/pages/ClientTicketsPage'));
 const ClientChatPage = safeLazy(() => import('../portals/client/pages/ClientChatPage'));
 const ClientKbPage = safeLazy(() => import('../portals/client/pages/ClientKbPage'));
+const ClientCatalogPage = safeLazy(() => import('../portals/client/pages/ClientCatalogPage'));
 const ClientProfilePage = safeLazy(() => import('../portals/client/pages/ClientProfilePage'));
 
 // Operational portal
@@ -55,6 +56,10 @@ const AdminUserDetailPage = safeLazy(() => import('../portals/operational/pages/
 const AdminClientsPage = safeLazy(() => import('../portals/operational/pages/admin/AdminClientsPage'));
 const AdminClientDetailPage = safeLazy(() => import('../portals/operational/pages/admin/AdminClientDetailPage'));
 const AdminSettingsPage = safeLazy(() => import('../portals/operational/pages/admin/AdminSettingsPage'));
+const AutomationBuilderPage = safeLazy(() => import('../portals/operational/pages/admin/AutomationBuilderPage'));
+const AiUsageDashboardPage = safeLazy(() => import('../portals/operational/pages/admin/AiUsageDashboardPage'));
+
+
 
 function ClientGuard({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
@@ -96,6 +101,7 @@ export function AppRouter() {
             <Route path="tickets/:id" element={<ClientTicketsPage />} />
             <Route path="chat" element={<ClientChatPage />} />
             <Route path="kb" element={<ClientKbPage />} />
+            <Route path="catalog" element={<ClientCatalogPage />} />
             <Route path="perfil" element={<ClientProfilePage />} />
             <Route path="*" element={<Navigate to="/portal" replace />} />
           </Route>
@@ -124,7 +130,11 @@ export function AppRouter() {
             <Route path="admin/clients" element={<AdminClientsPage />} />
             <Route path="admin/clients/new" element={<AdminClientDetailPage />} />
             <Route path="admin/clients/:id" element={<AdminClientDetailPage />} />
+            <Route path="admin/automation" element={<AutomationBuilderPage />} />
+            <Route path="admin/ai-usage" element={<AiUsageDashboardPage />} />
             <Route path="admin/settings" element={<AdminSettingsPage />} />
+
+
             <Route path="*" element={<Navigate to="/operacional/app/dashboard" replace />} />
           </Route>
 

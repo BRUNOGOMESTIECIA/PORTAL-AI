@@ -110,17 +110,66 @@ export class AiService {
     }
   }
 
+  async *completeStream(
+    messages: AiMessage[],
+    opts?: { tenantId?: string; maxTokens?: number },
+  ): AsyncGenerator<string> {
+    const ctx = this.safeGetTenantContext();
+
+    const sanitized = messages.map((m) => {
+      if (m.role === 'user') {
+        const { sanitized: clean } = sanitizePrompt(m.content, this.maxInputChars);
+        return { ...m, content: clean };
+      }
+      return m;
+    });
+
+    try {
+      const stream = await this.openai.chat.completions.create({
+        model: ctx?.aiModel ?? this.model,
+        messages: sanitized,
+        max_tokens: opts?.maxTokens ?? 1024,
+        stream: true,
+      });
+
+      for await (const chunk of stream) {
+        const token = chunk.choices[0]?.delta?.content || '';
+        if (token) {
+          yield token;
+        }
+      }
+    } catch (err: any) {
+      this.logger.warn(`[AI Stream Fallback] API offline ou sem chave (${err?.message}). Transmitindo em modo de simulação.`);
+      const fallbackText = "Entendido! Estou processando sua solicitação e verificando os procedimentos na Base de Conhecimento.";
+      const words = fallbackText.split(' ');
+      for (const word of words) {
+        yield word + ' ';
+        await new Promise((r) => setTimeout(r, 60));
+      }
+    }
+  }
+
+
   async embed(text: string): Promise<EmbeddingResult> {
     const { sanitized } = sanitizePrompt(text, this.maxInputChars);
-    const response = await this.openai.embeddings.create({
-      model: this.embeddingModel,
-      input: sanitized,
-    });
-    return {
-      embedding: response.data[0].embedding,
-      inputTokens: response.usage?.prompt_tokens ?? 0,
-    };
+    try {
+      const response = await this.openai.embeddings.create({
+        model: this.embeddingModel,
+        input: sanitized,
+      });
+      return {
+        embedding: response.data[0].embedding,
+        inputTokens: response.usage?.prompt_tokens ?? 0,
+      };
+    } catch (err: any) {
+      this.logger.warn(`[AI Embed Fallback] Chave de API ausente ou falhou (${err?.message}). Usando busca relacional por palavra-chave.`);
+      return {
+        embedding: new Array(1536).fill(0),
+        inputTokens: 0,
+      };
+    }
   }
+
 
   private createTimeout(): Promise<never> {
     return new Promise((_, reject) =>

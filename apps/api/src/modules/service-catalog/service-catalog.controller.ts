@@ -13,6 +13,10 @@ import { ServiceCatalogService } from './service-catalog.service';
 export class ServiceCatalogController {
   constructor(private readonly catalogService: ServiceCatalogService) {}
 
+  @Get()
+  @RequirePermissions('catalog.view')
+  getAllItems() { return this.catalogService.findItems(); }
+
   @Get('categories')
   @RequirePermissions('catalog.view')
   getCategories() { return this.catalogService.findCategories(); }
@@ -20,6 +24,7 @@ export class ServiceCatalogController {
   @Get('items')
   @RequirePermissions('catalog.view')
   getItems(@Query('categoryId') categoryId?: string) { return this.catalogService.findItems(categoryId); }
+
 
   @Post('items/:id/request')
   @RequirePermissions('catalog.request')

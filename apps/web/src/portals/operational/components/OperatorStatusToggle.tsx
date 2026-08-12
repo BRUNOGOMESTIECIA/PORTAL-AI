@@ -25,20 +25,15 @@ export function OperatorStatusToggle() {
       {/* Botão Pill do Header */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center gap-2 px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-800 ${config.badgeBg} transition-all duration-200 hover:scale-105 shadow-sm cursor-pointer`}
+        title={config.label}
+        className={`flex items-center justify-center w-9 h-9 rounded-full border border-slate-200 dark:border-slate-800 ${config.badgeBg} transition-all duration-200 hover:scale-105 shadow-sm cursor-pointer`}
       >
-        <span className="relative flex h-2.5 w-2.5">
+        <span className="relative flex items-center justify-center text-[15px]">
           {status === 'online' && (
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 scale-125"></span>
           )}
-          <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${config.dotColor}`}></span>
+          <span className="relative z-10">{config.icon}</span>
         </span>
-
-        <span className={`text-xs font-bold ${config.badgeText}`}>
-          {config.label}
-        </span>
-
-        <ChevronDown className={`w-3.5 h-3.5 ${config.badgeText} transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
       {/* Menu Suspenso de Seleção de Status */}

@@ -1,11 +1,13 @@
 import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
-import * as admin from 'firebase-admin';
+import { initializeApp, getApps, getApp, cert, App } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
+import { getFirestore } from 'firebase-admin/firestore';
 import * as path from 'path';
 
 @Injectable()
 export class FirebaseAdminService implements OnModuleInit {
   private readonly logger = new Logger(FirebaseAdminService.name);
-  private firebaseApp: admin.app.App;
+  private firebaseApp: App;
 
   onModuleInit() {
     this.initializeFirebaseAdmin();
@@ -13,23 +15,23 @@ export class FirebaseAdminService implements OnModuleInit {
 
   private initializeFirebaseAdmin() {
     try {
-      if (!admin.apps.length) {
+      if (!getApps().length) {
         // Usa o arquivo json criado na raiz da api
         const serviceAccountPath = path.resolve(process.cwd(), 'serviceAccountKey.json');
         
         // App principal (Portal IA) com chave mestre para assinar o token e ler o Firestore
-        this.firebaseApp = admin.initializeApp({
-          credential: admin.credential.cert(serviceAccountPath),
+        this.firebaseApp = initializeApp({
+          credential: cert(serviceAccountPath),
         });
 
         // App secundário (InstaPasso) apenas para verificar o ID Token do usuário (não precisa de chave secreta)
-        admin.initializeApp({
+        initializeApp({
           projectId: 'instapasso'
         }, 'instapassoApp');
         
         this.logger.log('Firebase Admin SDK inicializado com sucesso.');
       } else {
-        this.firebaseApp = admin.app();
+        this.firebaseApp = getApp();
       }
     } catch (error) {
       this.logger.error('Erro ao inicializar o Firebase Admin SDK', error);
@@ -45,7 +47,7 @@ export class FirebaseAdminService implements OnModuleInit {
   async createCustomToken(uid: string): Promise<string> {
     try {
       // Busca o usuário no Firestore para pegar a role/type
-      const userDoc = await admin.firestore().collection('users').doc(uid).get();
+      const userDoc = await getFirestore().collection('users').doc(uid).get();
       
       let claims = {};
       if (userDoc.exists) {
@@ -59,8 +61,8 @@ export class FirebaseAdminService implements OnModuleInit {
         claims = { role: 'client' };
       }
 
-      // O admin.auth() vai bater no projeto portal-ia-784f6
-      const token = await admin.auth().createCustomToken(uid, claims);
+      // O auth() vai bater no projeto portal-ia-784f6
+      const token = await getAuth().createCustomToken(uid, claims);
       return token;
     } catch (error) {
       this.logger.error(`Erro ao criar Custom Token para o UID: ${uid}`, error);
@@ -74,7 +76,7 @@ export class FirebaseAdminService implements OnModuleInit {
   async verifyInstaPassoToken(idToken: string) {
     try {
       // Usa o app secundário para validar a assinatura do InstaPasso
-      return await admin.app('instapassoApp').auth().verifyIdToken(idToken);
+      return await getAuth(getApp('instapassoApp')).verifyIdToken(idToken);
     } catch (error) {
       this.logger.error('Erro ao verificar ID Token do InstaPasso', error);
       throw error;

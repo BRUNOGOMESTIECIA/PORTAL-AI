@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Shield, User, Monitor, Clock, CheckCircle2, AlertCircle, ExternalLink, Pencil, Check, ChevronDown } from 'lucide-react';
+import { Shield, User, Monitor, Clock, CheckCircle2, AlertCircle, ExternalLink, Pencil, Check, ChevronDown, ChevronRight } from 'lucide-react';
 import { MockChatSession, MOCK_CLIENTS, MOCK_STAFF, TICKET_CATEGORIES } from '../../../mocks/data';
 import { useNavigate } from 'react-router-dom';
 import { NewManualTicketModal, TicketInitialData } from './NewManualTicketModal';
 import { maskEmail } from '../../../lib/utils';
 import { generateCorporateProtocol } from '../../../lib/audit-logger';
+import { useAuth } from '../../../hooks/use-mock-auth';
+import { AiHandoverSummaryWidget } from './AiHandoverSummaryWidget';
 
 // Variável global para manter o tempo rolando continuamente no sistema
 const APP_START_TIME = Date.now();
@@ -20,6 +22,10 @@ export function ContextPanel({
   priority?: string;
   onPriorityChange?: (priority: string) => void;
 }) {
+  const { user } = useAuth();
+  const isAdmin = user && 'role' in user && ((user as any).role === 'Administrator' || (user as any).role === 'admin' || (user as any).role === 'superadmin');
+  const [isSecurityAuditExpanded, setIsSecurityAuditExpanded] = useState(false);
+
   const [showTicketModal, setShowTicketModal] = useState(false);
   const navigate = useNavigate();
 
@@ -292,27 +298,7 @@ export function ContextPanel({
 
       <div className="p-5 space-y-6 flex-1 overflow-y-auto">
 
-        {/* Security IP Audit Card (Sincronizado com InstaPasso) */}
-        <div className="p-3 bg-slate-900 text-slate-100 rounded-xl text-xs space-y-2 border border-slate-800 shadow-sm">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-            <span className="font-bold text-blue-400 flex items-center gap-1.5 text-[11px]">
-              <Shield className="w-3.5 h-3.5" /> Protocolo {generateCorporateProtocol(session.ticketId || session.id)}
-            </span>
-            <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-semibold px-2 py-0.5 rounded-full border border-emerald-500/30">
-              InstaPasso SSO
-            </span>
-          </div>
-          <div className="grid grid-cols-2 gap-2 pt-0.5 text-[11px]">
-            <div>
-              <span className="text-slate-400 block text-[10px]">IP de Origem:</span>
-              <span className="font-mono text-slate-200 font-semibold">187.52.190.44</span>
-            </div>
-            <div>
-              <span className="text-slate-400 block text-[10px]">Dispositivo:</span>
-              <span className="text-slate-200 truncate block">Chrome / Win11</span>
-            </div>
-          </div>
-        </div>
+
 
         {/* Ticket Link */}
         <section>
@@ -419,29 +405,7 @@ export function ContextPanel({
           </div>
         </section>
 
-        {/* History */}
-        <section>
-          <h4 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3 flex justify-between items-center">
-            Histórico Recente
-            <span className="text-blue-600 dark:text-blue-400 hover:underline cursor-pointer lowercase normal-case text-[10px]">ver tudo</span>
-          </h4>
-          <div className="space-y-2">
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-2.5 flex gap-2">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
-              <div>
-                <p className="text-xs font-medium text-slate-700 dark:text-slate-300 line-clamp-1">Erro de VPN corporativa</p>
-                <p className="text-[10px] text-slate-400 mt-1">Resolvido há 2 dias</p>
-              </div>
-            </div>
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-2.5 flex gap-2">
-              <AlertCircle className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
-              <div>
-                <p className="text-xs font-medium text-slate-700 dark:text-slate-300 line-clamp-1">Lentidão no CRM</p>
-                <p className="text-[10px] text-slate-400 mt-1">Em andamento (Mesa N2)</p>
-              </div>
-            </div>
-          </div>
-        </section>
+
         {/* Equipment Monitoring */}
         <section>
           <div className="flex justify-between items-center mb-2">
@@ -484,6 +448,69 @@ export function ContextPanel({
             )}
           </div>
         </section>
+
+        {/* Security IP Audit Card (Sincronizado com InstaPasso) - Apenas Admin/SuperAdmin */}
+        {isAdmin && (
+          <div className="p-3 bg-slate-900 text-slate-100 rounded-xl text-xs space-y-2 border border-slate-800 shadow-sm transition-all duration-300">
+            <div 
+              onClick={() => setIsSecurityAuditExpanded(!isSecurityAuditExpanded)}
+              className={`flex items-center justify-between cursor-pointer group ${isSecurityAuditExpanded ? 'border-b border-slate-800 pb-2' : ''}`}
+            >
+              <span className="font-bold text-blue-400 flex items-center gap-1.5 text-[11px] group-hover:text-blue-300 transition-colors">
+                <Shield className="w-3.5 h-3.5" /> Protocolo {generateCorporateProtocol(session.ticketId || session.id)}
+                <ChevronRight className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${isSecurityAuditExpanded ? 'rotate-90' : ''}`} />
+              </span>
+              <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-semibold px-2 py-0.5 rounded-full border border-emerald-500/30">
+                InstaPasso SSO
+              </span>
+            </div>
+            
+            {isSecurityAuditExpanded && (
+              <div className="grid grid-cols-2 gap-2 pt-0.5 text-[11px] animate-in fade-in slide-in-from-top-2 duration-200">
+                <div>
+                  <span className="text-slate-400 block text-[10px]">IP de Origem:</span>
+                  <span className="font-mono text-slate-200 font-semibold">187.52.190.44</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[10px]">Dispositivo:</span>
+                  <span className="text-slate-200 truncate block">Chrome / Win11</span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* History */}
+        <section>
+          <h4 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3 flex justify-between items-center">
+            Histórico Recente
+            <span className="text-blue-600 dark:text-blue-400 hover:underline cursor-pointer lowercase normal-case text-[10px]">ver tudo</span>
+          </h4>
+          <div className="space-y-2">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-2.5 flex gap-2">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-xs font-medium text-slate-700 dark:text-slate-300 line-clamp-1">Erro de VPN corporativa</p>
+                <p className="text-[10px] text-slate-400 mt-1">Resolvido há 2 dias</p>
+              </div>
+            </div>
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-2.5 flex gap-2">
+              <AlertCircle className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-xs font-medium text-slate-700 dark:text-slate-300 line-clamp-1">Lentidão no CRM</p>
+                <p className="text-[10px] text-slate-400 mt-1">Em andamento (Mesa N2)</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* AI Handover Summary */}
+        {session && session.messages && session.messages.length >= 2 && (
+          <AiHandoverSummaryWidget
+            title={`Atendimento - ${session.clientName}`}
+            messages={session.messages}
+          />
+        )}
 
       </div>
       

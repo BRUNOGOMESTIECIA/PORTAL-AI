@@ -6,6 +6,10 @@ import { z } from 'zod';
 import { Link } from 'react-router-dom';
 import { useEscapeModal } from '../../../hooks/use-escape-modal';
 import { classifyTicketOrChatWithAi } from '../../../lib/ai-ticket-classifier';
+import { useTickets } from '../../../hooks/use-tickets';
+import { useBusinessHours, calculateSlaDueDate } from '../../../lib/business-hours-sla';
+import { MOCK_CATALOG_ITEMS, MockTicket } from '../../../mocks/data';
+import { useAuth } from '../../../hooks/use-mock-auth';
 
 const TICKET_TYPES = ['Incidente', 'Solicitação', 'Dúvida'];
 
@@ -17,16 +21,20 @@ export const newTicketSchema = z.object({
 
 export type NewTicketForm = z.infer<typeof newTicketSchema>;
 
-export function NewTicketModal({ initialTitle = '', onClose, onConfirm }: { initialTitle?: string; onClose: () => void; onConfirm?: () => void }) {
+export function NewTicketModal({ initialTitle = '', initialType, initialCategory, onClose, onConfirm }: { initialTitle?: string; initialType?: string; initialCategory?: string; onClose: () => void; onConfirm?: () => void }) {
   useEscapeModal(true, onClose);
   const [submitted, setSubmitted] = useState(false);
   const [attachments, setAttachments] = useState<File[]>([]);
   
   const { register, handleSubmit, watch, setValue, formState: { errors, isValid } } = useForm<NewTicketForm>({
     resolver: zodResolver(newTicketSchema),
-    defaultValues: { type: TICKET_TYPES[0], title: initialTitle, description: '' },
+    defaultValues: { type: initialType || TICKET_TYPES[0], title: initialTitle, description: initialCategory ? `Categoria: ${initialCategory}\n\n` : '' },
     mode: 'onChange'
   });
+
+  const { createTicket } = useTickets();
+  const businessHoursConfig = useBusinessHours();
+  const { user } = useAuth();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -38,7 +46,60 @@ export function NewTicketModal({ initialTitle = '', onClose, onConfirm }: { init
     setAttachments(prev => prev.filter((_, i) => i !== index));
   };
 
-  const onSubmit = (data: NewTicketForm) => {
+  const onSubmit = async (data: NewTicketForm) => {
+    // 1. Achar o item de catálogo correspondente se aplicável
+    const catalogItem = MOCK_CATALOG_ITEMS.find(item => item.name === initialTitle || ((item as any).type === data.type && item.category === initialCategory));
+    
+    // 2. Determinar SLAs
+    let slaAmountMs = 4 * 60 * 60 * 1000; // default 4 hours
+    if (catalogItem) {
+      if (catalogItem.slaType === 'days') {
+        slaAmountMs = catalogItem.slaAmount * 8 * 60 * 60 * 1000; // assumindo 8h úteis por dia
+      } else {
+        slaAmountMs = catalogItem.slaAmount * 60 * 60 * 1000;
+      }
+    }
+
+    const now = new Date();
+    // Resolução (baseado no SLA)
+    const resolutionDue = calculateSlaDueDate(now, slaAmountMs, businessHoursConfig);
+    
+    // Primeira Resposta (vamos colocar 20% do tempo de SLA de resolução)
+    const firstResponseDue = calculateSlaDueDate(now, slaAmountMs * 0.2, businessHoursConfig);
+
+    const classification = classifyTicketOrChatWithAi(data.title + ' ' + data.description);
+    const resolvedPriority = classification.priority === ('urgent' as any) ? 'critical' : classification.priority;
+
+    const newTicket: MockTicket = {
+      id: 'TCK-' + Math.floor(10000 + Math.random() * 90000),
+      number: Math.floor(1000 + Math.random() * 9000),
+      title: data.title,
+      description: data.description,
+      status: 'open',
+      priority: resolvedPriority as any,
+      type: data.type,
+      category: initialCategory || classification.category,
+
+      requesterId: user?.id || 'u-1',
+      requesterName: user?.name || 'Usuário Atual',
+      requesterEmail: user?.email || 'usuario@cliente.com',
+      assigneeName: null,
+      team: null,
+      slaFirstResponseDue: firstResponseDue.toISOString(),
+      slaResolutionDue: resolutionDue.toISOString(),
+      slaFirstResponseMet: true,
+      slaResolutionMet: true,
+      source: 'portal',
+      createdAt: now.toISOString(),
+      updatedAt: now.toISOString(),
+      closedAt: null,
+      tags: [classification.category, data.type],
+      comments: [],
+    };
+
+
+    await createTicket(newTicket);
+
     setSubmitted(true);
     if (onConfirm) onConfirm();
   };
@@ -86,7 +147,7 @@ export function NewTicketModal({ initialTitle = '', onClose, onConfirm }: { init
             <input
               {...register('title')}
               placeholder="Descreva o problema em poucas palavras"
-              className={`w-full rounded-xl border bg-white dark:bg-slate-800 px-4 py-3 text-sm outline-none focus:ring-4 transition-all placeholder-slate-400 shadow-sm
+              className={`w-full rounded-xl border bg-white dark:bg-slate-800 px-4 py-3 text-sm text-slate-900 dark:text-white outline-none focus:ring-4 transition-all placeholder-slate-400 dark:placeholder-slate-500 shadow-sm
                 ${errors.title ? 'border-red-300 focus:border-red-500 focus:ring-red-50' : 'border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-blue-50 hover:border-slate-300 dark:hover:border-slate-600'}`}
             />
             {errors.title && <p className="text-red-500 text-xs mt-1.5">{errors.title.message}</p>}
@@ -110,7 +171,7 @@ export function NewTicketModal({ initialTitle = '', onClose, onConfirm }: { init
               {...register('description')}
               placeholder="Descreva com detalhes..."
               rows={3}
-              className={`w-full rounded-xl border bg-white dark:bg-slate-800 px-4 py-3 text-sm outline-none resize-none focus:ring-4 transition-all placeholder-slate-400 shadow-sm
+              className={`w-full rounded-xl border bg-white dark:bg-slate-800 px-4 py-3 text-sm text-slate-900 dark:text-white outline-none resize-none focus:ring-4 transition-all placeholder-slate-400 dark:placeholder-slate-500 shadow-sm
                 ${errors.description ? 'border-red-300 focus:border-red-500 focus:ring-red-50' : 'border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-blue-50 hover:border-slate-300 dark:hover:border-slate-600'}`}
             />
             {errors.description && <p className="text-red-500 text-xs mt-1.5">{errors.description.message}</p>}

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+
 import { Link } from 'react-router-dom';
 import { Printer, AlertTriangle, CheckCircle2, RefreshCw, FileText, Search, X, ArrowLeft } from 'lucide-react';
 import { cn } from '../../../lib/utils';
@@ -223,9 +224,22 @@ function PrinterCard({ printer, selected, onClick }: { printer: Printer; selecte
  * Painel em tempo real para controle de parque de impressão, exibindo status 
  * operacionais, níveis de suprimentos, papel e fila de impressão.
  */
+import { apiClient } from '../../../lib/api-client';
+
 export default function PrinterMonitoringPage() {
-  // Guarda o ID da impressora selecionada para exibir a área de detalhes
-  const [selected, setSelected] = useState<string | null>(null);
+  const [printers, setPrinters] = useState<Printer[]>(MOCK_PRINTERS);
+  const [selected, setSelected] = useState<string | null>('prt_001');
+
+  useEffect(() => {
+    apiClient.get('/assets/printers')
+      .then((data: any[]) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setPrinters(data);
+        }
+      })
+      .catch(() => console.info('[PrinterMonitoring] API offline, exibindo telemetria SNMP local.'));
+  }, []);
+
   
   // Estado para busca textual (nome, modelo, etc.)
   const [search, setSearch] = useState('');

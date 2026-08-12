@@ -19,4 +19,10 @@ export class AssetsController {
   async getDeviceById(@Param('id') id: string) {
     return this.assetsService.getDeviceById(id);
   }
+
+  @Get('printers')
+  async getPrinters() {
+    return this.assetsService.getPrinters();
+  }
 }
+

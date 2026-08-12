@@ -1,13 +1,26 @@
 import React from 'react';
-import { LogOut, Settings, User, Sun, Moon, Palette, Check } from 'lucide-react';
+import { LogOut, Settings, User, Sun, Moon, Palette, Check, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/use-mock-auth';
 import { useTheme } from '../theme-provider';
 
 export function UserMenu() {
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
   const { theme, setTheme } = useTheme();
   const [open, setOpen] = React.useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        updateUser({ avatarUrl: reader.result as string });
+        setOpen(false);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   if (!user) return null;
 
@@ -44,6 +57,36 @@ export function UserMenu() {
               </Link>
               <div className="my-1 border-t border-border" />
 
+              <input 
+                type="file" 
+                accept="image/*" 
+                ref={fileInputRef} 
+                className="hidden" 
+                onChange={handleFileChange} 
+              />
+              <button
+                onClick={() => {
+                  fileInputRef.current?.click();
+                }}
+                className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-accent transition-colors"
+              >
+                <User className="h-4 w-4" /> Alterar Foto
+              </button>
+              
+              {user.avatarUrl && (
+                <button
+                  onClick={() => {
+                    updateUser({ avatarUrl: undefined });
+                    setOpen(false);
+                  }}
+                  className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-amber-600 hover:bg-amber-600/10 transition-colors"
+                >
+                  <X className="h-4 w-4" /> Remover Foto
+                </button>
+              )}
+              
+              <div className="my-1 border-t border-border" />
+              
               <button
                 onClick={logout}
                 className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-destructive hover:bg-destructive/10 transition-colors"

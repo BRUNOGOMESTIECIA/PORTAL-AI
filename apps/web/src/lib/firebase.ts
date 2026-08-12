@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { getAuth, connectAuthEmulator } from "firebase/auth";
+import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -31,5 +31,17 @@ export const auth = getAuth(app);
 export const instaPassoAuth = getAuth(instaPassoApp);
 export const db = getFirestore(app);
 export const instaPassoDb = getFirestore(instaPassoApp);
+
+// Conectar aos emuladores apenas quando explicitamente ativado via variável de ambiente
+if (import.meta.env.VITE_USE_FIREBASE_EMULATOR === 'true') {
+  const host = "localhost";
+  console.info(`[Firebase] Conectando aos emuladores locais no host: ${host}`);
+  connectAuthEmulator(auth, `http://${host}:9099`);
+  connectAuthEmulator(instaPassoAuth, `http://${host}:9099`, { disableWarnings: true });
+  connectFirestoreEmulator(db, host, 8080);
+  connectFirestoreEmulator(instaPassoDb, host, 8080);
+}
+
+
 export { instaPassoApp };
 export default app;

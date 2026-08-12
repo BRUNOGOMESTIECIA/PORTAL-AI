@@ -132,7 +132,7 @@ function AiChatModal({ initialPrompt, user, onClose }: { initialPrompt: string; 
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Digite sua mensagem..."
-              className="w-full rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 py-3.5 pl-5 pr-14 text-sm outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100 hover:border-slate-300 dark:hover:border-slate-600"
+              className="w-full rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 py-3.5 pl-5 pr-14 text-sm text-slate-900 dark:text-white outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100 hover:border-slate-300 dark:hover:border-slate-600"
             />
             <button
               type="submit"

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, AlertTriangle, CheckCircle2, ShieldAlert, PauseCircle } from 'lucide-react';
-import { differenceInSeconds } from 'date-fns';
-import { isSlaPausedNow } from '../../../lib/business-hours-sla';
+import { isSlaPausedNow, calculateElapsedBusinessMs, getBusinessHoursConfig } from '../../../lib/business-hours-sla';
 
 interface SlaCountdownBarProps {
   dueIsoString: string;
@@ -29,6 +28,8 @@ export default function SlaCountdownBar({
   showProgressBar = true,
 }: SlaCountdownBarProps) {
   const [now, setNow] = useState<Date>(new Date());
+  // Guarda a config apenas na montagem (para não ler do localstorage a cada render)
+  const [config] = useState(() => getBusinessHoursConfig());
 
   // Atualização em Tempo Real (Tick a cada 1 segundo)
   useEffect(() => {
@@ -87,22 +88,26 @@ export default function SlaCountdownBar({
           <span className="text-[10px] uppercase font-mono font-bold bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-100 px-2 py-0.5 rounded">Congelado</span>
         </div>
         <p className="text-[11px] text-amber-800 dark:text-amber-400">
-          A contagem será retomada automaticamente no próximo dia útil às 08h00.
+          A contagem será retomada automaticamente no próximo dia útil.
         </p>
       </div>
     );
   }
 
-  const diffSeconds = differenceInSeconds(dueDate, now);
-  const totalDurationSeconds = Math.max(1, differenceInSeconds(dueDate, createdDate));
-  const elapsedSeconds = Math.max(0, totalDurationSeconds - diffSeconds);
-  const percentageUsed = Math.min(100, Math.max(0, Math.round((elapsedSeconds / totalDurationSeconds) * 100)));
+  // Cálculos precisos considerando apenas as horas úteis
+  const totalDurationMs = calculateElapsedBusinessMs(createdDate, dueDate, config) || 1;
+  const elapsedMs = calculateElapsedBusinessMs(createdDate, now, config);
+  const remainingMs = totalDurationMs - elapsedMs;
+  
+  const percentageUsed = Math.min(100, Math.max(0, Math.round((elapsedMs / totalDurationMs) * 100)));
 
-  const isBreached = diffSeconds <= 0;
+  const isBreached = remainingMs <= 0;
+  
+  const diffSeconds = remainingMs / 1000;
   const absSeconds = Math.abs(diffSeconds);
   const hours = Math.floor(absSeconds / 3600);
   const minutes = Math.floor((absSeconds % 3600) / 60);
-  const seconds = absSeconds % 60;
+  const seconds = Math.floor(absSeconds % 60);
 
   const formattedTime = hours > 0
     ? `${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`

@@ -17,6 +17,7 @@ import { format, formatDistanceToNow, isPast } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { formatTicketProtocol } from '../../../lib/audit-logger';
+import { processUploadWithQuarantine, QuarantineAttachment } from '../../../lib/file-upload-sanitizer';
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
@@ -171,7 +172,7 @@ function CloseTicketModal({ ticket, onClose, onConfirm }: { ticket: MockTicket; 
               onChange={(e) => setReason(e.target.value)}
               placeholder="Ex: Problema resolvido por conta própria, não é mais necessário..."
               rows={3}
-              className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 px-4 py-3 text-sm placeholder:text-slate-400 dark:text-slate-500 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition resize-none"
+              className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 px-4 py-3 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder-slate-500 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition resize-none"
             />
           </div>
           <div className="flex justify-end gap-3 pt-1">
@@ -199,72 +200,68 @@ function RatingModal({ ticket, onClose, onConfirm }: { ticket: MockTicket; onClo
   const [hovered, setHovered] = useState(0);
   const [comment, setComment] = useState('');
 
-  const labels = ['', 'Muito ruim', 'Ruim', 'Regular', 'Bom', 'Excelente'];
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md">
-        <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-slate-100 dark:border-slate-700/50">
-          <div>
-            <h2 className="text-base font-bold text-slate-900 dark:text-slate-50">Avaliar atendimento</h2>
-            <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">#{ticket.number} — {ticket.title}</p>
-          </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 transition-all duration-200 hover:-translate-y-[1.5px] active:translate-y-[0.5px] hover:shadow-md">
-            <X className="h-4 w-4" />
-          </button>
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="bg-[#18181b] border border-purple-500/30 shadow-[0_0_30px_rgba(168,85,247,0.15)] rounded-2xl p-6 w-full max-w-md text-center text-white">
+        <h2 className="text-lg font-bold tracking-wide uppercase mb-2">Avaliação de Atendimento</h2>
+        <p className="text-gray-300 text-sm">
+          Este atendimento foi encerrado.<br/>Obrigado!
+        </p>
+        <div className="my-3 font-semibold text-gray-200">
+          Ticket #{ticket.number}
         </div>
-        <div className="p-6 space-y-5">
-          <div>
-            <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-3 text-center">Como você avalia o atendimento?</p>
-            <div className="flex justify-center gap-2">
-              {[1, 2, 3, 4, 5].map((n) => (
-                <button
-                  key={n}
-                  onClick={() => setScore(n)}
-                  onMouseEnter={() => setHovered(n)}
-                  onMouseLeave={() => setHovered(0)}
-                  className="transition-transform hover:scale-110"
-                >
-                  <Star
-                    className={`h-9 w-9 transition-colors ${
-                      n <= (hovered || score)
-                        ? 'fill-amber-400 text-amber-400'
-                        : 'text-slate-200'
-                    }`}
-                  />
-                </button>
-              ))}
-            </div>
-            {(hovered || score) > 0 && (
-              <p className="text-center text-xs font-medium text-amber-600 mt-2">
-                {labels[hovered || score]}
-              </p>
-            )}
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 dark:text-slate-500 mb-1.5">
-              Comentário <span className="text-slate-400 dark:text-slate-500 font-normal">(opcional)</span>
-            </label>
-            <textarea
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              placeholder="Conte como foi sua experiência..."
-              rows={3}
-              className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 px-4 py-3 text-sm placeholder:text-slate-400 dark:text-slate-500 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition resize-none"
-            />
-          </div>
-          <div className="flex justify-end gap-3">
-            <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:bg-slate-800 rounded-xl transition-all duration-200 hover:-translate-y-[1.5px] active:translate-y-[0.5px] hover:shadow-md">
-              Agora não
-            </button>
+        <p className="text-sm text-gray-400 mb-3">Como você avalia nosso atendimento?</p>
+        
+        <div className="flex justify-center gap-1 text-amber-400 text-2xl mb-4">
+          {[1, 2, 3, 4, 5].map((n) => (
             <button
-              onClick={() => onConfirm(score, comment)}
-              disabled={score === 0}
-              className="px-5 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white text-sm font-semibold rounded-xl transition-colors"
+              key={n}
+              onClick={() => setScore(n)}
+              onMouseEnter={() => setHovered(n)}
+              onMouseLeave={() => setHovered(0)}
+              className="focus:outline-none transition-transform hover:scale-110 cursor-pointer"
             >
-              Enviar avaliação
+              <Star
+                className={`h-8 w-8 transition-colors ${
+                  n <= (hovered || score)
+                    ? 'fill-amber-400 text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]'
+                    : 'text-gray-700 fill-gray-800'
+                }`}
+              />
             </button>
+          ))}
+        </div>
+
+        {/* Campo de comentário de no máximo 500 caracteres */}
+        <div className="mb-4 text-left">
+          <textarea
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            maxLength={500}
+            placeholder="Escreva um comentário ou sugestão (opcional, máx 500 caracteres)..."
+            rows={3}
+            className="w-full text-xs p-3 rounded-xl border border-gray-700 bg-gray-900/80 text-gray-200 outline-none focus:border-purple-500 transition-colors resize-none placeholder:text-gray-500"
+          />
+          <div className="flex justify-between items-center text-[10px] text-gray-500 mt-1 px-1">
+            <span>Opcional</span>
+            <span>{comment.length}/500</span>
           </div>
+        </div>
+
+        <div className="flex gap-3">
+          <button 
+            onClick={onClose}
+            className="flex-1 py-2.5 rounded-lg border border-gray-600 text-gray-300 hover:bg-gray-800 font-medium transition-colors cursor-pointer"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={() => onConfirm(score, comment)}
+            disabled={score === 0}
+            className="flex-1 py-2.5 rounded-lg bg-white text-black font-semibold hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          >
+            Enviar Avaliação
+          </button>
         </div>
       </div>
     </div>
@@ -328,7 +325,7 @@ function ChildTicketModal({ parent, onClose, onConfirm }: { parent: MockTicket; 
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Descreva o problema em poucas palavras"
-              className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-50 hover:border-slate-300 dark:hover:border-slate-600 transition-all placeholder-slate-400 shadow-sm"
+              className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm text-slate-900 dark:text-white outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-50 hover:border-slate-300 dark:hover:border-slate-600 transition-all placeholder-slate-400 dark:placeholder-slate-500 shadow-sm"
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -377,7 +374,7 @@ function ChildTicketModal({ parent, onClose, onConfirm }: { parent: MockTicket; 
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Descreva com detalhes..."
               rows={4}
-              className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm outline-none resize-none focus:border-blue-500 focus:ring-4 focus:ring-blue-50 hover:border-slate-300 dark:hover:border-slate-600 transition-all placeholder-slate-400 shadow-sm"
+              className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm text-slate-900 dark:text-white outline-none resize-none focus:border-blue-500 focus:ring-4 focus:ring-blue-50 hover:border-slate-300 dark:hover:border-slate-600 transition-all placeholder-slate-400 dark:placeholder-slate-500 shadow-sm"
             />
           </div>
           <div className="flex justify-end gap-3 pt-2">
@@ -577,7 +574,7 @@ export default function ClientTicketsPage() {
   const [filter, setFilter] = useState<FilterStatus>('all');
   const [searchFilter, setSearchFilter] = useState('');
   const [reply,  setReply]  = useState('');
-  const [replyAttachments, setReplyAttachments] = useState<File[]>([]);
+  const [replyAttachments, setReplyAttachments] = useState<QuarantineAttachment[]>([]);
 
   // Modal state
   const [closingTicket, setClosingTicket]   = useState<MockTicket | null>(null);
@@ -630,17 +627,49 @@ export default function ClientTicketsPage() {
   }
 
   function handleCloseConfirm(_reason: string) {
+    if (closingTicket) {
+      updateTicket(closingTicket.id, {
+        status: 'closed',
+        closedAt: new Date().toISOString(),
+        comments: [
+          ...closingTicket.comments,
+          {
+            id: `c-${Date.now()}`,
+            body: `Chamado fechado pelo cliente. Motivo: ${_reason}`,
+            authorName: user?.name || 'Cliente',
+            authorType: 'user',
+            createdAt: new Date().toISOString(),
+            isInternal: false,
+          }
+        ]
+      });
+      // Abre o modal de avaliação logo após fechar
+      setRatingTicket(closingTicket);
+    }
     setClosingTicket(null);
     toast.success('Chamado fechado com sucesso.');
   }
 
   function handleRatingConfirm(_score: number, _comment: string) {
+    if (ratingTicket) {
+      updateTicket(ratingTicket.id, {
+        rating: _score,
+        ratingComment: _comment,
+        ratedAt: new Date().toISOString()
+      });
+    }
     setRatingTicket(null);
     toast.success('Avaliação enviada. Obrigado pelo feedback!');
   }
 
   function handleReply(e: React.FormEvent) {
     e.preventDefault();
+    const hasVerifying = replyAttachments.some(a => a.status === 'VERIFYING');
+    const hasMalicious = replyAttachments.some(a => a.status === 'MALICIOUS');
+    if (hasVerifying || hasMalicious) {
+      toast.error('Aguarde a verificação dos anexos ou remova os bloqueados.');
+      return;
+    }
     if (!reply.trim() && replyAttachments.length === 0) return;
     toast.success('Resposta enviada.');
     setReply('');
@@ -649,12 +678,21 @@ export default function ClientTicketsPage() {
 
   const handleReplyFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      setReplyAttachments(prev => [...prev, ...Array.from(e.target.files!)]);
+      Array.from(e.target.files).forEach(file => {
+        const id = Math.random().toString(36).substring(7);
+        setReplyAttachments(prev => [...prev, { id, file, status: 'VERIFYING' }]);
+        
+        processUploadWithQuarantine(file, (status, result) => {
+          setReplyAttachments(prev => prev.map(a => 
+            a.id === id ? { ...a, status, result } : a
+          ));
+        });
+      });
     }
   };
   
-  const removeReplyFile = (index: number) => {
-    setReplyAttachments(prev => prev.filter((_, i) => i !== index));
+  const removeReplyFile = (idToRemove: string) => {
+    setReplyAttachments(prev => prev.filter(a => a.id !== idToRemove));
   };
 
   const selected = id ? tickets.find((t) => t.id === id) : null;
@@ -828,24 +866,36 @@ export default function ClientTicketsPage() {
                       onChange={(e) => setReply(e.target.value)}
                       placeholder="Adicione uma informação ou responda à equipe..."
                       rows={3}
-                      className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 px-4 py-3 text-sm placeholder:text-slate-400 dark:text-slate-500 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition resize-none"
+                      className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 px-4 py-3 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder-slate-500 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition resize-none"
                     />
                     
                     {replyAttachments.length > 0 && (
                       <div className="flex flex-wrap gap-3 pt-2 pb-2">
-                        {replyAttachments.map((file, i) => {
+                        {replyAttachments.map((attachment) => {
+                          const { id, file, status, result } = attachment;
                           const isImage = file.type.startsWith('image/');
                           const previewUrl = isImage ? URL.createObjectURL(file) : null;
                           return (
-                            <div key={i} className="relative group rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden bg-slate-50 dark:bg-slate-800 shrink-0">
-                              {isImage ? (
-                                <img src={previewUrl!} alt="preview" className="h-16 w-16 object-cover" />
+                            <div key={id} className={`relative group rounded-xl border overflow-hidden shrink-0 ${status === 'MALICIOUS' ? 'border-red-500 bg-red-50' : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800'}`}>
+                              {status === 'VERIFYING' && (
+                                <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px] flex flex-col items-center justify-center z-10 p-2 text-center">
+                                  <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin mb-1"></div>
+                                  <span className="text-[9px] text-white font-medium uppercase tracking-wider">Analisando...</span>
+                                </div>
+                              )}
+                              {status === 'MALICIOUS' ? (
+                                <div className="h-20 w-24 flex flex-col items-center justify-center text-red-500 bg-red-50/50 p-2" title={result?.reason || 'Bloqueado por segurança'}>
+                                  <AlertCircle className="h-6 w-6 mb-1" />
+                                  <span className="text-[10px] font-bold text-center leading-tight">Ameaça<br/>Bloqueada</span>
+                                </div>
+                              ) : isImage && previewUrl ? (
+                                <img src={previewUrl} alt="preview" className={`h-20 w-20 object-cover ${status === 'VERIFYING' ? 'opacity-50' : ''}`} />
                               ) : (
                                 <div className="h-16 w-16 flex items-center justify-center">
                                   <Paperclip className="h-6 w-6 text-slate-400 dark:text-slate-500" />
                                 </div>
                               )}
-                              <button type="button" onClick={() => removeReplyFile(i)} className="absolute top-1 right-1 bg-black/60 hover:bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button type="button" onClick={() => removeReplyFile(id)} className="absolute top-1 right-1 bg-black/60 hover:bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <X className="h-3 w-3" />
                               </button>
                             </div>
@@ -1007,7 +1057,7 @@ export default function ClientTicketsPage() {
               value={searchFilter}
               onChange={e => setSearchFilter(e.target.value)}
               placeholder="Buscar por #ID ou título..."
-              className="pl-9 pr-4 py-2 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900/40 transition-all w-64 shadow-sm"
+              className="pl-9 pr-4 py-2 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900/40 transition-all w-64 shadow-sm"
             />
           </div>
           {FILTER_OPTIONS.map((opt) => (

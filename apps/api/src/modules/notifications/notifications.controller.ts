@@ -1,4 +1,4 @@
-import { Controller, Get, Param, ParseUUIDPipe, Patch, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../core/auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../core/auth/decorators/current-user.decorator';
@@ -22,4 +22,11 @@ export class NotificationsController {
   markRead(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: UserEntity) {
     return this.notificationsService.markRead(id, user.id);
   }
+
+  @Post('webpush/subscribe')
+  @ApiOperation({ summary: 'Registrar assinatura de Web Push Notifications' })
+  subscribeWebPush(@Body() body: any, @CurrentUser() user: UserEntity) {
+    return this.notificationsService.saveWebPushSubscription(user.id, body);
+  }
 }
+

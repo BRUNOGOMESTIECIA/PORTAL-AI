@@ -1,3 +1,4 @@
+import { formatTicketProtocol } from '../../../lib/audit-logger';
 import React, { useState } from 'react';
 import {
   X, Search, CheckCircle2, ChevronDown, Paperclip, Send,
@@ -431,7 +432,7 @@ export function NewManualTicketModal({ onClose, initialData, onSuccess, isFromCh
           </div>
           <h2 className="text-lg font-bold text-slate-900 dark:text-slate-50 mb-1">Ticket criado!</h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">
-            Ticket <span className="font-bold text-slate-700 dark:text-slate-300">#{createdNumber}</span> adicionado ao board.
+            Ticket <span className="font-bold text-slate-700 dark:text-slate-300">{formatTicketProtocol(createdNumber)}</span> adicionado ao board.
           </p>
           {selectedCompany && (
             <p className="text-xs text-slate-400 dark:text-slate-500 mb-1">

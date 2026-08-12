@@ -102,4 +102,64 @@ export class AssetsService {
   async getDeviceById(id: string) {
     return MOCK_API_DEVICES.find(d => d.id === id);
   }
+
+  async getPrinters() {
+    return [
+      {
+        id: 'prt_001',
+        name: 'Impressora TI - Andar 3',
+        model: 'HP LaserJet Pro MFP M428dw',
+        patrimony: 'IMP-00301',
+        location: 'Andar 3 - TI',
+        company: 'Empresa Matriz',
+        unit: 'São Paulo - SP',
+        sector: 'Tecnologia da Informação',
+        ip: '192.168.1.200',
+        status: 'online',
+        ink: { cyan: 72, magenta: 68, yellow: 55, black: 89 },
+        pagesTotal: 48320,
+        pagesMonth: 1240,
+        lastPrint: 'Há 5 minutos',
+        paperLevel: 85,
+        jobsQueue: 0,
+      },
+      {
+        id: 'prt_002',
+        name: 'Impressora Recepção - Térreo',
+        model: 'Epson EcoTank L3250',
+        patrimony: 'IMP-00102',
+        location: 'Térreo - Recepção',
+        company: 'Empresa Matriz',
+        unit: 'São Paulo - SP',
+        sector: 'Atendimento',
+        ip: '192.168.1.201',
+        status: 'warning',
+        ink: { cyan: 15, magenta: 12, yellow: 45, black: 92 },
+        pagesTotal: 29150,
+        pagesMonth: 890,
+        lastPrint: 'Há 12 minutos',
+        paperLevel: 10,
+        jobsQueue: 2,
+      },
+      {
+        id: 'prt_003',
+        name: 'Multifuncional RH - Andar 2',
+        model: 'Brother MFC-L2740DW',
+        patrimony: 'IMP-00205',
+        location: 'Andar 2 - RH',
+        company: 'Empresa Matriz',
+        unit: 'São Paulo - SP',
+        sector: 'Recursos Humanos',
+        ip: '192.168.1.202',
+        status: 'printing',
+        ink: { cyan: 90, magenta: 85, yellow: 80, black: 40 },
+        pagesTotal: 63100,
+        pagesMonth: 2150,
+        lastPrint: 'Agora mesmo',
+        paperLevel: 60,
+        jobsQueue: 4,
+      },
+    ];
+  }
 }
+

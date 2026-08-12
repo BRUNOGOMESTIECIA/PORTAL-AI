@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MOCK_DASHBOARD_STATS, MOCK_TICKETS } from '../../../mocks/data';
 import { Download, Filter, Calendar, Users, Globe, Building2, Activity, Folder, AlertTriangle, Star } from 'lucide-react';
+
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar, PieChart, Pie, Cell, Legend
@@ -13,14 +14,29 @@ import { StaffLeaderboardWidget } from '../components/StaffLeaderboardWidget';
 import { CsatTrendWidget } from '../components/CsatTrendWidget';
 import { B2bCompanyPerformanceModal } from '../components/B2bCompanyPerformanceModal';
 import { FirstContactResolutionWidget } from '../components/FirstContactResolutionWidget';
+import { apiClient } from '../../../lib/api-client';
 
 const COLORS = ['#3b82f6', '#f59e0b', '#10b981', '#6366f1', '#ef4444', '#8b5cf6'];
 
 export default function ReportsPage() {
   const { tickets } = useTickets();
+  const [reportData, setReportData] = useState<any>(null);
+
+  useEffect(() => {
+    Promise.all([
+      apiClient.get('/reports/tickets').catch(() => null),
+      apiClient.get('/reports/sla').catch(() => null),
+    ]).then(([ticketsSummary, slaSummary]) => {
+      if (ticketsSummary) {
+        setReportData({ ticketsSummary, slaSummary });
+      }
+    });
+  }, []);
+
   const stats = MOCK_DASHBOARD_STATS;
-  const total = stats.ticketsByStatus.reduce((s, t) => s + t.count, 0);
-  const resolved = MOCK_TICKETS.filter((t) => ['resolved', 'closed'].includes(t.status)).length;
+  const total = tickets.length > 0 ? tickets.length : stats.ticketsByStatus.reduce((s, t) => s + t.count, 0);
+  const resolved = tickets.filter((t) => ['resolved', 'closed'].includes(t.status)).length;
+
 
   // Filtros simulados com Período Personalizado
   const [period, setPeriod] = useState('Últimos 30 dias');
@@ -387,11 +403,12 @@ export default function ReportsPage() {
 
       {/* Tabela de Pesquisas de Satisfação CSAT Recebidas */}
       {(() => {
-        const liveRated = tickets.filter(t => (t as any).rating);
-        const ratedList = liveRated.length > 0 ? liveRated : MOCK_TICKETS.filter(t => (t as any).rating);
+        const liveRated = tickets.filter((t: any) => (t as any).rating);
+        const ratedList = liveRated.length > 0 ? liveRated : MOCK_TICKETS.filter((t: any) => (t as any).rating);
         const avgScore = ratedList.length > 0
-          ? (ratedList.reduce((sum, t) => sum + ((t as any).rating || 5), 0) / ratedList.length).toFixed(1)
+          ? (ratedList.reduce((sum: number, t: any) => sum + ((t as any).rating || 5), 0) / ratedList.length).toFixed(1)
           : '5.0';
+
 
         return (
           <div className="space-y-6">
@@ -439,7 +456,8 @@ export default function ReportsPage() {
                       </td>
                     </tr>
                   ) : (
-                    ratedList.map((t) => {
+                    ratedList.map((t: any) => {
+
                       const score = (t as any).rating || 5;
                       const comment = (t as any).ratingComment;
                       return (

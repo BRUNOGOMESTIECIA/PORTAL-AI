@@ -22,36 +22,61 @@ export class RagService {
   ): Promise<RagSearchResult[]> {
     const ds = getTenantDataSource();
 
-    // Generate embedding for the query
-    const { embedding } = await this.aiService.embed(query);
-    const embeddingStr = `[${embedding.join(',')}]`;
+    try {
+      const { embedding } = await this.aiService.embed(query);
+      const embeddingStr = `[${embedding.join(',')}]`;
 
-    // Cosine similarity search filtered by article visibility
-    // Respects user permissions: only public articles OR articles the user can access
-    const results = await ds.query(
-      `
-      SELECT
-        e.chunk_text,
-        e.article_id,
-        a.title AS article_title,
-        1 - (e.embedding <=> $1::vector) AS similarity
-      FROM ai_kb_embeddings e
-      JOIN kb_articles a ON a.id = e.article_id
-      WHERE a.status = 'published'
-        AND (a.is_public = true)
-      ORDER BY e.embedding <=> $1::vector
-      LIMIT $2
-    `,
-      [embeddingStr, topK],
-    );
+      const results = await ds.query(
+        `
+        SELECT
+          e.chunk_text,
+          e.article_id,
+          a.title AS article_title,
+          1 - (e.embedding <=> $1::vector) AS similarity
+        FROM ai_kb_embeddings e
+        JOIN kb_articles a ON a.id = e.article_id
+        WHERE a.status = 'published' AND a.is_public = true
+        ORDER BY e.embedding <=> $1::vector
+        LIMIT $2
+      `,
+        [embeddingStr, topK],
+      );
 
-    return results.map((r: any) => ({
-      chunkText: r.chunk_text,
-      articleId: r.article_id,
-      articleTitle: r.article_title,
-      similarity: parseFloat(r.similarity),
-    }));
+      if (results.length > 0) {
+        return results.map((r: any) => ({
+          chunkText: r.chunk_text,
+          articleId: r.article_id,
+          articleTitle: r.article_title,
+          similarity: parseFloat(r.similarity || '0.8'),
+        }));
+      }
+    } catch (err: any) {
+      this.logger.log('[RagService] Usando busca relacional por palavras-chave na KB (modo sem API Key).');
+    }
+
+
+    // Fallback: busca tradicional relacional ILIKE na tabela kb_articles
+    try {
+      const kwResults = await ds.query(
+        `SELECT id AS article_id, title AS article_title, content AS chunk_text
+         FROM kb_articles
+         WHERE status = 'published' AND is_public = true
+           AND (title ILIKE $1 OR content ILIKE $1)
+         LIMIT $2`,
+        [`%${query}%`, topK],
+      );
+
+      return kwResults.map((r: any) => ({
+        chunkText: r.chunk_text,
+        articleId: r.article_id,
+        articleTitle: r.article_title,
+        similarity: 0.9,
+      }));
+    } catch {
+      return [];
+    }
   }
+
 
   async indexArticle(articleId: string, content: string): Promise<void> {
     const ds = getTenantDataSource();

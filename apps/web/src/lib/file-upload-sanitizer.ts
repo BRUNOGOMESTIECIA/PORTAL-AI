@@ -22,6 +22,16 @@ export interface SanitizationResult {
   };
 }
 
+export type AttachmentStatus = 'VERIFYING' | 'SAFE' | 'MALICIOUS';
+
+export interface QuarantineAttachment {
+  id: string;
+  file: File;
+  status: AttachmentStatus;
+  result?: SanitizationResult;
+  progress?: number;
+}
+
 // Configuração Padrão de Sanitização ISO 27001 / OWASP
 const DEFAULT_CONFIG: FileSanitizationConfig = {
   blockExecutables: true,
@@ -174,4 +184,28 @@ export async function validateAndSanitizeFile(file: File): Promise<SanitizationR
   // Se passou em todas as verificações
   logAuditEvent('FILE_UPLOAD_CLEAN', `Arquivo sanitizado e aprovado pelo ClamAV: ${file.name} (${(file.size / 1024).toFixed(1)} KB, Bytes: ${hexString})`);
   return { safe: true, fileDetails: fullDetails };
+}
+
+/**
+ * Função Wrapper para simular a quarentena e a demora do Scan (Antivírus)
+ */
+export async function processUploadWithQuarantine(
+  file: File,
+  onStatusChange?: (status: AttachmentStatus, result?: SanitizationResult) => void
+): Promise<SanitizationResult> {
+  // Inicialmente marca como verificando
+  if (onStatusChange) onStatusChange('VERIFYING');
+
+  // Adiciona um delay artificial de 2 a 4 segundos para simular a varredura do motor AV
+  const scanDelayMs = Math.floor(Math.random() * 2000) + 2000;
+  await new Promise(resolve => setTimeout(resolve, scanDelayMs));
+
+  // Roda a sanitização real (magic bytes, ext, etc)
+  const result = await validateAndSanitizeFile(file);
+
+  // Atualiza o status
+  const finalStatus = result.safe ? 'SAFE' : 'MALICIOUS';
+  if (onStatusChange) onStatusChange(finalStatus, result);
+
+  return result;
 }

@@ -1,15 +1,18 @@
+import { formatTicketProtocol } from '../../../lib/audit-logger';
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Filter, Plus, Clock, MessageCircle, User, Send, CheckCircle, ArrowRightLeft, Image as ImageIcon, FileText, PanelRight, X, ChevronLeft, ChevronDown, ChevronUp, Reply, Download, Lock } from 'lucide-react';
+import { Search, Filter, Plus, Clock, MessageCircle, User, Send, CheckCircle, ArrowRightLeft, Image as ImageIcon, FileText, PanelRight, X, ChevronLeft, ChevronDown, ChevronUp, Reply, Download, Lock, Edit2, Check, Bot, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSearchParams } from 'react-router-dom';
 import { MockChatSession, MockChatMessage, MOCK_CLIENTS, MOCK_STAFF, MOCK_MACROS } from '../../../mocks/data';
 import { ContextPanel } from '../components/ContextPanel';
 import { useAuth } from '../../../hooks/use-mock-auth';
 import { useChats } from '../../../hooks/use-chats';
+import { apiClient } from '../../../lib/api-client';
+
 import { exportChatTranscriptToPdf } from '../../../lib/export-utils';
 import { sendChatTranscriptEmail } from '../../../lib/chat-email-sender';
 import { getAiSolutionSuggestion } from '../../../lib/ai-solution-copilot';
-import { AiHandoverSummaryWidget } from '../components/AiHandoverSummaryWidget';
+
 
 import { instaPassoDb } from '../../../lib/firebase';
 import { collection, getDocs, query, where } from 'firebase/firestore';
@@ -22,7 +25,16 @@ import { useTypingIndicator } from '../../../hooks/use-typing-indicator';
 import { TypingIndicator } from '../../../components/TypingIndicator';
 import { validateAndSanitizeFile } from '../../../lib/file-upload-sanitizer';
 import { ChatTransferHandoffModal } from '../../../components/chat/ChatTransferHandoffModal';
-import { TransferTargetOption } from '../../../lib/chat-transfer-handoff';
+
+// Helper function to get initials for avatars
+const getInitials = (name: string) => {
+  if (!name) return '?';
+  const parts = name.trim().split(' ');
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+  return name.slice(0, 2).toUpperCase();
+};import { TransferTargetOption } from '../../../lib/chat-transfer-handoff';
 
 type ChatTab = 'entrada' | 'meus' | 'em_atendimento' | 'encerrados';
 
@@ -52,6 +64,59 @@ function formatTimeBR(dateString: string | undefined) {
   }
 }
 
+const STAGE_1_WAIT_MESSAGES = [
+  'Olá! Já recebi sua mensagem e estou abrindo seu cadastro no sistema para te atender. Só um instante por favor!',
+  'Certo, estou verificando os detalhes da sua solicitação no meu painel. Me dê só um minutinho por gentileza.',
+  'Estou iniciando a análise do seu caso agora mesmo. Aguarde só um momento!',
+];
+
+const STAGE_2_WAIT_MESSAGES = [
+  'Ainda estou consultando as informações nos servidores aqui, obrigado pela paciência! Já te trago um retorno.',
+  'Estou realizando alguns testes na sua conexão no momento. Me dê mais 2 minutinhos por favor!',
+  'Só mais um instante, estou verificando os históricos anteriores do seu sistema para resolver da melhor forma.',
+];
+
+const STAGE_3_WAIT_MESSAGES = [
+  'Agradeço bastante a sua paciência! Já chamei o especialista técnico para validar a solução comigo. Só mais um momento, por gentileza.',
+  'Estou finalizando os testes de diagnóstico no servidor aqui. Já te dou a posição definitiva em instantes!',
+  'Obrigado por aguardar! Estou concluindo a verificação de segurança no seu perfil para liberar a solução.',
+];
+
+function getDynamicSlaWaitMessage(session: MockChatSession | null): string {
+  if (!session) return 'Já irei te responder, aguarde um momento por favor.';
+
+  const elapsedMinutes = session.waitingMinutes || 0;
+  let pool = STAGE_1_WAIT_MESSAGES;
+  if (elapsedMinutes >= 8) {
+    pool = STAGE_3_WAIT_MESSAGES;
+  } else if (elapsedMinutes >= 3) {
+    pool = STAGE_2_WAIT_MESSAGES;
+  }
+
+  // Pega textos anteriores enviados pelo atendente para NUNCA repetir a mesma frase
+  const previousSentTexts = (session.messages || [])
+    .filter(m => m.senderType === 'agent' || m.senderType === 'ai')
+    .map(m => (m.body || '').trim());
+
+  // Filtra apenas as mensagens do pool que ainda NÃO foram enviadas
+  const unusedMessages = pool.filter(msg => !previousSentTexts.includes(msg.trim()));
+
+
+  if (unusedMessages.length > 0) {
+    const index = Math.abs(previousSentTexts.length + Math.floor(Date.now() / 2000)) % unusedMessages.length;
+    return unusedMessages[index];
+  }
+
+  // Fallback: se já usou todas do estágio atual, busca em todo o acervo mensagens inéditas
+  const allPools = [...STAGE_1_WAIT_MESSAGES, ...STAGE_2_WAIT_MESSAGES, ...STAGE_3_WAIT_MESSAGES];
+  const allUnused = allPools.filter(msg => !previousSentTexts.includes(msg.trim()));
+  if (allUnused.length > 0) {
+    return allUnused[0];
+  }
+
+  return `Já irei te responder com os próximos passos. Agradeço sua paciência! (${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })})`;
+}
+
 export default function ChatQueuePage() {
   const { hasPermission, user } = useAuth();
   const { chats, updateChat } = useChats();
@@ -61,6 +126,22 @@ export default function ChatQueuePage() {
 
   useEffect(() => {
     const fetchStaff = async () => {
+      try {
+        const users = await apiClient.get('/users?role=agent');
+        if (Array.isArray(users) && users.length > 0) {
+          const mapped = users.map((u: any) => ({
+            id: u.id,
+            name: u.name || u.fullName || u.email?.split('@')[0] || 'Atendente',
+            role: u.role || 'Agente',
+            isOnline: true,
+          }));
+          setRealStaff(mapped);
+          return;
+        }
+      } catch {
+        // Ignora falha de API backend e tenta Firestore/Mock
+      }
+
       try {
         const q = query(collection(instaPassoDb, 'operators'), where('status', '==', 'ACTIVE'));
         const snap = await getDocs(q);
@@ -84,6 +165,7 @@ export default function ChatQueuePage() {
     fetchStaff();
   }, []);
 
+
   const [selectedId, setSelectedId] = useState<string | null>('ch_andre');
   const selected = chats.find(c => c.id === selectedId) || null;
   const [input, setInput] = useState('');
@@ -98,6 +180,56 @@ export default function ChatQueuePage() {
   const [search, setSearch] = useState('');
   const [forceRender, setForceRender] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const [editingMsgId, setEditingMsgId] = useState<string | null>(null);
+  const [editingText, setEditingText] = useState<string>('');
+  const [now, setNow] = useState<number>(Date.now());
+
+  // Atualizar relógio a cada segundo para o temporizador de 15 segundos
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const canEditMessage = (msg: MockChatMessage) => {
+    if (msg.senderType !== 'agent' && msg.senderType !== 'internal') return false;
+    if (msg.isDeleted) return false;
+    const created = new Date(msg.createdAt).getTime();
+    const diffSeconds = (now - created) / 1000;
+    return diffSeconds <= 15 && diffSeconds >= 0;
+  };
+
+  const handleStartEdit = (msg: MockChatMessage) => {
+    setEditingMsgId(msg.id);
+    setEditingText(msg.body);
+  };
+
+  const handleSaveEdit = async (msgId: string) => {
+    if (!selected || !editingText.trim()) return;
+    const targetMsg = selected.messages.find(m => m.id === msgId);
+    if (!targetMsg || !canEditMessage(targetMsg)) {
+      toast.error('O tempo limite de 15 segundos para edição expirou!');
+      setEditingMsgId(null);
+      return;
+    }
+
+    const updatedMessages = selected.messages.map(m => {
+      if (m.id === msgId) {
+        return {
+          ...m,
+          body: editingText.trim(),
+          isEdited: true,
+          editedAt: new Date().toISOString()
+        };
+      }
+      return m;
+    });
+
+    await updateChat(selected.id, { messages: updatedMessages });
+    toast.success('Mensagem corrigida com sucesso!');
+    setEditingMsgId(null);
+    setEditingText('');
+  };
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -151,8 +283,19 @@ export default function ChatQueuePage() {
     prevChatsRef.current = chats;
   }, [chats, sendNotification, selectedId]);
 
+  // --------------------------------------------------------------------------
+  // PERMISSÕES E TRAVAS DO MODO SUN TZU
+  // --------------------------------------------------------------------------
+  
+  // Verifica se o usuário logado é um Administrador (Nível mais alto)
   const isAdmin = user && 'role' in user && (user as any).role === 'Administrator';
-  const isSunTzuBlocked = sunTzuMode && !isAdmin;
+  
+  // Verifica se o usuário logado é um N1 (Alvo do Modo Sun Tzu)
+  const isN1 = user && 'role' in user && (user as any).role === 'Support Agent';
+  
+  // A Trava Sun Tzu só entra em ação se o modo estiver ligado E o usuário for N1.
+  // (N2 e Admins são imunes e podem continuar clicando em Assumir manualmente)
+  const isSunTzuBlocked = sunTzuMode && isN1;
 
   useEffect(() => {
     const handleStorage = () => {
@@ -339,9 +482,14 @@ export default function ChatQueuePage() {
       const chatInMock = chats.find(c => c.id === selected.id);
       if (chatInMock) {
         if (newStatus === 'active') {
+          // ----------------------------------------------------------------------
           // Trava de Limite de 3 Chats Simultâneos quando Modo Sun Tzu está ATIVADO (Item 050)
+          // Impede que o agente burle o sistema clicando rápido em Assumir antes do botão desativar.
+          // ----------------------------------------------------------------------
           const myActiveChatsCount = chats.filter(c => c.status === 'active' && (c.agentName === (user?.name || 'Você') || c.agentName === 'Atendente')).length;
-          if (sunTzuMode && myActiveChatsCount >= 3) {
+          const isN1User = user && 'role' in user && (user as any).role === 'Support Agent';
+          
+          if (sunTzuMode && isN1User && myActiveChatsCount >= 3) {
             toast.error('🛑 [MODO SUN TZU ATIVO] Limite de 3 atendimentos simultâneos atingido! Conclua um chat em andamento antes de assumir um novo.', {
               duration: 5000
             });
@@ -372,7 +520,7 @@ export default function ChatQueuePage() {
               ...chatInMock.messages,
               {
                 id: `m_system_${Date.now()}`,
-                body: `Atendimento encerrado. O chamado #${ticketId} foi atualizado com as informações desta conversa.`,
+                body: `Atendimento encerrado. O chamado ${formatTicketProtocol(ticketId)} foi atualizado com as informações desta conversa.`,
                 senderName: 'Sistema',
                 senderType: 'system',
                 createdAt: new Date().toISOString()
@@ -401,6 +549,33 @@ export default function ChatQueuePage() {
         }
       }
     }
+  };
+
+  // --------------------------------------------------------------------------
+  // FUNÇÃO: Intervenção Administrativa (Takeover)
+  // Permite que um Administrador "tome" o controle de um chat ativo de outro agente.
+  // --------------------------------------------------------------------------
+  const handleAdminTakeover = async () => {
+    if (!selected) return;
+    const chatInMock = chats.find(c => c.id === selected.id);
+    if (!chatInMock) return;
+
+    // Gera a mensagem sistêmica informando a intervenção
+    const takeoverMsg: MockChatMessage = {
+      id: `m_system_${Date.now()}`,
+      body: `[Intervenção Administrativa] O administrador ${user?.name || 'Administrador'} assumiu este atendimento.`,
+      senderName: 'Sistema',
+      senderType: 'system',
+      createdAt: new Date().toISOString()
+    };
+
+    // Atualiza o dono do chat e insere a mensagem
+    await updateChat(chatInMock.id, { 
+      agentName: user?.name || 'Administrador',
+      messages: [...chatInMock.messages, takeoverMsg] 
+    });
+    
+    toast.success('Atendimento assumido com sucesso!');
   };
 
   const handleSendMessage = () => {
@@ -591,7 +766,7 @@ export default function ChatQueuePage() {
     });
 
   return (
-    <div className="relative h-full flex bg-white dark:bg-slate-900 overflow-hidden">
+    <div className="h-full flex flex-col lg:flex-row bg-white dark:bg-slate-900 overflow-hidden relative">
       
       {/* ─── Coluna 1: Fila de Atendimento (Sidebar) ─── */}
       <div className={`shrink-0 border-r border-slate-200 flex flex-col h-full bg-slate-50/50 transition-all ${selected ? 'hidden lg:flex w-full lg:w-[320px]' : 'flex w-full lg:w-[320px]'}`}>
@@ -686,17 +861,18 @@ export default function ChatQueuePage() {
                       <span className="text-[10px] text-slate-400">
                         {formatTimeBR(chat.messages[chat.messages.length - 1]?.createdAt || chat.createdAt)}
                       </span>
-                      <div className={`w-2 h-2 rounded-full ${chat.status === 'active' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                      <div className={`w-2 h-2 rounded-full ${chat.status === 'active' ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse animate-bounce'}`} />
                     </div>
                     {chat.status === 'waiting' ? (
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded text-amber-700 bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400">
-                        Baixa
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded text-amber-700 bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400 animate-pulse flex items-center gap-1">
+                        <span className="w-1 h-1 rounded-full bg-amber-500 animate-ping inline-block" /> Baixa
                       </span>
                     ) : (
                       <span className="text-[10px] font-bold px-1.5 py-0.5 rounded text-rose-700 bg-rose-100 dark:bg-rose-900/30 dark:text-rose-400">
                         Alta
                       </span>
                     )}
+
                   </div>
                 </div>
               </button>
@@ -745,8 +921,8 @@ export default function ChatQueuePage() {
         ) : (
           <>
             {/* Header do Palco */}
-            <div className="h-[72px] shrink-0 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between px-3 md:px-5">
-              <div className="flex items-center gap-2 md:gap-3">
+            <div className="min-h-[72px] py-2 shrink-0 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-3 md:px-5">
+              <div className="flex items-center gap-2 md:gap-3 w-full sm:w-auto">
                 <button 
                   onClick={() => setSelectedId(null)}
                   className="lg:hidden p-2 -ml-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
@@ -772,12 +948,23 @@ export default function ChatQueuePage() {
                     Não consigo acessar o ERP
                   </p>
                   <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
-                    Fila de Chat
+                    {isPeerTyping ? (
+                      <span className="text-emerald-500 font-medium animate-pulse flex items-center gap-1">
+                        <span className="flex space-x-0.5">
+                          <span className="w-1 h-1 bg-emerald-500 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                          <span className="w-1 h-1 bg-emerald-500 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                          <span className="w-1 h-1 bg-emerald-500 rounded-full animate-bounce"></span>
+                        </span>
+                        digitando...
+                      </span>
+                    ) : (
+                      "Fila de Chat"
+                    )}
                   </p>
                 </div>
               </div>
               
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center justify-start sm:justify-end gap-2 w-full sm:w-auto">
                 {((user?.role || '').trim().toUpperCase().includes('ADMINISTRAD')) && (
                   <button
                     onClick={() => {
@@ -821,7 +1008,7 @@ export default function ChatQueuePage() {
                 </button>
                 {selected.status === 'waiting' ? (() => {
                   const activeCount = chats.filter(c => c.status === 'active' && (c.agentName === (user?.name || 'Você') || c.agentName === 'Atendente')).length;
-                  const isLimitReached = sunTzuMode && activeCount >= 3;
+                  const isLimitReached = sunTzuMode && isN1 && activeCount >= 3;
                   const isBlocked = isSunTzuBlocked || isLimitReached;
 
                   return (
@@ -836,6 +1023,15 @@ export default function ChatQueuePage() {
                   );
                 })() : (
                   <>
+                    {isAdmin && selected.agentName !== (user?.name || 'Você') && (
+                      <button
+                        onClick={handleAdminTakeover}
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors flex items-center gap-1.5 shadow-sm"
+                        title="Tomar o controle deste chat para si"
+                      >
+                        <UserPlus className="w-3.5 h-3.5" /> Intervir / Assumir
+                      </button>
+                    )}
                     <div className="relative" ref={transferRef}>
                       <button 
                         onClick={() => !selected.pendingTransferTo && setShowTransferMenu(!showTransferMenu)}
@@ -927,23 +1123,43 @@ export default function ChatQueuePage() {
               {selected.messages.map((msg) => {
                 const isRightSide = msg.senderType === 'agent' || msg.senderType === 'system' || msg.senderType === 'internal';
                 const isInternal = msg.senderType === 'internal';
+                const canEdit = canEditMessage(msg);
+                const createdTime = new Date(msg.createdAt).getTime();
+                const remainingSecs = Math.max(0, 15 - Math.floor((now - createdTime) / 1000));
+
                 return (
                   <div key={msg.id} className={`flex items-end gap-2 group ${isRightSide ? 'justify-end' : 'justify-start'}`}>
                     {isRightSide && (
-                      <button
-                        type="button"
-                        onClick={() => setReplyTo({ id: msg.id, senderName: msg.senderName, body: msg.body })}
-                        className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-blue-500 rounded transition-opacity"
-                        title="Citar esta mensagem"
-                      >
-                        <Reply className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                    {!isRightSide && (
-                      <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center mr-1 flex-shrink-0 mt-auto">
-                        <User className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {canEdit && editingMsgId !== msg.id && (
+                          <button
+                            type="button"
+                            onClick={() => handleStartEdit(msg)}
+                            className="p-1 text-slate-400 hover:text-amber-500 rounded flex items-center gap-0.5 text-[11px] font-bold"
+                            title={`Editar mensagem (${remainingSecs}s restantes)`}
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                            <span>{remainingSecs}s</span>
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => setReplyTo({ id: msg.id, senderName: msg.senderName, body: msg.body })}
+                          className="p-1 text-slate-400 hover:text-blue-500 rounded"
+                          title="Citar esta mensagem"
+                        >
+                          <Reply className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     )}
+                    {/* Avatar Client (Esquerda) */}
+                    {!isRightSide && (
+                      <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center mr-1 flex-shrink-0 text-xs font-bold shadow-sm mb-0.5 overflow-hidden">
+                        {getInitials(msg.senderName)}
+                      </div>
+                    )}
+                    
+                    {/* Conteúdo da Mensagem */}
                     <div className={`max-w-[70%] rounded-2xl px-4 py-2.5 text-[15px] leading-relaxed shadow-sm ${
                       isInternal
                         ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-900 dark:text-amber-100 border border-amber-200 dark:border-amber-800/50 rounded-br-sm'
@@ -959,25 +1175,64 @@ export default function ChatQueuePage() {
                         </div>
                       )}
                       {!isRightSide && <p className="text-xs font-bold mb-1 text-slate-500 dark:text-slate-400">{msg.senderName}</p>}
-                      {msg.body.startsWith('[GIF:') && msg.body.includes('http') ? (
-                        <div className="my-1 overflow-hidden rounded-xl">
-                          <img 
-                            src={msg.body.match(/\((.*?)\)/)?.[1] || ''} 
-                            alt="GIF Animado" 
-                            className="max-w-[220px] max-h-[160px] rounded-xl object-cover shadow-md hover:scale-105 transition-transform" 
+
+                      {editingMsgId === msg.id ? (
+                        <div className="flex items-center gap-1.5 min-w-[220px]">
+                          <input
+                            type="text"
+                            value={editingText}
+                            onChange={(e) => setEditingText(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleSaveEdit(msg.id);
+                              if (e.key === 'Escape') setEditingMsgId(null);
+                            }}
+                            autoFocus
+                            className="w-full text-xs p-1.5 bg-black/20 text-white rounded outline-none border border-blue-400"
                           />
+                          <button
+                            type="button"
+                            onClick={() => handleSaveEdit(msg.id)}
+                            className="p-1 bg-white text-blue-600 rounded hover:bg-blue-50"
+                            title="Salvar alteração"
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditingMsgId(null)}
+                            className="p-1 text-white/80 hover:text-white"
+                            title="Cancelar"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       ) : (
-                        <div>
-                          <p>{msg.body}</p>
-                          {isTranslationEnabled && (
-                            <div className="mt-1.5 pt-1 border-t border-slate-200/40 dark:border-slate-700/60 text-[11px] text-blue-600 dark:text-blue-300 font-medium flex items-center gap-1">
-                              <span className="font-bold shrink-0">🌐 Tradução ({translationTargetLang.toUpperCase()}):</span>
-                              <span className="italic">{translateMessageWithAi(msg.body, translationTargetLang)}</span>
+                        <>
+                          {msg.body.startsWith('[GIF:') && msg.body.includes('http') ? (
+                            <div className="my-1 overflow-hidden rounded-xl">
+                              <img 
+                                src={msg.body.match(/\((.*?)\)/)?.[1] || ''} 
+                                alt="GIF Animado" 
+                                className="max-w-[220px] max-h-[160px] rounded-xl object-cover shadow-md hover:scale-105 transition-transform" 
+                              />
+                            </div>
+                          ) : (
+                            <div>
+                              <p>{msg.body}</p>
+                              {msg.isEdited && (
+                                <span className="text-[9px] opacity-75 italic block mt-0.5 text-right">(editado)</span>
+                              )}
+                              {isTranslationEnabled && (
+                                <div className="mt-1.5 pt-1 border-t border-slate-200/40 dark:border-slate-700/60 text-[11px] text-blue-600 dark:text-blue-300 font-medium flex items-center gap-1">
+                                  <span className="font-bold shrink-0">🌐 Tradução ({translationTargetLang.toUpperCase()}):</span>
+                                  <span className="italic">{translateMessageWithAi(msg.body, translationTargetLang)}</span>
+                                </div>
+                              )}
                             </div>
                           )}
-                        </div>
+                        </>
                       )}
+                      
                       <div className={`text-[10px] mt-1 text-right ${
                         isInternal 
                           ? 'text-amber-700/60 dark:text-amber-400/50' 
@@ -997,6 +1252,25 @@ export default function ChatQueuePage() {
                       >
                         <Reply className="w-3.5 h-3.5" />
                       </button>
+                    )}
+                    
+                    {/* Avatar Attendant/System (Direita) */}
+                    {isRightSide && (
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ml-1 flex-shrink-0 text-xs font-bold shadow-sm mb-0.5 overflow-hidden ${
+                        isInternal 
+                          ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400'
+                          : msg.senderType === 'system'
+                            ? 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                            : 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-400'
+                      }`}>
+                        {msg.senderType === 'system' ? (
+                          <Bot className="w-4 h-4" />
+                        ) : user?.avatarUrl && msg.senderName === user?.name ? (
+                          <img src={user.avatarUrl} alt={msg.senderName} className="w-full h-full object-cover" />
+                        ) : (
+                          getInitials(msg.senderName)
+                        )}
+                      </div>
                     )}
                   </div>
                 );
@@ -1051,7 +1325,7 @@ export default function ChatQueuePage() {
                 )}
               </div>
             ) : (
-              <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 shrink-0 flex flex-col">
+              <div className="p-4 pb-12 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 shrink-0 flex flex-col">
                 {replyTo && (
                   <div className="flex items-center justify-between px-3 py-2 bg-blue-50 dark:bg-slate-800 border-l-4 border-blue-500 rounded-lg mb-2 text-xs">
                     <div className="min-w-0 flex-1">
@@ -1190,6 +1464,22 @@ export default function ChatQueuePage() {
                     >
                       <FileText className="w-5 h-5" />
                     </button>
+                    {/* Botão Mensagem Inédita de Aguarde por SLA */}
+                    <button 
+                      onClick={() => {
+                        const dynamicMsg = getDynamicSlaWaitMessage(selected);
+                        setInput(dynamicMsg);
+                        toast.success('⚡ Mensagem inédita de aguarde por SLA gerada!', { duration: 3000 });
+                        setTimeout(() => inputRef.current?.focus(), 100);
+                      }}
+                      disabled={selected.status === 'waiting' || (selected.status as any) === 'closed' || (selected.status as any) === 'finished' || !hasPermission('chat.attend')} 
+                      className="p-3 text-amber-600 dark:text-amber-400 hover:text-amber-700 bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/20 dark:hover:bg-amber-900/30 border border-amber-200 dark:border-amber-700/50 rounded-xl transition-colors shrink-0 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                      title="Inserir Mensagem Inédita de Aguarde (Progressão de SLA)"
+                    >
+                      <Clock className={`w-5 h-5 ${(selected?.waitingMinutes || 0) >= 3 ? 'animate-bounce text-amber-500 font-bold' : ''}`} />
+                    </button>
+
+
                     <EmojiStickerPicker
                       disabled={selected.status === 'waiting' || (selected.status as any) === 'closed' || (selected.status as any) === 'finished' || !hasPermission('chat.attend')}
                       onSelectEmoji={(emoji) => {
@@ -1252,12 +1542,6 @@ export default function ChatQueuePage() {
           </button>
         )}
         <div className="w-full xl:w-72 h-full overflow-y-auto p-2 space-y-3">
-          {selected && selected.messages && selected.messages.length >= 2 && (
-            <AiHandoverSummaryWidget
-              title={`Atendimento - ${selected.clientName}`}
-              messages={selected.messages}
-            />
-          )}
           <ContextPanel 
             session={selected} 
             onStatusChange={handleStatusChange} 
@@ -1291,3 +1575,8 @@ export default function ChatQueuePage() {
     </div>
   );
 }
+
+
+
+
+

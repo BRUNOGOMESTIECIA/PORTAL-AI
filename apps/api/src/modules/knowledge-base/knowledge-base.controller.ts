@@ -58,4 +58,12 @@ export class KnowledgeBaseController {
   reject(@Param('id') id: string, @Body() body: { notes: string }, @CurrentUser() user: UserEntity) {
     return this.kbService.reject(id, user.id, body.notes);
   }
+
+  @Patch(':id')
+  @RequirePermissions('kb.write')
+  @ApiOperation({ summary: 'Atualizar artigo' })
+  update(@Param('id') id: string, @Body() body: any) {
+    return this.kbService.update(id, body);
+  }
 }
+

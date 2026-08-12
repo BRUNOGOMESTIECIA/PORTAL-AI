@@ -1,6 +1,6 @@
 import React from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { HeadphonesIcon, Ticket, BookOpen, LogOut, LayoutGrid, Bell, Sun, Moon, Star, X, CheckCircle2 } from 'lucide-react';
+import { HeadphonesIcon, Ticket, BookOpen, LogOut, LayoutGrid, Bell, Sun, Moon, Star, X, CheckCircle2, Layers } from 'lucide-react';
 import { useAuth } from '../../hooks/use-mock-auth';
 import { ChatWidget } from './components/ChatWidget';
 import { MockClient, MOCK_NOTIFICATIONS, MockNotification } from '../../mocks/data';
@@ -12,18 +12,20 @@ import { formatTicketProtocol, logSecurityAudit } from '../../lib/audit-logger';
 import { CorporateFooterWidget } from '../../components/shared/CorporateFooterWidget';
 import { PageTransitionWrapper } from '../../components/shared/PageTransitionWrapper';
 
+/**
+ * CLIENT SHELL (Portal do Cliente)
+ * 
+ * Este componente é o "Layout Base" (Wrapper) para todas as páginas que o cliente final acessa.
+ * Ele engloba a navegação superior (Navbar), as notificações, o widget de Chat flutuante e a 
+ * injeção do componente de pesquisa de satisfação (CSAT).
+ * A tag <Outlet /> do React Router renderiza as páginas filhas no meio deste layout.
+ */
 export default function ClientShell() {
   const { user, logout } = useAuth();
   const { tickets, updateTicket } = useTickets();
   const location = useLocation();
   const client = user as MockClient;
 
-  // Estados do Modal Automático de Pesquisa CSAT (Reincidente a cada Login)
-  const [csatSubmitted, setCsatSubmitted] = React.useState(false);
-  const [csatScore, setCsatScore] = React.useState(0);
-  const [csatHovered, setCsatHovered] = React.useState(0);
-  const [csatComment, setCsatComment] = React.useState('');
-  
   // Lê chamados dispensados na sessão atual do navegador
   const [dismissedTicketId, setDismissedTicketIdState] = React.useState<string | null>(() => {
     if (typeof window !== 'undefined') {
@@ -51,37 +53,73 @@ export default function ClientShell() {
     );
   }, [tickets, client, dismissedTicketId]);
 
-  const handleSendCsat = async () => {
-    if (!unratedTicket || csatScore === 0) return;
+  const handleSendCsat = async (score: number, comment?: string) => {
+    if (!unratedTicket || score === 0) return;
     
     try {
       await updateTicket(unratedTicket.id, {
-        rating: csatScore,
-        ratingComment: csatComment,
+        rating: score,
+        ratingComment: comment || '',
         ratedAt: new Date().toISOString()
       } as any);
 
       logSecurityAudit({
         protocol: formatTicketProtocol(unratedTicket.number || unratedTicket.id),
-        action: `Pesquisa CSAT (${csatScore} Estrelas)`,
+        action: `Pesquisa CSAT (${score} Estrelas)`,
         originPortal: 'Portal do Cliente',
         userName: client?.name || 'Cliente',
         userEmail: client?.email || '',
-        details: csatComment ? `Comentário: ${csatComment}` : 'Sem comentário'
+        details: comment ? `Comentário: ${comment}` : 'Avaliação registrada via Portal'
       });
 
-      setCsatSubmitted(true);
-      setTimeout(() => {
-        setCsatSubmitted(false);
-        setDismissedTicketId(unratedTicket.id);
-      }, 2000);
+      setDismissedTicketId(unratedTicket.id);
     } catch (e) {
       console.error("Erro ao enviar avaliação CSAT:", e);
     }
   };
 
   const [showNotifications, setShowNotifications] = React.useState(false);
-  const [notifications, setNotifications] = React.useState<MockNotification[]>(MOCK_NOTIFICATIONS);
+  
+  const [readNotifs, setReadNotifs] = React.useState<Set<string>>(() => {
+    const saved = localStorage.getItem('client_read_notifs');
+    return saved ? new Set(JSON.parse(saved)) : new Set();
+  });
+
+  const notifications = React.useMemo(() => {
+    if (!client) return [];
+    const clientTickets = tickets.filter(t => t.requesterEmail === client.email || t.requesterId === client.id);
+    const notifs: any[] = [];
+    
+    clientTickets.forEach(t => {
+      if (['resolved', 'closed'].includes(t.status)) {
+        notifs.push({
+          id: `res_${t.id}`,
+          title: 'Chamado Resolvido',
+          body: `O chamado #${t.number || t.id.substring(0,6)} (${t.title}) foi resolvido.`,
+          createdAt: t.updatedAt || t.createdAt,
+          read: readNotifs.has(`res_${t.id}`)
+        });
+      } else if (t.status === 'in_progress') {
+        notifs.push({
+          id: `prog_${t.id}`,
+          title: 'Chamado em Andamento',
+          body: `A equipe está trabalhando no chamado #${t.number || t.id.substring(0,6)} (${t.title}).`,
+          createdAt: t.updatedAt || t.createdAt,
+          read: readNotifs.has(`prog_${t.id}`)
+        });
+      } else if (t.status === 'open' || t.status === 'new') {
+        notifs.push({
+          id: `new_${t.id}`,
+          title: 'Chamado Registrado',
+          body: `Seu chamado #${t.number || t.id.substring(0,6)} foi recebido e está na fila.`,
+          createdAt: t.createdAt,
+          read: readNotifs.has(`new_${t.id}`)
+        });
+      }
+    });
+    
+    return notifs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 15);
+  }, [tickets, client, readNotifs]);
   
   useEscapeModal(showNotifications, () => setShowNotifications(false));
 
@@ -103,11 +141,17 @@ export default function ClientShell() {
   const unreadCount = notifications.filter(n => !n.read).length;
 
   const markAsRead = (id: string) => {
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+    setReadNotifs(prev => {
+      const next = new Set(prev);
+      next.add(id);
+      localStorage.setItem('client_read_notifs', JSON.stringify(Array.from(next)));
+      return next;
+    });
   };
 
   const navItems = [
     { path: '/portal', label: 'Início', icon: LayoutGrid, exact: true },
+    { path: '/portal/catalog', label: 'Catálogo de Serviços', icon: Layers },
     { path: '/portal/tickets', label: 'Meus Tickets', icon: Ticket },
     { path: '/portal/kb', label: 'Base de Conhecimento', icon: BookOpen },
   ];
@@ -115,16 +159,61 @@ export default function ClientShell() {
   const isActive = (path: string, exact?: boolean) =>
     exact ? location.pathname === path : location.pathname.startsWith(path);
 
+  // White Label Theme
+  const [wlTheme, setWlTheme] = React.useState<any>(null);
+  React.useEffect(() => {
+    if (client?.companySlug) {
+      const saved = localStorage.getItem(`whitelabel_theme_${client.companySlug}`);
+      if (saved) {
+        try {
+          setWlTheme(JSON.parse(saved));
+        } catch(e) {}
+      }
+    }
+  }, [client?.companySlug]);
+
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-200">
+    <div id="client-portal-root" className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-200">
+      {wlTheme && (
+        <style dangerouslySetInnerHTML={{__html: `
+          #client-portal-root .bg-blue-600 { background-color: ${wlTheme.primaryColor} !important; }
+          #client-portal-root .text-blue-600 { color: ${wlTheme.primaryColor} !important; }
+          #client-portal-root .border-blue-600 { border-color: ${wlTheme.primaryColor} !important; }
+          
+          #client-portal-root .bg-blue-700 { background-color: ${wlTheme.accentColor} !important; }
+          #client-portal-root .text-blue-700 { color: ${wlTheme.accentColor} !important; }
+          
+          #client-portal-root .hover\\:bg-blue-700:hover { background-color: ${wlTheme.accentColor} !important; }
+          #client-portal-root .hover\\:text-blue-700:hover { color: ${wlTheme.accentColor} !important; }
+          
+          #client-portal-root .bg-blue-50 { background-color: ${wlTheme.primaryColor}15 !important; }
+          #client-portal-root .hover\\:bg-blue-50:hover { background-color: ${wlTheme.primaryColor}15 !important; }
+          
+          #client-portal-root .ring-blue-100 { --tw-ring-color: ${wlTheme.primaryColor}30 !important; }
+          #client-portal-root .focus\\:border-blue-400:focus { border-color: ${wlTheme.primaryColor} !important; }
+          #client-portal-root .focus\\:border-blue-500:focus { border-color: ${wlTheme.primaryColor} !important; }
+          
+          #client-portal-root .text-blue-800 { color: ${wlTheme.accentColor} !important; }
+          #client-portal-root .hover\\:text-blue-800:hover { color: ${wlTheme.accentColor} !important; }
+          #client-portal-root .text-blue-500 { color: ${wlTheme.primaryColor} !important; }
+          
+          #client-portal-root .dark\\:text-blue-500:is(.dark *) { color: ${wlTheme.primaryColor} !important; }
+          #client-portal-root .dark\\:text-blue-400:is(.dark *) { color: ${wlTheme.accentColor} !important; }
+          #client-portal-root .dark\\:bg-blue-500\\/10:is(.dark *) { background-color: ${wlTheme.primaryColor}20 !important; }
+        `}} />
+      )}
       {/* Header */}
       <header className="sticky top-0 z-40 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur">
         <div className="mx-auto max-w-5xl flex items-center justify-between px-6 h-14">
           {/* Logo + company */}
           <div className="flex items-center gap-2">
-            <HeadphonesIcon className="h-5 w-5 text-blue-600 dark:text-blue-500" />
+            {wlTheme?.logoUrl ? (
+              <img src={wlTheme.logoUrl} alt="Logo" className="h-7 max-w-[120px] object-contain rounded" />
+            ) : (
+              <HeadphonesIcon className="h-5 w-5 text-blue-600 dark:text-blue-500" />
+            )}
             <span className="font-semibold text-slate-800 dark:text-white text-sm">
-              {client?.company ?? 'Portal de Suporte'}
+              {wlTheme?.customTitle || client?.company || 'Portal de Suporte'}
             </span>
           </div>
 
@@ -253,96 +342,107 @@ export default function ClientShell() {
       </nav>
 
       {/* Main Content */}
-      <main className="mx-auto max-w-5xl px-6 py-8 min-h-[calc(100vh-180px)]">
-        <PageTransitionWrapper keyName={location.pathname}>
-          <Outlet />
-        </PageTransitionWrapper>
+      <main className="mx-auto max-w-5xl px-6 py-8 flex-1 flex flex-col w-full min-h-[calc(100vh-180px)] justify-between">
+        <div className="flex-1 flex flex-col">
+          <PageTransitionWrapper keyName={location.pathname}>
+            <Outlet />
+          </PageTransitionWrapper>
+        </div>
+        {/* Rodapé Corporativo LGPD (Item 102) */}
+        <div className="mt-12 pt-4">
+          <CorporateFooterWidget />
+        </div>
       </main>
-
-      {/* Rodapé Corporativo LGPD (Item 102) */}
-      <CorporateFooterWidget />
 
       {/* Floating chat */}
       <ChatWidget />
 
-      {/* Modal Automático de Pesquisa de Satisfação (CSAT / NPS) */}
+      {/* Modal Automático de Pesquisa de Satisfação CSAT/NPS Escuro (PDF) */}
       {unratedTicket && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6 border border-slate-200 dark:border-slate-700">
-            {csatSubmitted ? (
-              <div className="text-center py-6">
-                <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto mb-3" />
-                <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Avaliação Registrada!</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Muito obrigado por seu feedback. Ele nos ajuda a melhorar a qualidade do suporte.</p>
-              </div>
-            ) : (
-              <>
-                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700/60 pb-3 mb-4">
-                  <div>
-                    <span className="text-[11px] font-bold font-mono px-2 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400">
-                      {formatTicketProtocol(unratedTicket.number || unratedTicket.id)}
-                    </span>
-                    <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 mt-1">Ticket Concluído</h3>
-                  </div>
-                  <button onClick={() => setDismissedTicketId(unratedTicket.id)} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-
-                <div className="space-y-4">
-                  <p className="text-xs text-slate-600 dark:text-slate-300 text-center font-medium">
-                    Como você avalia o atendimento prestado em <strong>"{unratedTicket.title}"</strong>?
-                  </p>
-
-                  <div className="flex justify-center gap-2 py-2">
-                    {[1, 2, 3, 4, 5].map((n) => (
-                      <button
-                        key={n}
-                        onClick={() => setCsatScore(n)}
-                        onMouseEnter={() => setCsatHovered(n)}
-                        onMouseLeave={() => setCsatHovered(0)}
-                        className="transition-transform hover:scale-110 cursor-pointer"
-                      >
-                        <Star
-                          className={`w-8 h-8 ${
-                            n <= (csatHovered || csatScore)
-                              ? 'fill-amber-400 text-amber-400'
-                              : 'text-slate-200 dark:text-slate-700'
-                          }`}
-                        />
-                      </button>
-                    ))}
-                  </div>
-
-                  <textarea
-                    value={csatComment}
-                    onChange={(e) => setCsatComment(e.target.value)}
-                    placeholder="Escreva um breve comentário (opcional)..."
-                    rows={3}
-                    className="w-full text-xs p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 outline-none focus:border-blue-500"
-                  />
-
-                  <div className="flex justify-end gap-2 pt-1">
-                    <button
-                      onClick={() => setDismissedTicketId(unratedTicket.id)}
-                      className="px-3.5 py-2 text-xs font-medium text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
-                    >
-                      Avaliar Mais Tarde
-                    </button>
-                    <button
-                      disabled={csatScore === 0}
-                      onClick={handleSendCsat}
-                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white font-semibold text-xs rounded-lg shadow-sm transition-colors cursor-pointer"
-                    >
-                      Enviar Avaliação
-                    </button>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
+        <RatingModalDark
+          ticket={unratedTicket}
+          onClose={() => setDismissedTicketId(unratedTicket.id)}
+          onConfirm={(score, comment) => handleSendCsat(score, comment)}
+        />
       )}
     </div>
   );
 }
+
+function RatingModalDark({ ticket, onClose, onConfirm }: { ticket: any; onClose: () => void; onConfirm: (score: number, comment: string) => void }) {
+  useEscapeModal(true, onClose);
+  const [score, setScore]     = React.useState(0);
+  const [hovered, setHovered] = React.useState(0);
+  const [comment, setComment] = React.useState('');
+
+  return (
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="bg-[#18181b] border border-purple-500/30 shadow-[0_0_30px_rgba(168,85,247,0.15)] rounded-2xl p-6 w-full max-w-md text-center text-white">
+        <h2 className="text-lg font-bold tracking-wide uppercase mb-2">Avaliação de Atendimento</h2>
+        <p className="text-gray-300 text-sm">
+          Este atendimento foi encerrado.<br/>Obrigado!
+        </p>
+        <div className="my-3 font-semibold text-gray-200">
+          Ticket #{ticket.number || ticket.id}
+        </div>
+        <p className="text-sm text-gray-400 mb-3">Como você avalia nosso atendimento?</p>
+        
+        <div className="flex justify-center gap-1 text-amber-400 text-2xl mb-4">
+          {[1, 2, 3, 4, 5].map((n) => (
+            <button
+              key={n}
+              type="button"
+              onClick={() => setScore(n)}
+              onMouseEnter={() => setHovered(n)}
+              onMouseLeave={() => setHovered(0)}
+              className="focus:outline-none transition-transform hover:scale-110 cursor-pointer"
+            >
+              <Star
+                className={`h-8 w-8 transition-colors ${
+                  n <= (hovered || score)
+                    ? 'fill-amber-400 text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]'
+                    : 'text-gray-700 fill-gray-800'
+                }`}
+              />
+            </button>
+          ))}
+        </div>
+
+        {/* Campo de comentário de no máximo 500 caracteres */}
+        <div className="mb-4 text-left">
+          <textarea
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            maxLength={500}
+            placeholder="Escreva um comentário ou sugestão (opcional, máx 500 caracteres)..."
+            rows={3}
+            className="w-full text-xs p-3 rounded-xl border border-gray-700 bg-gray-900/80 text-gray-200 outline-none focus:border-purple-500 transition-colors resize-none placeholder:text-gray-500"
+          />
+          <div className="flex justify-between items-center text-[10px] text-gray-500 mt-1 px-1">
+            <span>Opcional</span>
+            <span>{comment.length}/500</span>
+          </div>
+        </div>
+
+        <div className="flex gap-3">
+          <button 
+            type="button"
+            onClick={onClose}
+            className="flex-1 py-2.5 rounded-lg border border-gray-600 text-gray-300 hover:bg-gray-800 font-medium transition-colors cursor-pointer"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            onClick={() => onConfirm(score, comment)}
+            disabled={score === 0}
+            className="flex-1 py-2.5 rounded-lg bg-white text-black font-semibold hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          >
+            Enviar Avaliação
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+

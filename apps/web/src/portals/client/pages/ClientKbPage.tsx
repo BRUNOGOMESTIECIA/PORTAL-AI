@@ -1,16 +1,47 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, BookOpen } from 'lucide-react';
 import { MOCK_KB_ARTICLES, MockKbArticle } from '../../../mocks/data';
 import { Link } from 'react-router-dom';
 import { useEscapeModal } from '../../../hooks/use-escape-modal';
 import { ArticleModal } from '../components/ArticleModal';
+import { apiClient } from '../../../lib/api-client';
 
 export default function ClientKbPage() {
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Todas');
   const [selectedArticle, setSelectedArticle] = useState<MockKbArticle | null>(null);
+  const [kbArticles, setKbArticles] = useState<MockKbArticle[]>(MOCK_KB_ARTICLES.filter((a) => a.status === 'published'));
 
-  const articles = MOCK_KB_ARTICLES.filter((a) => a.status === 'published');
+  useEffect(() => {
+    apiClient.get('/kb/articles?status=published')
+      .then((data: any[]) => {
+        if (Array.isArray(data) && data.length > 0) {
+          const mapped: MockKbArticle[] = data.map((a: any) => ({
+            id: a.id,
+            slug: a.slug || a.id,
+            title: a.title,
+            category: a.category || 'Geral',
+            content: a.content || '',
+            excerpt: a.excerpt || a.content?.slice(0, 120) || '',
+            author: a.author_name || 'Equipe TI',
+            publishedAt: a.created_at || new Date().toISOString(),
+            updatedAt: a.updated_at || new Date().toISOString(),
+            views: a.views_count || 42,
+            helpfulYes: a.helpful_yes || 10,
+            helpfulNo: a.helpful_no || 0,
+            helpfulVotes: a.helpful_yes || 10,
+
+            tags: a.tags || [],
+            status: 'published',
+          }));
+
+          setKbArticles(mapped);
+        }
+      })
+      .catch(() => console.info('[ClientKbPage] API offline, utilizando rascunho local.'));
+  }, []);
+
+  const articles = kbArticles;
   const categories = ['Todas', ...Array.from(new Set(articles.map((a) => a.category)))];
 
   const filtered = articles.filter((a) => {
@@ -18,6 +49,7 @@ export default function ClientKbPage() {
     const matchCat = selectedCategory === 'Todas' || a.category === selectedCategory;
     return matchSearch && matchCat;
   });
+
 
   const closeModal = () => {
     setSelectedArticle(null);
@@ -35,7 +67,7 @@ export default function ClientKbPage() {
         <input
           value={search} onChange={(e) => setSearch(e.target.value)}
           placeholder="Pesquisar artigos, tutoriais..."
-          className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 py-3.5 pl-11 pr-4 text-sm outline-none transition-all focus:border-blue-500 focus:ring-4 focus:ring-blue-50 shadow-sm"
+          className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 py-3.5 pl-11 pr-4 text-sm text-slate-900 dark:text-white outline-none transition-all focus:border-blue-500 focus:ring-4 focus:ring-blue-50 shadow-sm"
         />
       </div>
 

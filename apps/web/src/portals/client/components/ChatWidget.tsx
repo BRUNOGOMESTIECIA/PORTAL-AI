@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { MessageCircle, X, Send, Bot, Minimize2, Paperclip, Reply, Download, Star } from 'lucide-react';
+import { MessageCircle, X, Send, Bot, Minimize2, Paperclip, Reply, Download, Star, Edit2, Check, Clock, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../../../hooks/use-mock-auth';
 import { useChats } from '../../../hooks/use-chats';
 import { MockChatSession, MockChatMessage } from '../../../mocks/data';
@@ -13,7 +13,9 @@ import { TypingIndicator } from '../../../components/TypingIndicator';
 import { validateAndSanitizeFile } from '../../../lib/file-upload-sanitizer';
 import { ChatbotTriageWidget } from '../../../components/chat/ChatbotTriageWidget';
 import { ChatCsatSurveyWidget } from '../../../components/chat/ChatCsatSurveyWidget';
+import { isSlaPausedNow, getBusinessHoursConfig } from '../../../lib/business-hours-sla';
 import { toast } from 'sonner';
+import { Link } from 'react-router-dom';
 
 const BUSINESS_HOURS = [
   { days: 'Seg – Sex', hours: '08:00 – 18:00' },
@@ -30,9 +32,59 @@ export function ChatWidget() {
   const [widgetCsatHovered, setWidgetCsatHovered] = useState(0);
   const [widgetCsatComment, setWidgetCsatComment] = useState('');
   const [widgetCsatSubmitted, setWidgetCsatSubmitted] = useState(false);
+  const [chatCsatDismissed, setChatCsatDismissed] = useState(false);
+  const [editingMsgId, setEditingMsgId] = useState<string | null>(null);
+  const [editingText, setEditingText] = useState<string>('');
+  const [now, setNow] = useState<number>(Date.now());
   const [isDraggingFile, setIsDraggingFile] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const hiddenFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Atualizar relógio a cada segundo para calcular os 15 segundos em tempo real
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const canEditMessage = (msg: MockChatMessage) => {
+    if (msg.senderType !== 'user') return false;
+    if (msg.isDeleted) return false;
+    const created = new Date(msg.createdAt).getTime();
+    const diffSeconds = (now - created) / 1000;
+    return diffSeconds <= 15 && diffSeconds >= 0;
+  };
+
+  const handleStartEdit = (msg: MockChatMessage) => {
+    setEditingMsgId(msg.id);
+    setEditingText(msg.body);
+  };
+
+  const handleSaveEdit = async (msgId: string) => {
+    if (!activeChat || !editingText.trim()) return;
+    const targetMsg = activeChat.messages.find(m => m.id === msgId);
+    if (!targetMsg || !canEditMessage(targetMsg)) {
+      toast.error('O tempo limite de 15 segundos para edição expirou!');
+      setEditingMsgId(null);
+      return;
+    }
+
+    const updatedMessages = activeChat.messages.map(m => {
+      if (m.id === msgId) {
+        return {
+          ...m,
+          body: editingText.trim(),
+          isEdited: true,
+          editedAt: new Date().toISOString()
+        };
+      }
+      return m;
+    });
+
+    await updateChat(activeChat.id, { messages: updatedMessages });
+    toast.success('Mensagem corrigida com sucesso!');
+    setEditingMsgId(null);
+    setEditingText('');
+  };
 
   const processAndUploadFile = async (file: File) => {
     toast.info(`Analisando ${file.name} no antivírus ClamAV...`);
@@ -83,6 +135,17 @@ export function ChatWidget() {
       localStorage.setItem('portal_chat_open', JSON.stringify(open));
     } catch(e) {}
   }, [open]);
+
+  const slaStatus = isSlaPausedNow();
+  const bhConfig = getBusinessHoursConfig();
+
+  // Auto-colapso fora do horário comercial (caso habilitado nas configurações)
+  useEffect(() => {
+    if (bhConfig.autoCollapseChatOutsideHours && slaStatus.isPaused && !activeChat) {
+      setOpen(false);
+      setMinimized(true);
+    }
+  }, [slaStatus.isPaused, bhConfig.autoCollapseChatOutsideHours, activeChat]);
 
   // Se houver um atendimento ativo do cliente em andamento, mantém a janela aberta no F5
   useEffect(() => {
@@ -177,7 +240,7 @@ export function ChatWidget() {
 
   if (!open && !minimized && !activeChat) {
     return (
-      <div className="fixed bottom-5 right-5 z-50">
+      <div className="fixed bottom-12 right-5 z-50">
         <button
           onClick={() => {
             setOpen(true);
@@ -193,7 +256,7 @@ export function ChatWidget() {
   }
 
   return (
-    <div className="fixed bottom-5 right-5 z-50 flex flex-col items-end gap-3">
+    <div className="fixed bottom-12 right-5 z-50 flex flex-col items-end gap-3">
       {open && !minimized && (
         <div
           onDragOver={(e) => {
@@ -223,25 +286,129 @@ export function ChatWidget() {
             </div>
           )}
 
-          {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 bg-blue-600 text-white rounded-t-2xl">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
-                <Bot className="h-4 w-4" />
+          {/* Modal Escuro de Avaliação de Atendimento (PDF) ao Encerrar Chat */}
+          {activeChat && (activeChat.status === 'closed' || (activeChat as any).status === 'finished') && !(activeChat as any).rating && !chatCsatDismissed && (
+            <div className="absolute inset-0 z-[60] bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 rounded-2xl animate-in fade-in">
+              <div className="bg-[#18181b] border border-purple-500/30 shadow-[0_0_30px_rgba(168,85,247,0.15)] rounded-2xl p-5 w-full text-center text-white">
+                <h2 className="text-sm font-bold tracking-wide uppercase mb-1">Avaliação de Atendimento</h2>
+                <p className="text-gray-300 text-xs">
+                  Este atendimento foi encerrado.<br/>Obrigado!
+                </p>
+                <div className="my-2.5 font-semibold text-gray-200 text-xs">
+                  Atendimento #{activeChat.ticketId ? formatTicketProtocol(activeChat.ticketId) : activeChat.id}
+                </div>
+                <p className="text-xs text-gray-400 mb-3">Como você avalia nosso atendimento?</p>
+                
+                <div className="flex justify-center gap-1 text-amber-400 text-xl mb-4">
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => setWidgetCsatScore(n)}
+                      onMouseEnter={() => setWidgetCsatHovered(n)}
+                      onMouseLeave={() => setWidgetCsatHovered(0)}
+                      className="focus:outline-none transition-transform hover:scale-110 cursor-pointer"
+                    >
+                      <Star
+                        className={`h-7 w-7 transition-colors ${
+                          n <= (widgetCsatHovered || widgetCsatScore)
+                            ? 'fill-amber-400 text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]'
+                            : 'text-gray-700 fill-gray-800'
+                        }`}
+                      />
+                    </button>
+                  ))}
+                </div>
+
+                {/* Campo de comentário de no máximo 500 caracteres */}
+                <div className="mb-3 text-left">
+                  <textarea
+                    value={widgetCsatComment}
+                    onChange={(e) => setWidgetCsatComment(e.target.value)}
+                    maxLength={500}
+                    placeholder="Escreva um comentário ou sugestão (opcional, máx 500 caracteres)..."
+                    rows={2}
+                    className="w-full text-[11px] p-2.5 rounded-xl border border-gray-700 bg-gray-900/80 text-gray-200 outline-none focus:border-purple-500 transition-colors resize-none placeholder:text-gray-500"
+                  />
+                  <div className="flex justify-between items-center text-[9px] text-gray-500 mt-0.5 px-1">
+                    <span>Opcional</span>
+                    <span>{widgetCsatComment.length}/500</span>
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <button 
+                    type="button"
+                    onClick={() => setChatCsatDismissed(true)}
+                    className="flex-1 py-2 rounded-lg border border-gray-600 text-gray-300 hover:bg-gray-800 text-xs font-medium transition-colors cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (widgetCsatScore === 0) return;
+                      await updateChat(activeChat.id, {
+                        rating: widgetCsatScore,
+                        ratingComment: widgetCsatComment,
+                        ratedAt: new Date().toISOString()
+                      } as any);
+                      logSecurityAudit({
+                        protocol: formatTicketProtocol(activeChat.ticketId || activeChat.id),
+                        action: `Pesquisa CSAT Chat (${widgetCsatScore} Estrelas)`,
+                        originPortal: 'Portal do Cliente',
+                        userName: user?.name || 'Cliente',
+                        userEmail: user?.email || '',
+                        details: widgetCsatComment ? `Comentário: ${widgetCsatComment}` : 'Avaliação de chat concluída via widget'
+                      });
+                      toast.success('Obrigado pela sua avaliação!');
+                      setChatCsatDismissed(true);
+                    }}
+                    disabled={widgetCsatScore === 0}
+                    className="flex-1 py-2 rounded-lg bg-white text-black font-semibold text-xs hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    Enviar Avaliação
+                  </button>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-semibold">Suporte</p>
-                <div className="relative inline-block">
-                  <p
-                    className="text-xs text-blue-200 cursor-default select-none"
+            </div>
+          )}
+
+          {/* Header */}
+          <div className={`flex items-center justify-between px-4 py-3 text-white rounded-t-2xl ${slaStatus.isPaused ? 'bg-slate-900 border-b border-amber-500/30' : 'bg-blue-600'}`}>
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${slaStatus.isPaused ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40' : 'bg-blue-500'}`}>
+                {slaStatus.isPaused ? <Clock className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold flex items-center gap-1.5">
+                  Suporte
+                  {slaStatus.isPaused && (
+                    <span className="text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-full font-bold uppercase">
+                      Fora do Expediente
+                    </span>
+                  )}
+                </p>
+                <div className="relative inline-block w-full">
+                  <p 
+                    className="text-xs text-slate-300 mt-0.5 opacity-90 cursor-help truncate"
                     onMouseEnter={() => setHoursTooltip(true)}
                     onMouseLeave={() => setHoursTooltip(false)}
                   >
-                    {activeChat?.status === 'active' ? `Atendido por ${activeChat.agentName || 'Agente'}` : 'Online agora'}
+                    {isPeerTyping ? (
+                      <span className="text-emerald-400 font-medium animate-pulse flex items-center gap-1">
+                        <span className="flex space-x-0.5">
+                          <span className="w-1 h-1 bg-emerald-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                          <span className="w-1 h-1 bg-emerald-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                          <span className="w-1 h-1 bg-emerald-400 rounded-full animate-bounce"></span>
+                        </span>
+                        digitando...
+                      </span>
+                    ) : (slaStatus.isPaused ? '⏸ Atendimento em Pausa' : activeChat?.status === 'active' ? `Atendido por ${activeChat.agentName || 'Agente'}` : 'Online agora')}
                   </p>
 
                   {hoursTooltip && (
-                    <div className="absolute bottom-full left-0 mb-2 w-44 bg-slate-900 text-white rounded-xl shadow-xl px-3 py-2.5 pointer-events-none z-50">
+                    <div className="absolute top-full left-0 mt-2 w-44 bg-slate-900 text-white rounded-xl shadow-xl px-3 py-2.5 pointer-events-none z-50">
                       <p className="text-xs font-semibold text-slate-300 mb-1.5">Horário de atendimento</p>
                       {BUSINESS_HOURS.map((slot) => (
                         <div key={slot.days} className="flex justify-between gap-3 text-xs leading-5">
@@ -249,7 +416,7 @@ export function ChatWidget() {
                           <span className="font-medium">{slot.hours}</span>
                         </div>
                       ))}
-                      <div className="absolute top-full left-4 w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-slate-900" />
+                      <div className="absolute bottom-full left-4 w-0 h-0 border-x-4 border-x-transparent border-b-4 border-b-slate-900" />
                     </div>
                   )}
                 </div>
@@ -354,52 +521,111 @@ export function ChatWidget() {
                  Envie uma mensagem para iniciar o atendimento.
                </div>
             )}
-            {messages.map((msg) => (
-              <div key={msg.id} className={`flex items-end gap-1.5 group ${msg.senderType === 'user' ? 'justify-end' : 'justify-start'}`}>
-                {msg.senderType === 'user' && (
-                  <button
-                    type="button"
-                    onClick={() => setReplyTo({ id: msg.id, senderName: msg.senderName, body: msg.body })}
-                    className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-blue-500 rounded transition-opacity"
-                    title="Citar esta mensagem"
-                  >
-                    <Reply className="w-3 h-3" />
-                  </button>
-                )}
-                {msg.senderType !== 'user' && (
-                  <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center mr-1 mt-0.5 flex-shrink-0">
-                    <Bot className="h-3 w-3 text-blue-600" />
-                  </div>
-                )}
-                <div className={`max-w-[85%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed ${msg.senderType === 'user' ? 'bg-blue-600 text-white rounded-br-sm shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-bl-sm shadow-sm border border-slate-200 dark:border-slate-700'}`}>
-                  {msg.replyTo && (
-                    <div className="mb-1.5 p-1.5 rounded-lg bg-black/10 dark:bg-black/30 border-l-2 border-blue-400 text-xs">
-                      <span className="font-bold opacity-90 block mb-0.5">{msg.replyTo.senderName}</span>
-                      <p className="truncate opacity-80 text-[11px]">{msg.replyTo.body}</p>
+            {messages.map((msg) => {
+              const canEdit = canEditMessage(msg);
+              const createdTime = new Date(msg.createdAt).getTime();
+              const remainingSecs = Math.max(0, 15 - Math.floor((now - createdTime) / 1000));
+
+              return (
+                <div key={msg.id} className={`flex items-end gap-1.5 group ${msg.senderType === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  {msg.senderType === 'user' && (
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {canEdit && editingMsgId !== msg.id && (
+                        <button
+                          type="button"
+                          onClick={() => handleStartEdit(msg)}
+                          className="p-1 text-slate-400 hover:text-amber-500 rounded flex items-center gap-0.5 text-[10px] font-bold"
+                          title={`Editar mensagem (${remainingSecs}s restantes)`}
+                        >
+                          <Edit2 className="w-3 h-3" />
+                          <span>{remainingSecs}s</span>
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setReplyTo({ id: msg.id, senderName: msg.senderName, body: msg.body })}
+                        className="p-1 text-slate-400 hover:text-blue-500 rounded"
+                        title="Citar esta mensagem"
+                      >
+                        <Reply className="w-3 h-3" />
+                      </button>
                     </div>
                   )}
-                  {msg.body.startsWith('[GIF:') && msg.body.includes('http') ? (
-                    <img 
-                      src={msg.body.match(/\((.*?)\)/)?.[1] || ''} 
-                      alt="GIF Animado" 
-                      className="max-w-[180px] rounded-lg shadow-sm" 
-                    />
-                  ) : (
-                    msg.body
+                  {msg.senderType !== 'user' && (
+                    <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center mr-1 mt-0.5 flex-shrink-0">
+                      <Bot className="h-3 w-3 text-blue-600" />
+                    </div>
+                  )}
+                  <div className={`max-w-[85%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed ${msg.senderType === 'user' ? 'bg-blue-600 text-white rounded-br-sm shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-bl-sm shadow-sm border border-slate-200 dark:border-slate-700'}`}>
+                    {msg.replyTo && (
+                      <div className="mb-1.5 p-1.5 rounded-lg bg-black/10 dark:bg-black/30 border-l-2 border-blue-400 text-xs">
+                        <span className="font-bold opacity-90 block mb-0.5">{msg.replyTo.senderName}</span>
+                        <p className="truncate opacity-80 text-[11px]">{msg.replyTo.body}</p>
+                      </div>
+                    )}
+
+                    {editingMsgId === msg.id ? (
+                      <div className="flex items-center gap-1.5 min-w-[200px]">
+                        <input
+                          type="text"
+                          value={editingText}
+                          onChange={(e) => setEditingText(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleSaveEdit(msg.id);
+                            if (e.key === 'Escape') setEditingMsgId(null);
+                          }}
+                          autoFocus
+                          className="w-full text-xs p-1.5 bg-black/20 text-white rounded outline-none border border-blue-300"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleSaveEdit(msg.id)}
+                          className="p-1 bg-white text-blue-600 rounded hover:bg-blue-50"
+                          title="Salvar alteração"
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditingMsgId(null)}
+                          className="p-1 text-white/80 hover:text-white"
+                          title="Cancelar"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        {msg.body.startsWith('[GIF:') && msg.body.includes('http') ? (
+                          <img 
+                            src={msg.body.match(/\((.*?)\)/)?.[1] || ''} 
+                            alt="GIF Animado" 
+                            className="max-w-[180px] rounded-lg shadow-sm" 
+                          />
+                        ) : (
+                          <div>
+                            <p>{msg.body}</p>
+                            {msg.isEdited && (
+                              <span className="text-[9px] opacity-75 italic block mt-0.5 text-right">(editado)</span>
+                            )}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                  {msg.senderType !== 'user' && (
+                    <button
+                      type="button"
+                      onClick={() => setReplyTo({ id: msg.id, senderName: msg.senderName, body: msg.body })}
+                      className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-blue-500 rounded transition-opacity"
+                      title="Citar esta mensagem"
+                    >
+                      <Reply className="w-3 h-3" />
+                    </button>
                   )}
                 </div>
-                {msg.senderType !== 'user' && (
-                  <button
-                    type="button"
-                    onClick={() => setReplyTo({ id: msg.id, senderName: msg.senderName, body: msg.body })}
-                    className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-blue-500 rounded transition-opacity"
-                    title="Citar esta mensagem"
-                  >
-                    <Reply className="w-3 h-3" />
-                  </button>
-                )}
-              </div>
-            ))}
+              );
+            })}
             <TypingIndicator isTyping={isPeerTyping} name={peerTypingName || 'Atendente N1'} />
             <div ref={bottomRef} />
           </div>
@@ -433,19 +659,8 @@ export function ChatWidget() {
               </div>
             )}
             {activeChat?.status === 'closed' ? (
-              <div className="space-y-2">
-                <ChatCsatSurveyWidget
-                  chatId={activeChat.id}
-                  protocolNumber={activeChat.ticketId || activeChat.id}
-                  agentName={activeChat.agentName || 'Atendimento N1'}
-                  onSubmitted={async (r, c, tags) => {
-                    await updateChat(activeChat.id, {
-                      rating: r,
-                      ratingComment: c,
-                      csatTags: tags
-                    } as any);
-                  }}
-                />
+              <div className="space-y-2 text-center p-3 bg-slate-100 dark:bg-slate-800 rounded-xl">
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Este atendimento foi encerrado.</p>
                 <button
                   onClick={() => startChat()}
                   className="w-full py-2 text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900 border border-blue-200 dark:border-blue-800 rounded-xl transition-all text-center block cursor-pointer"
@@ -493,12 +708,12 @@ export function ChatWidget() {
                     }
                   }}
                   placeholder="Digite sua mensagem..."
-                  className="flex-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full px-4 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  className="flex-1 min-w-0 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full px-4 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 />
                 <button
                   type="submit"
                   disabled={!input.trim()}
-                  className="p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:opacity-50 disabled:hover:bg-blue-600 transition-colors"
+                  className="p-2 shrink-0 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:opacity-50 disabled:hover:bg-blue-600 transition-colors"
                 >
                   <Send className="h-4 w-4 ml-0.5" />
                 </button>
@@ -537,3 +752,5 @@ export function ChatWidget() {
     </div>
   );
 }
+
+

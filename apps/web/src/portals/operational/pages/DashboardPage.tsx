@@ -42,6 +42,7 @@ const PRIORITY_COLORS: Record<string, string> = {
 import { instaPassoDb } from '../../../lib/firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { useState, useEffect } from 'react';
+import { apiClient } from '../../../lib/api-client';
 
 export default function DashboardPage() {
   const { tickets, seedMockData: seedTickets } = useTickets();
@@ -49,6 +50,13 @@ export default function DashboardPage() {
   const [showTvModal, setShowTvModal] = useState(false);
   
   const [operators, setOperators] = useState<any[]>([]);
+  const [apiStats, setApiStats] = useState<any>(null);
+
+  useEffect(() => {
+    apiClient.get('/reports/dashboard')
+      .then((data) => setApiStats(data))
+      .catch(() => console.info('[Dashboard] API offline, exibindo estatísticas calculadas locais.'));
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(instaPassoDb, 'operators'), (snapshot) => {
@@ -60,6 +68,7 @@ export default function DashboardPage() {
     });
     return () => unsubscribe();
   }, []);
+
 
   const waitingChats = chats.filter((c) => c.status === 'waiting');
   const activeChats = chats.filter((c) => c.status === 'active');

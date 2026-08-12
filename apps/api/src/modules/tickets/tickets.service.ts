@@ -296,4 +296,17 @@ export class TicketsService {
 
     return ticket;
   }
+
+  async submitCsat(id: string, score: number, comment?: string) {
+    const ds = getTenantDataSource();
+    const rows = await ds.query(
+      `UPDATE tickets
+       SET csat_score = $1, csat_comment = $2, csat_submitted_at = now(), updated_at = now()
+       WHERE id = $3 RETURNING *`,
+      [score, comment ?? null, id],
+    );
+    if (!rows.length) throw new NotFoundException('Chamado não encontrado');
+    return rows[0];
+  }
 }
+

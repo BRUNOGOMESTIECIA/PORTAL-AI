@@ -1,4 +1,14 @@
-// ─── Permissions ────────────────────────────────────────────────────────────
+/**
+ * MOCK DATA STORE (BANCO DE DADOS SIMULADO)
+ * 
+ * Este arquivo atua como o "banco de dados" inicial e estático da aplicação enquanto
+ * o back-end real não está implementado.
+ * Quando a aplicação é carregada pela primeira vez, os hooks (como useChats) copiam
+ * esses arrays para o `localStorage` do navegador, permitindo criar, ler, atualizar 
+ * e deletar registros localmente para testar a interface.
+ */
+
+// 🛠️ Permissions 🛠️────────────────────────────────────────────────────────────
 export const ALL_PERMISSIONS = [
   'tickets.view','tickets.create','tickets.update','tickets.assign','tickets.close',
   'chat.view','chat.attend','chat.manage',
@@ -21,10 +31,15 @@ export const TICKET_CATEGORIES = [
 export const MOCK_MACROS = [
   { command: '/saudacao', text: 'Olá! Em que posso ajudar hoje?' },
   { command: '/pedir_print', text: 'Poderia nos enviar um print da tela com o erro, por favor?' },
+  { command: '/aguarde', text: 'Certo, estou verificando o seu caso no sistema. Aguarde só um instante, por favor.' },
+  { command: '/aguarde_sistema', text: 'Só um minutinho! Estou abrindo o seu cadastro no sistema para analisar...' },
+  { command: '/aguarde_testes', text: 'Estou realizando alguns testes na sua conexão aqui no meu painel, me dê 2 minutinhos por gentileza.' },
+  { command: '/aguarde_n2', text: 'Perfeito. Já acionei a equipe técnica do N2 para me auxiliar, aguarde só um momento enquanto analiso.' },
+  { command: '/aguarde_logs', text: 'Estou verificando os registros no servidor neste momento, já retorno com uma posição para você.' },
   { command: '/encerrar_inatividade', text: 'Como não tivemos retorno, estarei encerrando o atendimento. Qualquer dúvida, nos chame novamente.' },
-  { command: '/aguarde', text: 'Certo, estou verificando o seu caso. Aguarde um instante, por favor.' },
   { command: '/solucionado', text: 'Fico feliz em informar que o problema foi solucionado! Posso ajudar em algo mais?' }
 ];
+
 
 // ─── Companies / Clients ─────────────────────────────────────────────────────────
 export interface MockCompany {
@@ -402,6 +417,7 @@ export interface MockChatMessage {
   senderName: string; senderType: 'user' | 'agent' | 'ai' | 'system' | 'internal';
   createdAt: string;
   isEdited?: boolean;
+  editedAt?: string;
   isDeleted?: boolean;
   reactions?: { emoji: string; count: number; userReacted: boolean }[];
   replies?: MockChatMessage[];

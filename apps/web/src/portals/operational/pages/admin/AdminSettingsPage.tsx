@@ -11,17 +11,28 @@ import { toast } from 'sonner';
 import { MOCK_CLIENTS, MOCK_MACROS } from '../../../../mocks/data';
 import { getSoundSettings, saveSoundSettings, playAlertSound, AlertTone } from '../../../../lib/sound-effects';
 import { useNotifications } from '../../../../hooks/use-notifications';
-type SettingsTab = 'identity' | 'business_hours' | 'holidays' | 'sso' | 'notifications' | 'modules' | 'macros';
+import { getBusinessHoursConfig, saveBusinessHoursConfig, DEFAULT_BUSINESS_SCHEDULE } from '../../../../lib/business-hours-sla';
+import QueuesManagerPanel from './QueuesManagerPanel';
+import { apiClient } from '../../../../lib/api-client';
+
+
+import { AtomicTicketCounterWidget } from '../../../../components/tickets/AtomicTicketCounterWidget';
+import { Hash } from 'lucide-react';
+
+type SettingsTab = 'identity' | 'business_hours' | 'holidays' | 'counter' | 'sso' | 'notifications' | 'modules' | 'macros' | 'queues';
 
 const SETTINGS_TABS: { id: SettingsTab; title: string; desc: string; icon: React.ReactNode }[] = [
   { id: 'identity', title: 'Identidade', desc: 'Perfil, marca e cores', icon: <Building2 className="w-5 h-5" /> },
   { id: 'business_hours', title: 'Horário de Atendimento', desc: 'Dias e horários úteis', icon: <Clock className="w-5 h-5" /> },
   { id: 'holidays', title: 'Feriados', desc: 'Dias sem atendimento', icon: <Calendar className="w-5 h-5" /> },
+  { id: 'counter', title: 'Contador Atômico', desc: 'Gerador de protocolo (#2026XXXX)', icon: <Hash className="w-5 h-5" /> },
   { id: 'sso', title: 'Integrações SSO', desc: 'Google, Microsoft Entra ID', icon: <LinkIcon className="w-5 h-5" /> },
   { id: 'notifications', title: 'Notificações', desc: 'Alertas por e-mail e sistema', icon: <Bell className="w-5 h-5" /> },
   { id: 'modules', title: 'Módulos do Sistema', desc: 'Habilitar funcionalidades', icon: <LayoutGrid className="w-5 h-5" /> },
   { id: 'macros', title: 'Respostas Rápidas', desc: 'Mensagens pré-prontas do chat', icon: <MessageSquareText className="w-5 h-5" /> },
+  { id: 'queues', title: 'Mesas de Ticket', desc: 'Gerenciar filas de atendimento', icon: <Users className="w-5 h-5" /> },
 ];
+
 
 export default function AdminSettingsPage() {
   const [activeTab, setActiveTab] = useState<SettingsTab>('identity');
@@ -107,18 +118,39 @@ export default function AdminSettingsPage() {
     };
   });
 
-  const [businessHours, setBusinessHours] = useState({
-    timezone: 'America/Sao_Paulo',
-    schedule: [
-      { day: 'Segunda-feira', active: true, start: '09:00', end: '18:00' },
-      { day: 'Terça-feira', active: true, start: '09:00', end: '18:00' },
-      { day: 'Quarta-feira', active: true, start: '09:00', end: '18:00' },
-      { day: 'Quinta-feira', active: true, start: '09:00', end: '18:00' },
-      { day: 'Sexta-feira', active: true, start: '09:00', end: '18:00' },
-      { day: 'Sábado', active: false, start: '09:00', end: '13:00' },
-      { day: 'Domingo', active: false, start: '00:00', end: '00:00' },
-    ]
+  const [businessHours, setBusinessHours] = useState(() => {
+    const cfg = getBusinessHoursConfig();
+    return {
+      timezone: 'America/Sao_Paulo',
+      autoCollapseChatOutsideHours: cfg.autoCollapseChatOutsideHours,
+      schedule: cfg.schedule.map((s) => ({
+        day: s.dayName,
+        dayIndex: s.dayIndex,
+        active: s.active,
+        start: `${String(s.startHour).padStart(2, '0')}:00`,
+        end: `${String(s.endHour).padStart(2, '0')}:00`,
+      }))
+    };
   });
+
+  const [holidays, setHolidays] = useState<{id: string; date: string; name: string; chatOffline: boolean; isManual?: boolean}[]>(() => {
+    const cfg = getBusinessHoursConfig();
+    return cfg.holidays.map((hDate, idx) => {
+      const parts = hDate.split('-');
+      const mm = parts[1] || '01';
+      const dd = parts[2] || '01';
+      return {
+        id: String(idx + 1),
+        date: `2000-${mm}-${dd}`,
+        name: `Feriado ${dd}/${mm}`,
+        chatOffline: true
+      };
+    });
+  });
+
+  const [newHoliday, setNewHoliday] = useState({ day: '01', month: '01', name: '', chatOffline: true });
+  const [isImportingHolidays, setIsImportingHolidays] = useState(false);
+  const [holidayToDelete, setHolidayToDelete] = useState<string | null>(null);
 
   const [modules, setModules] = useState({
     tickets: true,
@@ -127,17 +159,6 @@ export default function AdminSettingsPage() {
     catalog: false,
     reports: true
   });
-
-  const [holidays, setHolidays] = useState<{id: string; date: string; name: string; chatOffline: boolean; isManual?: boolean}[]>([
-    { id: '1', date: '2026-01-01', name: 'Confraternização Universal', chatOffline: true },
-    { id: '2', date: '2026-04-21', name: 'Tiradentes', chatOffline: true },
-    { id: '3', date: '2026-05-01', name: 'Dia do Trabalho', chatOffline: true },
-    { id: '4', date: '2026-09-07', name: 'Independência do Brasil', chatOffline: true },
-  ]);
-
-  const [newHoliday, setNewHoliday] = useState({ day: '01', month: '01', name: '', chatOffline: true });
-  const [isImportingHolidays, setIsImportingHolidays] = useState(false);
-  const [holidayToDelete, setHolidayToDelete] = useState<string | null>(null);
 
   const [macros, setMacros] = useState<{command: string; text: string}[]>(() => {
     const saved = localStorage.getItem('portal_macros');
@@ -209,12 +230,44 @@ export default function AdminSettingsPage() {
     localStorage.setItem('portal_show_top_clock', JSON.stringify(customizationForm.showTopClock));
     localStorage.setItem('portal_sun_tzu_mode', JSON.stringify(customizationForm.sunTzuMode));
     localStorage.setItem('portal_macros', JSON.stringify(macros));
+
+    // Mapear e salvar configurações de Horário de Atendimento + Feriados
+    const currentCfg = getBusinessHoursConfig();
+    const updatedSchedule = DEFAULT_BUSINESS_SCHEDULE.map((defaultDay) => {
+      const match = businessHours.schedule.find((s) => s.dayIndex === defaultDay.dayIndex || s.day === defaultDay.dayName);
+      if (!match) return defaultDay;
+      const startH = parseInt(match.start.split(':')[0] || '8', 10);
+      const endH = parseInt(match.end.split(':')[0] || '18', 10);
+      return {
+        ...defaultDay,
+        active: match.active,
+        startHour: isNaN(startH) ? 8 : startH,
+        endHour: isNaN(endH) ? 18 : endH,
+      };
+    });
+
+    const holidayDates = holidays.map((h) => {
+      const parts = h.date.split('-');
+      const mm = parts[1] || '01';
+      const dd = parts[2] || '01';
+      return `2026-${mm}-${dd}`;
+    });
+
+    saveBusinessHoursConfig({
+      autoCollapseChatOutsideHours: currentCfg.autoCollapseChatOutsideHours,
+      schedule: updatedSchedule,
+      holidays: holidayDates,
+    });
+
+    apiClient.post('/automation', { name: 'SettingsSave', profileForm, customizationForm }).catch(() => {});
+
     window.dispatchEvent(new Event('storage'));
     setTimeout(() => {
       setIsSaving(false);
       setIsSuccessModalOpen(true);
     }, 800);
   };
+
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -248,7 +301,18 @@ export default function AdminSettingsPage() {
 
   const renderContent = () => {
     switch (activeTab) {
+      case 'counter':
+        return (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-200">
+            <div className="flex flex-col gap-1 border-b border-slate-200 dark:border-slate-800 pb-4">
+              <h2 className="text-lg font-bold text-slate-800 dark:text-slate-200">Contador Atômico de Tickets</h2>
+              <p className="text-sm text-slate-500">Garantia de unicidade sequencial no Firestore contra colisão de solicitações simultâneas.</p>
+            </div>
+            <AtomicTicketCounterWidget />
+          </div>
+        );
       case 'identity':
+
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-200">
             <div className="flex flex-col gap-1 border-b border-slate-200 dark:border-slate-800 pb-4">
@@ -415,6 +479,11 @@ export default function AdminSettingsPage() {
                   </div>
 
                   <div className="space-y-2 pt-4">
+                    {/*
+                      MODO SUN TZU (Ativador Global)
+                      Botão que liga/desliga a distribuição automática de chats e as travas 
+                      manuais para a equipe N1. O estado é salvo em localStorage.
+                    */}
                     <button
                       onClick={() => setCustomizationForm({...customizationForm, sunTzuMode: !customizationForm.sunTzuMode})}
                       className={`w-full py-2.5 rounded-lg font-bold text-sm transition-all border ${
@@ -956,6 +1025,13 @@ export default function AdminSettingsPage() {
                 </div>
               ))}
             </div>
+          </div>
+        );
+
+      case 'queues':
+        return (
+          <div className="animate-in fade-in zoom-in-95 duration-200">
+            <QueuesManagerPanel />
           </div>
         );
 

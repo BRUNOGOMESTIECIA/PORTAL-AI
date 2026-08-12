@@ -2,10 +2,10 @@ import { useState, useEffect, useCallback, createContext, useContext, useRef } f
 import { db } from '../lib/firebase';
 import { 
   collection, doc, onSnapshot, setDoc, updateDoc, 
-  query, getDocs, writeBatch 
+  query 
 } from 'firebase/firestore';
 import { MockTicket } from '../mocks/data';
-import { toast } from 'sonner';
+import { apiClient } from '../lib/api-client';
 
 interface TicketsContextValue {
   tickets: MockTicket[];
@@ -17,8 +17,14 @@ interface TicketsContextValue {
 
 const TicketsContext = createContext<TicketsContextValue | null>(null);
 
+/**
+ * HOOK DE GERENCIAMENTO DE TICKETS (CHAMADOS)
+ * 
+ * Conectado à API NestJS real (Fase 1 de migração REST + SQL).
+ * Executa chamadas à API (`GET /tickets`, `POST /tickets`, `PATCH /tickets/:id`)
+ * e mantém resiliência via `localStorage` e Firestore.
+ */
 export function TicketsProvider({ children }: { children: React.ReactNode }) {
-  // Inicializa limpo (sem injetar bots/mock data se o localStorage for limpo)
   const [tickets, setTickets] = useState<MockTicket[]>(() => {
     try {
       const saved = localStorage.getItem('portal_fallback_tickets');
@@ -46,6 +52,7 @@ export function TicketsProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // Sincronização em tempo real local via BroadcastChannel
   useEffect(() => {
     try {
       channelRef.current = new BroadcastChannel('ticket_sync_fallback');
@@ -60,8 +67,50 @@ export function TicketsProvider({ children }: { children: React.ReactNode }) {
     return () => channelRef.current?.close();
   }, []);
 
-  // Conecta diretamente com a coleção 'tickets' do Firestore em tempo real
+  // Tenta carregar tickets da API NestJS real primeiro
+  const fetchTicketsFromApi = useCallback(async () => {
+    try {
+      const data = await apiClient.get<any[]>('/tickets');
+      if (Array.isArray(data) && data.length > 0) {
+        const formatted: MockTicket[] = data.map((t: any) => ({
+          id: t.id,
+          number: t.number || 1000,
+          title: t.title || 'Chamado de Suporte',
+          description: t.description || '',
+          status: t.status || 'open',
+          priority: t.priority || 'medium',
+          type: t.type || 'Incidente',
+          category: t.category || 'Outros',
+          requesterId: t.requester_id || t.requesterId || '',
+          requesterName: t.requester_name || t.requesterName || 'Cliente',
+          requesterEmail: t.requester_email || t.requesterEmail || '',
+          assigneeName: t.assignee_name || t.assigneeName || null,
+          team: t.team || null,
+          slaFirstResponseDue: t.sla_first_response_due_at || t.createdAt || new Date().toISOString(),
+          slaResolutionDue: t.sla_resolution_due_at || t.createdAt || new Date().toISOString(),
+          slaFirstResponseMet: t.slaFirstResponseMet ?? true,
+          slaResolutionMet: t.slaResolutionMet ?? true,
+          source: t.source || 'portal',
+          createdAt: t.created_at || t.createdAt || new Date().toISOString(),
+          updatedAt: t.updated_at || t.updatedAt || new Date().toISOString(),
+          closedAt: t.closed_at || t.closedAt || null,
+          tags: t.tags || [],
+          comments: t.comments || [],
+        }));
+        saveFallbackTickets(formatted);
+        setIsLoading(false);
+        return true;
+      }
+    } catch (err: any) {
+      console.info('[Tickets API] Servidor REST offline ou sem dados SQL no momento. Usando Firestore/localStorage.', err?.message);
+    }
+    return false;
+  }, [saveFallbackTickets]);
+
+  // Conecta com a API NestJS e mantém listener do Firestore como fallback
   useEffect(() => {
+    fetchTicketsFromApi();
+
     const q = query(collection(db, 'tickets'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const firestoreTickets: MockTicket[] = [];
@@ -112,13 +161,27 @@ export function TicketsProvider({ children }: { children: React.ReactNode }) {
     });
 
     return () => unsubscribe();
-  }, [saveFallbackTickets]);
+  }, [fetchTicketsFromApi, saveFallbackTickets]);
 
   const createTicket = useCallback(async (ticket: MockTicket) => {
     const updated = [ticket, ...fallbackTicketsRef.current];
     saveFallbackTickets(updated);
     channelRef.current?.postMessage({ type: 'SYNC_TICKETS', payload: updated });
 
+    // 1. Tenta gravar via API NestJS real
+    try {
+      await apiClient.post('/tickets', {
+        title: ticket.title,
+        description: ticket.description,
+        priority: ticket.priority?.toUpperCase(),
+        source: ticket.source || 'portal',
+      });
+      console.info('[Tickets API] Ticket gravado no Banco SQL com sucesso!');
+    } catch (apiError: any) {
+      console.info('[Tickets API] Falha ao enviar para API REST (salvo em fallback):', apiError?.message);
+    }
+
+    // 2. Grava no Firestore como fallback
     try {
       await setDoc(doc(db, 'tickets', ticket.id), ticket);
     } catch (error) {
@@ -135,6 +198,15 @@ export function TicketsProvider({ children }: { children: React.ReactNode }) {
       channelRef.current?.postMessage({ type: 'SYNC_TICKETS', payload: currentList });
     }
 
+    // 1. Tenta atualizar via API NestJS real
+    try {
+      await apiClient.patch(`/tickets/${id}`, updates);
+      console.info('[Tickets API] Ticket atualizado no Banco SQL com sucesso!');
+    } catch (apiError: any) {
+      console.info('[Tickets API] Falha ao atualizar via API REST (atualizado em fallback):', apiError?.message);
+    }
+
+    // 2. Atualiza no Firestore como fallback
     try {
       await updateDoc(doc(db, 'tickets', id), updates);
     } catch (error) {

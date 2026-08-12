@@ -16,7 +16,7 @@ export function PageTransitionWrapper({ children, className = '', keyName }: Pag
   const transitionClass = getPageTransitionClass();
 
   return (
-    <div key={keyName} className={`w-full h-full ${transitionClass} ${className}`}>
+    <div key={keyName} className={`w-full flex-1 flex flex-col ${transitionClass} ${className}`}>
       {children}
     </div>
   );

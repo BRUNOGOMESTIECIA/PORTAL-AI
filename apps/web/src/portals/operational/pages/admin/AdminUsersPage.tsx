@@ -5,6 +5,7 @@ import { ALL_MOCK_USERS, MockUser, MockClient } from '../../../../mocks/data';
 import { cn } from '../../../../lib/utils';
 import { instaPassoDb } from '../../../../lib/firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
+import { apiClient } from '../../../../lib/api-client';
 
 export default function AdminUsersPage() {
   const navigate = useNavigate();
@@ -14,6 +15,21 @@ export default function AdminUsersPage() {
   const [expandedCompanies, setExpandedCompanies] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
+    // Tenta carregar usuários da API NestJS real
+    apiClient.get('/users')
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setRealOperators(prev => {
+            const existingIds = new Set(prev.map(p => p.id));
+            const newOps = data.filter((u: any) => !existingIds.has(u.id));
+            return [...prev, ...newOps];
+          });
+        }
+      })
+      .catch((err) => {
+        console.info('[Users API] Servidor em standby. Usando Firestore InstaPasso.', err?.message);
+      });
+
     const unsubscribe = onSnapshot(collection(instaPassoDb, 'operators'), (snapshot) => {
       const ops: any[] = [];
       snapshot.forEach(doc => {
@@ -23,6 +39,7 @@ export default function AdminUsersPage() {
     });
     return () => unsubscribe();
   }, []);
+
 
   const toggleCompany = (company: string) => {
     setExpandedCompanies(prev => ({ ...prev, [company]: !prev[company] }));
