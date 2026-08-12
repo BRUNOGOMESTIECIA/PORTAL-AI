@@ -53,18 +53,35 @@ export function calculateTicketSlaPercentage(createdAtIso: string, dueAtIso: str
   };
 }
 
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from './firebase';
+
 /**
- * Executa o escalonamento automático para equipe N2 caso o ticket atinja 90% do SLA
+ * Dispara ALERTA de emergência para a equipe N2/Supervisão caso o ticket/chat atinja 90% do SLA,
+ * SEM transferir o chamado de fila (mantém o atendimento no N1 original).
  */
-export function triggerSlaAutoEscalationN2(ticketId: string, protocolNumber: string, percentage: number) {
-  const formattedProtocol = formatTicketProtocol(protocolNumber);
+export async function triggerSlaAutoEscalationN2(ticketId: string, protocolNumber: string, percentage: number, chatId?: string) {
+  const formattedProtocol = formatTicketProtocol(protocolNumber || ticketId);
+
+  // Registra a marcação de alerta N2 no Firestore sem alterar a equipe/atendente responsável
+  try {
+    if (ticketId) {
+      const ticketRef = doc(db, 'tickets', ticketId);
+      await updateDoc(ticketRef, {
+        slaWarningN2: true,
+        updatedAt: new Date().toISOString()
+      });
+    }
+  } catch (e) {
+    console.warn('[AutoEscalator] Erro ao registrar marcação de alerta no Firestore:', e);
+  }
 
   logAuditEvent(
-    'SLA_AUTO_ESCALATED_N2',
-    `🚨 [ALERT SLA 90%] Ticket ${formattedProtocol} atingiu ${percentage}% do tempo limite de SLA. Escalonamento automático acionado para a Fila N2 / Supervisão.`
+    'SLA_ALERT_NOTIFIED_N2',
+    `🔔 [ALERTA SLA N2] Ticket ${formattedProtocol} atingiu ${percentage}% do limite de SLA. Notificação emitida para a equipe N2/Supervisão para apoio ao N1.`
   );
 
-  toast.error(`🚨 [ESCALONAMENTO N2 ATIVO] Ticket ${formattedProtocol} atingiu ${percentage}% do SLA! Transferido para o N2.`, {
-    duration: 6000,
+  toast.error(`🔔 [ALERTA DE SLA - EQUIPE N2 NOTIFICADA] Chamado ${formattedProtocol} atingiu ${percentage}% do SLA! Notificação emitida para o N2 acompanhar.`, {
+    duration: 8000,
   });
 }
