@@ -215,13 +215,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         credUser = cred.user;
         email = cred.user.email || '';
       } catch (popupErr: any) {
-        console.warn('[SSO] Provedor Firebase SSO indisponível ou API Key não configurada. Ativando Modo Demo:', popupErr);
-        email = expectedType === 'staff' ? 'atendente.bruno@tiecia.com.br' : 'cliente.demo@empresa.com.br';
-        credUser = {
-          uid: 'demo-' + expectedType + '-' + Date.now(),
-          email: email,
-          displayName: expectedType === 'staff' ? 'Bruno Gomes (TIÉCIA)' : 'Cliente Corporativo (Demo)'
-        };
+        console.error('[SSO] Falha na autenticação Google SSO:', popupErr?.message || popupErr);
+        logAuditEvent(
+          'SSO_LOGIN_FAILED',
+          `🚨 [SEGURANÇA] Tentativa de login SSO falhou. Erro: ${popupErr?.message || 'Popup bloqueado ou rede indisponível'}. Tipo: ${expectedType}. IP: ${window.location.hostname}`
+        );
+        throw new Error('Falha na autenticação: Não foi possível conectar ao provedor Google. Verifique sua conexão, desative bloqueadores de popup e tente novamente.');
       }
       
       // REGRA DA EQUIPE INTERNA / OPERACIONAL (AUTORIZAÇÃO ZERO-TRUST INSTAPASSO)
