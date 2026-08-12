@@ -138,17 +138,19 @@ export function exportChatTranscriptToPdf(session: {
         .meta-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; font-size: 12px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 16px; border-radius: 8px; margin-bottom: 24px; }
         .meta-item label { font-weight: 700; color: #64748b; display: block; margin-bottom: 2px; }
         .chat-container { border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; background: #fafafa; }
-        .message-bubble { margin-bottom: 16px; font-size: 13px; max-width: 80%; }
+        .message-bubble { margin-bottom: 16px; font-size: 13px; max-width: 80%; page-break-inside: avoid; break-inside: avoid; }
         .message-bubble.agent { margin-left: auto; text-align: right; }
         .message-bubble.client { margin-right: auto; text-align: left; }
         .sender-name { font-size: 11px; font-weight: 700; color: #475569; margin-bottom: 4px; }
         .msg-text { display: inline-block; padding: 10px 14px; border-radius: 12px; background: #e2e8f0; color: #0f172a; text-align: left; word-break: break-word; }
         .agent .msg-text { background: #2563eb; color: #ffffff; }
         .timestamp { font-size: 10px; color: #94a3b8; margin-top: 4px; display: block; }
-        .footer { margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 16px; text-align: center; font-size: 11px; color: #94a3b8; }
+        .footer { margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 16px; text-align: center; font-size: 11px; color: #94a3b8; page-break-inside: avoid; }
         @media print {
           body { padding: 0; }
           .no-print { display: none; }
+          .message-bubble { page-break-inside: avoid; break-inside: avoid; }
+          .meta-grid { page-break-inside: avoid; break-inside: avoid; }
         }
       </style>
     </head>

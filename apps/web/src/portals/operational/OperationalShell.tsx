@@ -103,6 +103,34 @@ function SystemClock() {
 }
 
 function GlobalChatAlerts({ collapsed }: { collapsed?: boolean }) {
+  const { user } = useAuth();
+
+  // Presença do Operador no Descarregamento da Página (beforeunload / Fechar Aba)
+  useEffect(() => {
+    if (!user?.email) return;
+    
+    const handleUnload = () => {
+      try {
+        import('../../lib/firebase').then(({ instaPassoDb }) => {
+          import('firebase/firestore').then(({ collection, query, where, getDocs, updateDoc, doc }) => {
+            const q = query(collection(instaPassoDb, 'operators'), where('email', '==', user.email.toLowerCase()));
+            getDocs(q).then(snap => {
+              snap.forEach(d => {
+                updateDoc(doc(instaPassoDb, 'operators', d.id), {
+                  isOnline: false,
+                  lastSeen: new Date().toISOString()
+                });
+              });
+            });
+          });
+        });
+      } catch(e) {}
+    };
+
+    window.addEventListener('beforeunload', handleUnload);
+    return () => window.removeEventListener('beforeunload', handleUnload);
+  }, [user?.email]);
+
   const { chats, updateChat } = useChats();
   const [alerts, setAlerts] = useState<{ id: string, title: string, desc: string, type: 'warning'|'error', chatId: string }[]>([]);
   const navigate = useNavigate();

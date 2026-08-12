@@ -151,6 +151,11 @@ export function ChatsProvider({ children }: { children: React.ReactNode }) {
       const firestoreChats: MockChatSession[] = [];
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
+        const createdIso = data.createdAt || new Date().toISOString();
+        const createdMs = new Date(createdIso).getTime();
+        const nowMs = Date.now();
+        const calcWaitingMins = Math.max(0, Math.floor((nowMs - createdMs) / 60000));
+
         firestoreChats.push({
           id: docSnap.id,
           clientName: data.clientName || data.clientEmail?.split('@')[0] || 'Cliente',
@@ -158,9 +163,9 @@ export function ChatsProvider({ children }: { children: React.ReactNode }) {
           status: data.status || 'waiting',
           agentName: data.agentName || null,
           queue: data.queue || 'Chat ao vivo',
-          waitingMinutes: data.waitingMinutes ?? 0,
+          waitingMinutes: data.status === 'waiting' ? calcWaitingMins : (data.waitingMinutes ?? 0),
           messages: data.messages || [],
-          createdAt: data.createdAt || new Date().toISOString(),
+          createdAt: createdIso,
           ticketId: data.ticketId,
           rating: data.rating,
           ratingComment: data.ratingComment

@@ -10,6 +10,7 @@ import {
 import { doc, getDoc, setDoc, collection, getDocs, query, where, onSnapshot } from 'firebase/firestore';
 import { toast } from 'sonner';
 import { detectDevice, DeviceInfo } from '../lib/device-detector';
+import { logAuditEvent } from '../lib/audit-logger';
 
 /**
  * Interface que define a estrutura do usuário logado na aplicação.
@@ -317,22 +318,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         const foundDomains = validationSystemDomains.filter(d => d.domainName === domainName);
 
-        if (foundDomains.length === 0) { 
-           foundDomains.push({ id: 'mock', domainName: domainName, status: 'ACTIVE', allowedPages: ['Portal Cliente', 'Portal Operacional'] }); 
+        // Se for o domínio do proprietário (@tiecia.com.br), auto-autoriza para testes e gestão
+        const isOwnerDomain = domainName === '@tiecia.com.br';
+        
+        if (foundDomains.length === 0 && isOwnerDomain) { 
+           foundDomains.push({ id: 'owner-auto', domainName: domainName, status: 'ACTIVE', allowedPages: ['Portal Cliente', 'Portal Operacional'] }); 
         }
 
         const requiredPermission = expectedType === 'client' ? 'Portal Cliente' : 'Portal Operacional';
         
-        let hasValidAccess = foundDomains.some(d => d.status === 'ACTIVE' && (Array.isArray(d.allowedPages) ? d.allowedPages.includes(requiredPermission) : true));
-
-        // No Portal do Cliente, qualquer e-mail autenticado pelo Google é aceito por padrão
-        if (expectedType === 'client') {
-           hasValidAccess = true;
-        }
+        const hasValidAccess = foundDomains.some(d => 
+          d.status === 'ACTIVE' && (Array.isArray(d.allowedPages) ? d.allowedPages.includes(requiredPermission) : true)
+        );
 
         if (!hasValidAccess) {
            await signOut(instaPassoAuth);
-           throw new Error(`Acesso Negado: Seu domínio não tem permissão para acessar o ${requiredPermission} ou está inativo.`);
+           logAuditEvent(
+             'ACCESS_BLOCKED_UNAUTHORIZED_DOMAIN',
+             `🚨 [ZERO-TRUST B2B] Acesso bloqueado para e-mail ${email}. O domínio ${domainName} não possui autorização cadastrada ou ativa no InstaPasso.`
+           );
+           throw new Error(`Acesso Negado: O domínio do seu e-mail (${domainName}) ainda não possui autorização cadastrada ou ativa no InstaPasso.`);
         }
 
 
