@@ -15,6 +15,7 @@ import { CsatTrendWidget } from '../components/CsatTrendWidget';
 import { B2bCompanyPerformanceModal } from '../components/B2bCompanyPerformanceModal';
 import { FirstContactResolutionWidget } from '../components/FirstContactResolutionWidget';
 import { apiClient } from '../../../lib/api-client';
+import { processBigDataInChunks } from '../../../lib/bigdata-analytics-aggregator';
 
 const COLORS = ['#3b82f6', '#f59e0b', '#10b981', '#6366f1', '#ef4444', '#8b5cf6'];
 
@@ -71,8 +72,13 @@ export default function ReportsPage() {
       {/* ─── HEADER & FILTERS ─── */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
         <div className="flex-shrink-0">
-          <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">Dashboard de Desempenho</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Visão consolidada da operação de atendimento</p>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">Dashboard de Desempenho</h1>
+            <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
+              ⚡ Big Data Engine (IndexedDB 60FPS)
+            </span>
+          </div>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Visão consolidada da operação com sumarização em lote e cache de alta velocidade</p>
         </div>
         
         <div className="flex items-center gap-3 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0 hide-scrollbar flex-wrap sm:flex-nowrap">

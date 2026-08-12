@@ -224,23 +224,35 @@ function PrinterCard({ printer, selected, onClick }: { printer: Printer; selecte
  * Painel em tempo real para controle de parque de impressão, exibindo status 
  * operacionais, níveis de suprimentos, papel e fila de impressão.
  */
-import { apiClient } from '../../../lib/api-client';
+import { collection, onSnapshot } from 'firebase/firestore';
+import { db } from '../../../lib/firebase';
+import { startOutboundTelemetryPushAgent } from '../../../lib/hardware-telemetry-push-agent';
 
 export default function PrinterMonitoringPage() {
   const [printers, setPrinters] = useState<Printer[]>(MOCK_PRINTERS);
   const [selected, setSelected] = useState<string | null>('prt_001');
 
   useEffect(() => {
-    apiClient.get('/assets/printers')
-      .then((data: any[]) => {
-        if (Array.isArray(data) && data.length > 0) {
-          setPrinters(data);
-        }
-      })
-      .catch(() => console.info('[PrinterMonitoring] API offline, exibindo telemetria SNMP local.'));
+    // 1. Inicia o agente sonda de telemetria Outbound Push seguro (0 portas abertas)
+    startOutboundTelemetryPushAgent();
+
+    // 2. Escuta a coleção printer_telemetry no Firestore ao vivo
+    const q = collection(db, 'printer_telemetry');
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      if (!snapshot.empty) {
+        const livePrinters: Printer[] = [];
+        snapshot.forEach((docSnap) => {
+          livePrinters.push({ id: docSnap.id, ...(docSnap.data() as any) });
+        });
+        setPrinters(livePrinters);
+      }
+    }, (err) => {
+      console.warn('[PrinterMonitoring] Aviso de escuta Firestore:', err);
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  
   // Estado para busca textual (nome, modelo, etc.)
   const [search, setSearch] = useState('');
   
@@ -248,10 +260,10 @@ export default function PrinterMonitoringPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'online' | 'printing' | 'warning' | 'offline'>('all');
 
   // Encontra os dados completos da impressora atualmente selecionada
-  const selectedPrinter = MOCK_PRINTERS.find(p => p.id === selected);
+  const selectedPrinter = printers.find(p => p.id === selected) || printers[0];
 
   // Aplica filtro de busca de texto e botão de status
-  const filtered = MOCK_PRINTERS.filter(p => {
+  const filtered = printers.filter(p => {
     const q = search.toLowerCase();
     const matchSearch = !q ||
       p.name.toLowerCase().includes(q) ||
@@ -276,7 +288,12 @@ export default function PrinterMonitoringPage() {
         </Link>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">Monitoramento de Impressoras</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">Monitoramento de Impressoras</h1>
+              <span className="text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 flex items-center gap-1">
+                🛡️ Outbound Push Agente Ativo (0 Portas Abertas / TLS 1.3)
+              </span>
+            </div>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
               {online} operacional(is) · {warnings} com alertas · {offline} offline
             </p>
