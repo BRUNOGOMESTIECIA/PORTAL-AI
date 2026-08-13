@@ -1,5 +1,8 @@
 import { format } from 'date-fns';
 import { useState, useEffect } from 'react';
+import { doc, setDoc, onSnapshot } from 'firebase/firestore';
+import { instaPassoDb } from './firebase';
+
 export interface BusinessScheduleDay {
   dayIndex: number; // 0 = Domingo, 1 = Segunda ... 6 = Sábado
   dayName: string;
@@ -26,6 +29,42 @@ export const DEFAULT_BUSINESS_SCHEDULE: BusinessScheduleDay[] = [
 
 export const STORAGE_KEY_BUSINESS_HOURS = 'portal_business_hours_config';
 
+/**
+ * BUG-10 FIX: Gera feriados nacionais fixos dinamicamente para qualquer ano (YYYY-MM-DD)
+ */
+export function getDefaultHolidaysForYear(year: number = new Date().getFullYear()): string[] {
+  const fixedMmDd = [
+    '01-01', // Confraternização Universal
+    '04-21', // Tiradentes
+    '05-01', // Dia do Trabalho
+    '09-07', // Independência do Brasil
+    '10-12', // Nossa Senhora Aparecida
+    '11-02', // Finados
+    '11-15', // Proclamação da República
+    '11-20', // Dia da Consciência Negra
+    '12-25', // Natal
+  ];
+
+  const years = [year - 1, year, year + 1];
+  const list: string[] = [];
+  years.forEach((y) => {
+    fixedMmDd.forEach((mmdd) => {
+      list.push(`${y}-${mmdd}`);
+    });
+  });
+  return list;
+}
+
+/**
+ * BUG-10 FIX: Verifica se uma data YYYY-MM-DD é feriado (compara YYYY-MM-DD ou sufixo MM-DD)
+ */
+export function isHolidayDate(dateStr: string, holidays: string[]): boolean {
+  if (!holidays || holidays.length === 0) return false;
+  if (holidays.includes(dateStr)) return true;
+  const mmdd = dateStr.length >= 10 ? dateStr.substring(5) : dateStr;
+  return holidays.some((h) => h.endsWith(mmdd));
+}
+
 export function getBusinessHoursConfig(): BusinessHoursConfig {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_BUSINESS_HOURS);
@@ -35,37 +74,68 @@ export function getBusinessHoursConfig(): BusinessHoursConfig {
   return {
     autoCollapseChatOutsideHours: true,
     schedule: DEFAULT_BUSINESS_SCHEDULE,
-    holidays: [
-      '2026-01-01', '2026-04-21', '2026-05-01', '2026-09-07',
-      '2026-10-12', '2026-11-02', '2026-11-15', '2026-12-25',
-    ],
+    holidays: getDefaultHolidaysForYear(),
   };
 }
 
-export function saveBusinessHoursConfig(config: BusinessHoursConfig): void {
+/**
+ * BUG-09 FIX: Salva no localStorage + Firestore para sincronização global entre todos os clientes/operadores
+ */
+export async function saveBusinessHoursConfig(config: BusinessHoursConfig): Promise<void> {
   try {
     localStorage.setItem(STORAGE_KEY_BUSINESS_HOURS, JSON.stringify(config));
     
-    // Sincronização global (operador, cliente e instapasso)
+    // Sincronização em aba local (BroadcastChannel)
     const channel = new BroadcastChannel('config_sync_fallback');
     channel.postMessage({ type: 'SYNC_BUSINESS_HOURS', payload: config });
     channel.close();
-  } catch (e) {}
+
+    // BUG-09 FIX: Persistência no Firestore
+    const docRef = doc(instaPassoDb, 'settings', 'business_hours');
+    await setDoc(docRef, { ...config, updatedAt: new Date().toISOString() }, { merge: true });
+  } catch (e) {
+    console.warn('[BusinessHours] Erro ao salvar configuração:', e);
+  }
 }
 
+/**
+ * BUG-09 FIX: Hook reativo com listener em tempo real (Firestore onSnapshot) + BroadcastChannel
+ */
 export function useBusinessHours() {
   const [config, setConfig] = useState<BusinessHoursConfig>(getBusinessHoursConfig());
 
   useEffect(() => {
     const channel = new BroadcastChannel('config_sync_fallback');
     channel.onmessage = (event) => {
-      if (event.data.type === 'SYNC_BUSINESS_HOURS') {
+      if (event.data?.type === 'SYNC_BUSINESS_HOURS') {
         setConfig(event.data.payload);
       }
     };
 
+    let unsubFirestore: (() => void) | null = null;
+    try {
+      const docRef = doc(instaPassoDb, 'settings', 'business_hours');
+      unsubFirestore = onSnapshot(docRef, (snapshot) => {
+        if (snapshot.exists()) {
+          const data = snapshot.data() as BusinessHoursConfig;
+          if (data && Array.isArray(data.schedule)) {
+            const mergedConfig: BusinessHoursConfig = {
+              autoCollapseChatOutsideHours: data.autoCollapseChatOutsideHours ?? true,
+              schedule: data.schedule,
+              holidays: Array.isArray(data.holidays) && data.holidays.length > 0 ? data.holidays : getDefaultHolidaysForYear(),
+            };
+            setConfig(mergedConfig);
+            try {
+              localStorage.setItem(STORAGE_KEY_BUSINESS_HOURS, JSON.stringify(mergedConfig));
+            } catch (e) {}
+          }
+        }
+      });
+    } catch (e) {}
+
     return () => {
       channel.close();
+      if (unsubFirestore) unsubFirestore();
     };
   }, []);
 
@@ -87,8 +157,8 @@ export function isSlaPausedNow(currentDate: Date = new Date()): SlaPauseInfo {
   const dateStr = format(currentDate, 'yyyy-MM-dd');
   const hours = currentDate.getHours();
 
-  // 1. Verificação de Feriado
-  if (config.holidays.includes(dateStr)) {
+  // 1. Verificação de Feriado (BUG-10 FIX: checa via isHolidayDate)
+  if (isHolidayDate(dateStr, config.holidays)) {
     return {
       isPaused: true,
       reason: 'holiday',
@@ -155,8 +225,8 @@ export function calculateElapsedBusinessMs(
     
     const tickEnd = Math.min(nextDay, end);
     
-    // Feriado? Pula o dia todo.
-    if (config.holidays.includes(dateStr)) {
+    // Feriado? Pula o dia todo. (BUG-10 FIX: usa isHolidayDate)
+    if (isHolidayDate(dateStr, config.holidays)) {
       currentMs = tickEnd;
       continue;
     }
@@ -220,8 +290,8 @@ export function calculateSlaDueDate(
     nextDayD.setHours(0, 0, 0, 0);
     const nextDay = nextDayD.getTime();
     
-    // Feriado
-    if (config.holidays.includes(dateStr)) {
+    // Feriado (BUG-10 FIX: usa isHolidayDate)
+    if (isHolidayDate(dateStr, config.holidays)) {
       currentMs = nextDay;
       continue;
     }
