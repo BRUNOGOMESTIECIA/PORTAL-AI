@@ -1,13 +1,13 @@
-import { getFirestore, collection, doc, setDoc, getDoc, Firestore } from 'firebase/firestore';
-import app, { instaPassoApp } from './firebase';
+import { collection, doc, setDoc, getDoc, Firestore } from 'firebase/firestore';
+import app, { instaPassoDb, ticketsChatDb, generalRegDb } from './firebase';
 
 /**
  * 🗄️ Item 016: Separação em 3 Bancos de Dados Distintos
  * 
  * Divisão de Arquitetura:
- * 1. Banco 1 (dbInstaPassoSecurity): InstaPasso + Todos os Sistemas de Segurança (SSO, IAM, RBAC, 2FA, WAF, Brute Force, Audit ISO 27001)
- * 2. Banco 2 (dbTicketsAndChat): Armazenamento de Tickets + Conversas/Transição Cliente ➔ Atendente (Tickets, Chat Live, Transcrições, SLAs, CSAT)
- * 3. Banco 3 (dbGeneralRegistration): O Resto (Cadastros, Empresas B2B, Domínios, Departamentos, Centros de Custo, Ativos de TI, KB)
+ * 1. Banco 1 (dbInstaPassoSecurity): portal-ai-tiecia (InstaPasso + SSO + Segurança + Audit ISO 27001)
+ * 2. Banco 2 (dbTicketsAndChat): portal-tickets-chat (Tickets + Live Chat + Transcrições + SLAs + CSAT)
+ * 3. Banco 3 (dbGeneralRegistration): portal-general-registration (Cadastros B2B + Ativos TI + KB)
  */
 
 export interface DatabaseTarget {
@@ -22,9 +22,9 @@ export interface DatabaseTarget {
 export const DATABASE_DOMAINS: Record<string, DatabaseTarget> = {
   instapassoSecurity: {
     id: 'instapasso_security',
-    name: 'Banco 1: InstaPasso & Segurança',
+    name: 'Banco 1: InstaPasso & Segurança (portal-ai-tiecia)',
     description: 'Central SSO, IAM, permissões RBAC, autenticação 2FA/MFA, WAF, anti-brute force, expiração de sessão e logs imutáveis ISO 27001.',
-    dbInstanceName: 'instapasso-security-db',
+    dbInstanceName: 'portal-ai-tiecia',
     isolationLevel: 'Nível 3 (Criptografia AES-256-GCM + ISO 27001)',
     assignedCollections: [
       'users_sso',
@@ -39,9 +39,9 @@ export const DATABASE_DOMAINS: Record<string, DatabaseTarget> = {
   },
   ticketsAndChat: {
     id: 'tickets_chat',
-    name: 'Banco 2: Tickets & Conversas (Cliente ➔ Atendente)',
+    name: 'Banco 2: Tickets & Conversas (portal-tickets-chat)',
     description: 'Armazenamento de chamados (#2026XXXX), fila de chat ao vivo, histórico de conversas, laudos em PDF, SLAs e pesquisas CSAT.',
-    dbInstanceName: 'tickets-conversations-db',
+    dbInstanceName: 'portal-tickets-chat',
     isolationLevel: 'Nível 2 (High-Performance Chat & SLA Stream)',
     assignedCollections: [
       'tickets_store',
@@ -55,9 +55,9 @@ export const DATABASE_DOMAINS: Record<string, DatabaseTarget> = {
   },
   generalRegistration: {
     id: 'general_registration',
-    name: 'Banco 3: Cadastros Gerais & O Resto',
+    name: 'Banco 3: Cadastros Gerais (portal-general-registration)',
     description: 'Cadastros de empresas clientes B2B, domínios, departamentos, centros de custo, inventário de TI/periféricos e base de conhecimento.',
-    dbInstanceName: 'general-registration-db',
+    dbInstanceName: 'portal-general-registration',
     isolationLevel: 'Nível 2 (Cadastros & Ativos B2B)',
     assignedCollections: [
       'companies_b2b',
@@ -71,32 +71,9 @@ export const DATABASE_DOMAINS: Record<string, DatabaseTarget> = {
   },
 };
 
-/**
- * Inicialização das 3 instâncias isoladas do Firestore
- */
-let dbInstaPassoSecurityInstance: Firestore | null = null;
-let dbTicketsAndChatInstance: Firestore | null = null;
-let dbGeneralRegistrationInstance: Firestore | null = null;
-
-try {
-  // Banco 1: InstaPasso & Segurança
-  dbInstaPassoSecurityInstance = getFirestore(instaPassoApp);
-
-  // Banco 2: Tickets e Conversas (Instância dedicada de atendimento)
-  dbTicketsAndChatInstance = getFirestore(app);
-
-  // Banco 3: Cadastros Gerais & O Resto (Instância de cadastros/ativos)
-  dbGeneralRegistrationInstance = getFirestore(app);
-} catch (error) {
-  console.warn('[MultiDB] Fallback de inicialização de instâncias:', error);
-  dbInstaPassoSecurityInstance = getFirestore(app);
-  dbTicketsAndChatInstance = getFirestore(app);
-  dbGeneralRegistrationInstance = getFirestore(app);
-}
-
-export const dbInstaPassoSecurity = dbInstaPassoSecurityInstance;
-export const dbTicketsAndChat = dbTicketsAndChatInstance;
-export const dbGeneralRegistration = dbGeneralRegistrationInstance;
+export const dbInstaPassoSecurity = instaPassoDb;
+export const dbTicketsAndChat = ticketsChatDb;
+export const dbGeneralRegistration = generalRegDb;
 
 /**
  * Retorna a instância do banco de dados com base na coleção solicitada.

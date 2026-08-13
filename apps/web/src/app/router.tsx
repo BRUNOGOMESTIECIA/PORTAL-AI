@@ -64,7 +64,9 @@ const AiUsageDashboardPage = safeLazy(() => import('../portals/operational/pages
 function ClientGuard({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
   if (isLoading) return <LoadingScreen />;
-  if (!user || (user.type !== 'client' && user.type !== 'staff')) return <Navigate to="/cliente" replace />;
+  if (!user) return <Navigate to="/cliente" replace />;
+  if (user.type === 'staff') return <Navigate to="/operacional/app/dashboard" replace />;
+  if (user.type !== 'client') return <Navigate to="/cliente" replace />;
   return <>{children}</>;
 }
 
