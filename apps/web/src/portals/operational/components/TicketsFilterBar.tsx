@@ -6,6 +6,8 @@ export interface TicketFilters {
   search: string;
   company: string[]; // empty = all
   team: string[]; // empty = all
+  department: string[]; // empty = all (OBS-07)
+  costCenter: string[]; // empty = all (OBS-07)
   requesterName: string[]; // empty = all
   assigneeName: string[]; // empty = all
   period: string[]; // empty = all
@@ -93,20 +95,39 @@ export function TicketsFilterBar({ filters, onChange, tickets }: Props) {
   const activeFiltersCount = 
     (filters.company.length > 0 ? 1 : 0) +
     (filters.team.length > 0 ? 1 : 0) +
+    ((filters.department?.length ?? 0) > 0 ? 1 : 0) +
+    ((filters.costCenter?.length ?? 0) > 0 ? 1 : 0) +
     (filters.requesterName.length > 0 ? 1 : 0) +
     (filters.assigneeName.length > 0 ? 1 : 0) +
     (filters.period.length > 0 ? 1 : 0);
 
   const handleClear = () => {
-    onChange({ ...filters, company: [], team: [], requesterName: [], assigneeName: [], period: [] });
+    onChange({ ...filters, company: [], team: [], department: [], costCenter: [], requesterName: [], assigneeName: [], period: [] });
   };
 
   const companyOptions = uniqueCompanies.map(c => ({ label: c, value: c }));
 
-
   const teamOptions = [
     { label: 'Triagem (Sem Mesa)', value: 'unassigned' },
     ...uniqueTeams.map(t => ({ label: t, value: t }))
+  ];
+
+  // OBS-07: Opções de Departamento e Centro de Custo B2B
+  const departmentOptions = [
+    { label: 'Tecnologia da Informação (TI)', value: 'TI' },
+    { label: 'Financeiro & Contabilidade', value: 'Financeiro' },
+    { label: 'Operações & Logística', value: 'Operações' },
+    { label: 'Recursos Humanos (RH)', value: 'RH' },
+    { label: 'Vendas & Comercial', value: 'Comercial' },
+    { label: 'Jurídico & Compliance', value: 'Jurídico' }
+  ];
+
+  const costCenterOptions = [
+    { label: 'CC-1001 (Infraestrutura TI)', value: 'CC-1001' },
+    { label: 'CC-1002 (Sistemas & Software)', value: 'CC-1002' },
+    { label: 'CC-2001 (Administrativo)', value: 'CC-2001' },
+    { label: 'CC-3001 (Vendas & Mkt)', value: 'CC-3001' },
+    { label: 'CC-4001 (Suporte ao Cliente)', value: 'CC-4001' }
   ];
 
   const requesterOptions = uniqueRequesters.map(t => ({ label: t, value: t }));
@@ -157,7 +178,7 @@ export function TicketsFilterBar({ filters, onChange, tickets }: Props) {
       </div>
 
       {expanded && (
-        <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 rounded-b-xl grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 rounded-b-xl grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <MultiSelect 
             label="Empresa" 
             options={companyOptions} 
@@ -169,6 +190,18 @@ export function TicketsFilterBar({ filters, onChange, tickets }: Props) {
             options={teamOptions} 
             selected={filters.team} 
             onChange={(v) => onChange({ ...filters, team: v })} 
+          />
+          <MultiSelect 
+            label="Departamento (OBS-07)" 
+            options={departmentOptions} 
+            selected={filters.department || []} 
+            onChange={(v) => onChange({ ...filters, department: v })} 
+          />
+          <MultiSelect 
+            label="Centro de Custo (OBS-07)" 
+            options={costCenterOptions} 
+            selected={filters.costCenter || []} 
+            onChange={(v) => onChange({ ...filters, costCenter: v })} 
           />
           <MultiSelect 
             label="Solicitante" 

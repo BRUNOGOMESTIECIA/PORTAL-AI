@@ -57,7 +57,7 @@ export default function TicketsPage() {
   const { density, setDensity, config: densityConfig } = useTableDensity();
   const [showNewTicketModal, setShowNewTicketModal] = useState(false);
   const [advancedFilters, setAdvancedFilters]   = useState<TicketFilters>({
-    search: '', company: [], team: [], requesterName: [], assigneeName: [], period: []
+    search: '', company: [], team: [], department: [], costCenter: [], requesterName: [], assigneeName: [], period: []
   });
 
   // ── Filtragem ────────────────────────────────────────────────────────────────
@@ -81,6 +81,13 @@ export default function TicketsPage() {
       const matchCompany   = advancedFilters.company.length === 0 || advancedFilters.company.includes(companyName);
       const tTeamValue     = t.team === null ? 'unassigned' : t.team;
       const matchTeam      = advancedFilters.team.length === 0 || advancedFilters.team.includes(tTeamValue);
+      
+      // OBS-07: Filtro por Departamento e Centro de Custo
+      const tDept = (t as any).department || 'TI';
+      const tCostCenter = (t as any).costCenter || 'CC-1001';
+      const matchDepartment = !advancedFilters.department || advancedFilters.department.length === 0 || advancedFilters.department.includes(tDept);
+      const matchCostCenter = !advancedFilters.costCenter || advancedFilters.costCenter.length === 0 || advancedFilters.costCenter.includes(tCostCenter);
+
       const matchRequester = advancedFilters.requesterName.length === 0 || advancedFilters.requesterName.includes(t.requesterName);
       const tAssigneeValue = t.assigneeName === null ? 'unassigned' : t.assigneeName;
       const matchAssignee  = advancedFilters.assigneeName.length === 0 || advancedFilters.assigneeName.includes(tAssigneeValue);
@@ -106,7 +113,7 @@ export default function TicketsPage() {
         }
       }
 
-      return matchStatusTab && matchSearch && matchCompany && matchTeam && matchRequester && matchAssignee && matchPeriod && matchUrlPriority;
+      return matchStatusTab && matchSearch && matchCompany && matchTeam && matchDepartment && matchCostCenter && matchRequester && matchAssignee && matchPeriod && matchUrlPriority;
     });
   }, [statusFilter, advancedFilters, urlPriority]);
 

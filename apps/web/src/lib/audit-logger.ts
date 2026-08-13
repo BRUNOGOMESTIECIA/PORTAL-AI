@@ -8,6 +8,7 @@ export interface SecurityAuditEntry {
   userEmail: string;
   userName: string;
   clientIp?: string;
+  geoIpLocation?: string;
   userAgent?: string;
   createdAt: string;
   details?: string;
@@ -15,19 +16,33 @@ export interface SecurityAuditEntry {
 
 /**
  * Registra um evento de auditoria de segurança diretamente no banco do InstaPasso (instaPassoDb).
- * Captura IP público, User-Agent do navegador, timestamp e gera rastreabilidade total.
+ * Captura IP público, Geolocalização aproximada (ISO 27001), User-Agent e timestamp.
  */
-export async function logSecurityAudit(entry: Omit<SecurityAuditEntry, 'createdAt' | 'clientIp' | 'userAgent'>) {
+export async function logSecurityAudit(entry: Omit<SecurityAuditEntry, 'createdAt' | 'clientIp' | 'userAgent' | 'geoIpLocation'>) {
   try {
     let clientIp = '187.52.190.44'; // IP Padrão de demonstração / fallback
+    let geoIpLocation = 'São Paulo, SP - Brasil 🇧🇷'; // Geolocalização padrão
+
     try {
       const res = await fetch('https://api.ipify.org?format=json', { signal: AbortSignal.timeout(1500) });
       if (res.ok) {
         const data = await res.json();
-        if (data.ip) clientIp = data.ip;
+        if (data.ip) {
+          clientIp = data.ip;
+          // OBS-06 FIX: Resolve localização aproximada por IP
+          try {
+            const geoRes = await fetch(`https://ipapi.co/${data.ip}/json/`, { signal: AbortSignal.timeout(1500) });
+            if (geoRes.ok) {
+              const geo = await geoRes.json();
+              if (geo.city && geo.country_name) {
+                geoIpLocation = `${geo.city}, ${geo.region_code || ''} - ${geo.country_name} ${geo.country_code === 'BR' ? '🇧🇷' : '🌐'}`;
+              }
+            }
+          } catch (e) {}
+        }
       }
     } catch (e) {
-      // Utiliza IP fallback caso haja bloqueio ou timeout
+      // Utiliza IP/Geo fallback caso haja bloqueio ou timeout
     }
 
     const ua = navigator.userAgent || '';
@@ -40,6 +55,7 @@ export async function logSecurityAudit(entry: Omit<SecurityAuditEntry, 'createdA
     const fullEntry: SecurityAuditEntry = {
       ...entry,
       clientIp,
+      geoIpLocation,
       userAgent: browserInfo,
       createdAt: new Date().toISOString()
     };
