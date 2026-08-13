@@ -20,6 +20,37 @@ interface ChatsContextValue {
 const ChatsContext = createContext<ChatsContextValue | null>(null);
 
 /**
+ * BUG-14 FIX: Mescla e ordena mensagens cronologicamente sem duplicatas para eliminar Race Conditions
+ */
+export function mergeAndSortMessages(existing: any[] = [], incoming: any[] = []): any[] {
+  const map = new Map<string, any>();
+
+  existing.forEach((m) => {
+    const key = m.id || `${m.senderName}_${m.timestamp || m.createdAt || ''}_${m.body}`;
+    map.set(key, m);
+  });
+
+  incoming.forEach((m) => {
+    const key = m.id || `${m.senderName}_${m.timestamp || m.createdAt || ''}_${m.body}`;
+    if (!map.has(key)) {
+      map.set(key, m);
+    } else {
+      map.set(key, { ...map.get(key), ...m });
+    }
+  });
+
+  const merged = Array.from(map.values());
+
+  merged.sort((a, b) => {
+    const timeA = new Date(a.timestamp || a.createdAt || 0).getTime();
+    const timeB = new Date(b.timestamp || b.createdAt || 0).getTime();
+    return timeA - timeB;
+  });
+
+  return merged;
+}
+
+/**
  * HOOK DE GERENCIAMENTO DE CHATS (TEMPO REAL VIA SOCKET.IO + API REST + MOCK FALLBACK)
  * 
  * Gerencia as conversas ao vivo.
@@ -60,23 +91,21 @@ export function ChatsProvider({ children }: { children: React.ReactNode }) {
 
     const handleNewMessage = (msgData: any) => {
       console.info('[Socket.io] Nova mensagem recebida via WebSocket:', msgData);
-      // Atualiza chat com nova mensagem se pertencer a uma sessão conhecida
       const currentList = [...fallbackChatsRef.current];
       const idx = currentList.findIndex(c => c.id === msgData.sessionId);
       if (idx > -1) {
         const currentMsgs = currentList[idx].messages || [];
+        const newMsgObj = {
+          id: msgData.id || `msg_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          senderName: msgData.senderName || 'Atendente',
+          body: redactSensitiveData(msgData.body || ''),
+          timestamp: msgData.createdAt || new Date().toISOString(),
+          isAgent: msgData.senderType === 'agent',
+        };
+
         currentList[idx] = {
           ...currentList[idx],
-          messages: [
-            ...currentMsgs,
-            {
-              id: msgData.id || `msg_${Date.now()}`,
-              senderName: msgData.senderName || 'Atendente',
-              body: redactSensitiveData(msgData.body || ''),
-              timestamp: msgData.createdAt || new Date().toISOString(),
-              isAgent: msgData.senderType === 'agent',
-            } as any
-          ]
+          messages: mergeAndSortMessages(currentMsgs, [newMsgObj])
         };
         saveFallbackChats(currentList);
       }
@@ -246,7 +275,15 @@ export function ChatsProvider({ children }: { children: React.ReactNode }) {
     const currentList = [...fallbackChatsRef.current];
     const idx = currentList.findIndex(c => c.id === id);
     if (idx > -1) {
-      currentList[idx] = { ...currentList[idx], ...sanitizedUpdates };
+      const mergedMsgs = updates.messages
+        ? mergeAndSortMessages(currentList[idx].messages || [], sanitizeMessages(updates.messages) || [])
+        : currentList[idx].messages;
+
+      currentList[idx] = {
+        ...currentList[idx],
+        ...sanitizedUpdates,
+        messages: mergedMsgs,
+      };
       saveFallbackChats(currentList);
       channelRef.current?.postMessage({ type: 'SYNC_CHATS', payload: currentList });
     }

@@ -30,27 +30,51 @@ window.addEventListener('unhandledrejection', (event) => {
   }
 });
 
-// Bloqueio de Inspeção de Código (Global)
-document.addEventListener('contextmenu', (e) => e.preventDefault());
-document.addEventListener('keydown', (e) => {
-  // Bloquear F12
-  if (e.key === 'F12') e.preventDefault();
-  
-  // Bloquear Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C
-  if (e.ctrlKey && e.shiftKey && ['I', 'i', 'J', 'j', 'C', 'c'].includes(e.key)) {
-    e.preventDefault();
-  }
-  
-  // Bloquear Ctrl+U (Ver código-fonte)
-  if (e.ctrlKey && ['U', 'u'].includes(e.key)) {
-    e.preventDefault();
-  }
-  
-  // Bloquear atalhos do Mac (Cmd+Option+I/J/U)
-  if (e.metaKey && e.altKey && ['I', 'i', 'J', 'j', 'U', 'u', 'C', 'c'].includes(e.key)) {
-    e.preventDefault();
-  }
-});
+// 🛡️ Bloqueio Avançado de Inspeção de Código e DevTools (Item 084 / BUG-13 FIX)
+if (import.meta.env.PROD || import.meta.env.VITE_ENABLE_DEVTOOLS_BLOCKER === 'true') {
+  // 1. Bloqueia botão direito e atalhos de teclado (F12, Ctrl+Shift+I/J/C, Ctrl+U, Cmd+Opt+I)
+  document.addEventListener('contextmenu', (e) => e.preventDefault());
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'F12') e.preventDefault();
+    if (e.ctrlKey && e.shiftKey && ['I', 'i', 'J', 'j', 'C', 'c'].includes(e.key)) e.preventDefault();
+    if (e.ctrlKey && ['U', 'u', 'S', 's'].includes(e.key)) e.preventDefault();
+    if (e.metaKey && e.altKey && ['I', 'i', 'J', 'j', 'U', 'u', 'C', 'c'].includes(e.key)) e.preventDefault();
+  });
+
+  // 2. BUG-13 FIX: Detecção contínua de abertura via Menu do Navegador ou janela destacada
+  let isDevToolsDetected = false;
+
+  const checkDevToolsDeltas = () => {
+    const widthThreshold = window.outerWidth - window.innerWidth > 160;
+    const heightThreshold = window.outerHeight - window.innerHeight > 160;
+    
+    if (widthThreshold || heightThreshold) {
+      if (!isDevToolsDetected) {
+        isDevToolsDetected = true;
+        console.warn('[Security] DevTools detectado por inspeção de dimensões.');
+      }
+    }
+  };
+
+  // Check por armadilha de tempo no debugger
+  const checkDebuggerTiming = () => {
+    const start = performance.now();
+    try {
+      const fn = new Function('debugger');
+      fn();
+    } catch (e) {}
+    const end = performance.now();
+    if (end - start > 100) {
+      if (!isDevToolsDetected) {
+        isDevToolsDetected = true;
+        console.warn('[Security] DevTools detectado por atraso no debugger.');
+      }
+    }
+  };
+
+  window.addEventListener('resize', checkDevToolsDeltas);
+  setInterval(checkDebuggerTiming, 2000);
+}
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
