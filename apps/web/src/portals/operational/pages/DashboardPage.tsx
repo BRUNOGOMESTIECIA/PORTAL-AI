@@ -74,9 +74,25 @@ export default function DashboardPage() {
   const activeChats = chats.filter((c) => c.status === 'active');
   const recentTickets = tickets.filter((t) => !['closed'].includes(t.status)).slice(0, 6);
   
+  // SLA Resolução Real (Sincronizado 100% com a tela de Relatórios)
+  const isTicketOverdue = (t: any) => {
+    if (t.slaResolutionMet === false) return true;
+    if (['resolved', 'closed'].includes(t.status)) return false;
+    if (t.slaResolutionDue && new Date(t.slaResolutionDue).getTime() < Date.now()) return true;
+    return false;
+  };
+
   const openTicketsCount = tickets.filter(t => !['closed', 'resolved'].includes(t.status)).length;
-  const criticalTicketsCount = tickets.filter(t => ['critical', 'high'].includes(t.priority) && !['closed', 'resolved'].includes(t.status)).length;
   
+  // Críticos/Altos (Sincronizado com Relatórios)
+  const criticalTicketsCount = tickets.filter(t => 
+    !['closed', 'resolved'].includes(t.status) && 
+    (['critical', 'high'].includes(t.priority) || isTicketOverdue(t))
+  ).length;
+  
+  const slaResMetCount = tickets.filter((t) => !isTicketOverdue(t)).length;
+  const realSlaResPct = tickets.length > 0 ? Math.round((slaResMetCount / tickets.length) * 100) : 100;
+
   const ticketsByStatus = [
     { label: 'Novo', count: tickets.filter(t => t.status === 'new').length, color: '#6366f1' },
     { label: 'Aberto', count: tickets.filter(t => t.status === 'open').length, color: '#3b82f6' },
@@ -92,11 +108,6 @@ export default function DashboardPage() {
     text: `${t.requesterName} abriu ticket #${t.number}`,
     time: formatDistanceToNow(new Date(t.createdAt), { addSuffix: true, locale: ptBR })
   }));
-
-  const stats = {
-    slaCompliance: 87,
-    avgResolutionHours: 4.2
-  };
 
   return (
     <div className="space-y-6">
@@ -128,7 +139,7 @@ export default function DashboardPage() {
         <StatCard label="Tickets abertos" value={openTicketsCount} sub="Todos os status ativos" icon={Ticket} color="bg-blue-50 text-blue-600" />
         <StatCard label="Críticos / Altos" value={criticalTicketsCount} sub="Requer atenção imediata" icon={AlertTriangle} color="bg-red-50 text-red-600" />
         <StatCard label="Chats na fila" value={waitingChats.length} sub={`${activeChats.length} em atendimento`} icon={MessageCircle} color="bg-emerald-50 text-emerald-600" />
-        <StatCard label="SLA compliance" value={`${stats.slaCompliance}%`} sub={`Média: ${stats.avgResolutionHours}h resolução`} icon={TrendingUp} color="bg-violet-50 text-violet-600" />
+        <StatCard label="SLA compliance" value={`${realSlaResPct}%`} sub="Resoluções no prazo" icon={TrendingUp} color="bg-violet-50 text-violet-600" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
