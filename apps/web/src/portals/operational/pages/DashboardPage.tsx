@@ -6,6 +6,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useTickets } from '../../../hooks/use-tickets';
 import { useChats } from '../../../hooks/use-chats';
+import { useOperatorStatus } from '../../../hooks/use-operator-status';
 import { formatTicketProtocol } from '../../../lib/audit-logger';
 import { TvDashboardPresentationModeModal } from '../../../components/dashboard/TvDashboardPresentationModeModal';
 
@@ -47,6 +48,7 @@ import { apiClient } from '../../../lib/api-client';
 export default function DashboardPage() {
   const { tickets, seedMockData: seedTickets } = useTickets();
   const { chats, seedMockData: seedChats } = useChats();
+  const { status: myPresenceStatus } = useOperatorStatus();
   const [showTvModal, setShowTvModal] = useState(false);
   
   const [operators, setOperators] = useState<any[]>([]);
@@ -246,17 +248,52 @@ export default function DashboardPage() {
 
               return displayOperators.map(op => {
                 const displayRole = op.role || op.userType || op.department || 'Suporte Técnico';
+                const isCurrentLoggedUser = op.email === 'brunogomes@tiecia.com.br' || op.email === 'admin@ti.com' || op.formattedName.toLowerCase().includes('bruno');
+                const presence = isCurrentLoggedUser ? myPresenceStatus : (op.presenceStatus || (op.isOnline ? 'online' : 'offline'));
+
+                const renderBadge = () => {
+                  if (!op.isOnline && !isCurrentLoggedUser) {
+                    return (
+                      <span className="text-[10px] font-bold text-slate-500 bg-slate-200 px-2 py-0.5 rounded-full shrink-0 flex items-center gap-1">
+                        <span>⚪</span> Offline
+                      </span>
+                    );
+                  }
+                  if (presence === 'lunch') {
+                    return (
+                      <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full shrink-0 flex items-center gap-1">
+                        <span>🍔</span> Em Almoço
+                      </span>
+                    );
+                  }
+                  if (presence === 'pause') {
+                    return (
+                      <span className="text-[10px] font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full shrink-0 flex items-center gap-1">
+                        <span>☕</span> Pausa Técnica
+                      </span>
+                    );
+                  }
+                  if (presence === 'busy') {
+                    return (
+                      <span className="text-[10px] font-bold text-rose-700 bg-rose-100 px-2 py-0.5 rounded-full shrink-0 flex items-center gap-1">
+                        <span>🔴</span> Em Reunião
+                      </span>
+                    );
+                  }
+                  return (
+                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full shrink-0 flex items-center gap-1">
+                      <span>🟢</span> Online
+                    </span>
+                  );
+                };
+
                 return (
                   <div key={op.id} className="flex items-center justify-between bg-slate-50 border border-slate-100 rounded-lg px-3 py-2">
                     <div className="flex flex-col min-w-0">
                       <span className="text-[13px] font-semibold text-slate-800 truncate" title={op.formattedName}>{op.formattedName}</span>
                       <span className="text-[10px] font-medium text-slate-500">{displayRole}</span>
                     </div>
-                    {op.isOnline ? (
-                      <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded-full shrink-0">Online</span>
-                    ) : (
-                      <span className="text-[10px] font-bold text-slate-500 bg-slate-200 px-1.5 py-0.5 rounded-full shrink-0">Offline</span>
-                    )}
+                    {renderBadge()}
                   </div>
                 );
               });

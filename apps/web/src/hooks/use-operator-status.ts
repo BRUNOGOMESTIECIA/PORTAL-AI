@@ -61,10 +61,25 @@ export function useOperatorStatus() {
     return 'online';
   });
 
+  useEffect(() => {
+    const handlePresenceChange = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail && customEvent.detail in STATUS_CONFIGS) {
+        setStatusState(customEvent.detail as OperatorPresenceStatus);
+      } else {
+        const saved = localStorage.getItem('operator_presence_status');
+        if (saved && (saved in STATUS_CONFIGS)) setStatusState(saved as OperatorPresenceStatus);
+      }
+    };
+    window.addEventListener('operator-presence-changed', handlePresenceChange);
+    return () => window.removeEventListener('operator-presence-changed', handlePresenceChange);
+  }, []);
+
   const setStatus = (newStatus: OperatorPresenceStatus) => {
     setStatusState(newStatus);
     if (typeof window !== 'undefined') {
       localStorage.setItem('operator_presence_status', newStatus);
+      window.dispatchEvent(new CustomEvent('operator-presence-changed', { detail: newStatus }));
     }
     const config = STATUS_CONFIGS[newStatus];
     toast.info(`Status alterado para: ${config.label}`, {
