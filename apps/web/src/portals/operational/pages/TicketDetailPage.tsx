@@ -271,6 +271,37 @@ export default function TicketDetailPage() {
           </div>
         )}
 
+        {/* Avaliação CSAT do Cliente (Se o chamado tiver sido avaliado) */}
+        {ticket.rating && (
+          <div className="mt-5 p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-slate-800 dark:text-slate-200 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+              <div className="flex items-center gap-2">
+                <div className="flex text-amber-400">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star
+                      key={star}
+                      className={`w-4 h-4 ${star <= (ticket.rating || 0) ? 'fill-amber-400 text-amber-400 drop-shadow-[0_0_4px_rgba(251,191,36,0.4)]' : 'text-slate-300 dark:text-slate-700'}`}
+                    />
+                  ))}
+                </div>
+                <span className="text-xs font-bold text-amber-900 dark:text-amber-300">
+                  Avaliação do Cliente ({ticket.rating} de 5 Estrelas)
+                </span>
+              </div>
+              {ticket.ratedAt && (
+                <span className="text-[11px] text-amber-700 dark:text-amber-400 font-medium">
+                  Avaliado {formatDistanceToNow(new Date(ticket.ratedAt), { addSuffix: true, locale: ptBR })}
+                </span>
+              )}
+            </div>
+            {ticket.ratingComment && (
+              <p className="text-xs text-slate-700 dark:text-slate-300 italic font-medium bg-white/70 dark:bg-slate-900/60 p-3 rounded-lg border border-amber-200/60 dark:border-amber-800/40 leading-relaxed">
+                "{ticket.ratingComment}"
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Checklist de Tarefas Internas no Ticket - Item 062 */}
         <div className="mt-5">
           <DiscreteExpandableWidget

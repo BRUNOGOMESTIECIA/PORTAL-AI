@@ -12,17 +12,21 @@ import { formatTicketProtocol, logSecurityAudit } from '../../lib/audit-logger';
 import { CorporateFooterWidget } from '../../components/shared/CorporateFooterWidget';
 import { PageTransitionWrapper } from '../../components/shared/PageTransitionWrapper';
 
+import { useChats } from '../../hooks/use-chats';
+import { toast } from 'sonner';
+
 /**
  * CLIENT SHELL (Portal do Cliente)
  * 
  * Este componente é o "Layout Base" (Wrapper) para todas as páginas que o cliente final acessa.
  * Ele engloba a navegação superior (Navbar), as notificações, o widget de Chat flutuante e a 
- * injeção do componente de pesquisa de satisfação (CSAT).
+ * injeção do componente de pesquisa de satisfação (CSAT) central.
  * A tag <Outlet /> do React Router renderiza as páginas filhas no meio deste layout.
  */
 export default function ClientShell() {
   const { user, logout } = useAuth();
   const { tickets, updateTicket } = useTickets();
+  const { chats, updateChat } = useChats();
   const location = useLocation();
   const client = user as MockClient;
 
@@ -42,39 +46,88 @@ export default function ClientShell() {
     }
   };
 
-  // Detecta chamados finalizados não avaliados pertencentes a este cliente
-  const unratedTicket = React.useMemo(() => {
+  // Detecta chamados ou chats finalizados não avaliados pertencentes a este cliente
+  const unratedItem = React.useMemo(() => {
     if (!client) return null;
-    return tickets.find(t => 
+    
+    // 1. Procura em chamados resolvidos/fechados sem avaliação
+    const ticketMatch = tickets.find(t => 
       (t.requesterEmail === client.email || t.requesterId === client.id) &&
       ['resolved', 'closed'].includes(t.status) &&
       !(t as any).rating &&
       t.id !== dismissedTicketId
     );
-  }, [tickets, client, dismissedTicketId]);
+
+    if (ticketMatch) {
+      return {
+        type: 'ticket',
+        id: ticketMatch.id,
+        number: ticketMatch.number || ticketMatch.id,
+        raw: ticketMatch
+      };
+    }
+
+    // 2. Procura em chats encerrados sem avaliação
+    const chatMatch = chats.find(c => 
+      (c.clientEmail === client.email || (c as any).clientId === client.id) &&
+      ['closed', 'finished'].includes(c.status) &&
+      !(c as any).rating &&
+      c.id !== dismissedTicketId
+    );
+
+    if (chatMatch) {
+      return {
+        type: 'chat',
+        id: chatMatch.id,
+        number: chatMatch.ticketId || chatMatch.id,
+        raw: chatMatch
+      };
+    }
+
+    return null;
+  }, [tickets, chats, client, dismissedTicketId]);
 
   const handleSendCsat = async (score: number, comment?: string) => {
-    if (!unratedTicket || score === 0) return;
+    if (!unratedItem || score === 0) return;
     
     try {
-      await updateTicket(unratedTicket.id, {
+      const nowIso = new Date().toISOString();
+      const ratingData = {
         rating: score,
         ratingComment: comment || '',
-        ratedAt: new Date().toISOString()
-      } as any);
+        ratedAt: nowIso
+      };
+
+      if (unratedItem.type === 'ticket') {
+        await updateTicket(unratedItem.id, ratingData as any);
+
+        const linkedChat = chats.find(c => c.ticketId === String(unratedItem.number) || c.id === unratedItem.id);
+        if (linkedChat) {
+          await updateChat(linkedChat.id, ratingData as any);
+        }
+      } else {
+        await updateChat(unratedItem.id, ratingData as any);
+
+        const linkedTicket = tickets.find(t => String(t.number) === (unratedItem.raw as any).ticketId || t.id === unratedItem.id);
+        if (linkedTicket) {
+          await updateTicket(linkedTicket.id, ratingData as any);
+        }
+      }
 
       logSecurityAudit({
-        protocol: formatTicketProtocol(unratedTicket.number || unratedTicket.id),
+        protocol: formatTicketProtocol(unratedItem.number),
         action: `Pesquisa CSAT (${score} Estrelas)`,
         originPortal: 'Portal do Cliente',
-        userName: client?.name || 'Cliente',
-        userEmail: client?.email || '',
-        details: comment ? `Comentário: ${comment}` : 'Avaliação registrada via Portal'
+        userName: client?.name || user?.name || 'Cliente',
+        userEmail: client?.email || user?.email || '',
+        details: comment ? `Comentário: ${comment}` : 'Avaliação registrada via Portal do Cliente'
       });
 
-      setDismissedTicketId(unratedTicket.id);
+      toast.success('Obrigado pela sua avaliação!');
+      setDismissedTicketId(unratedItem.id);
     } catch (e) {
       console.error("Erro ao enviar avaliação CSAT:", e);
+      toast.error('Erro ao registrar avaliação.');
     }
   };
 
@@ -357,11 +410,11 @@ export default function ClientShell() {
       {/* Floating chat */}
       <ChatWidget />
 
-      {/* Modal Automático de Pesquisa de Satisfação CSAT/NPS Escuro (PDF) */}
-      {unratedTicket && (
+      {/* Modal Automático de Pesquisa de Satisfação CSAT/NPS Escuro no Centro da Página */}
+      {unratedItem && (
         <RatingModalDark
-          ticket={unratedTicket}
-          onClose={() => setDismissedTicketId(unratedTicket.id)}
+          ticket={unratedItem}
+          onClose={() => setDismissedTicketId(unratedItem.id)}
           onConfirm={(score, comment) => handleSendCsat(score, comment)}
         />
       )}
@@ -375,6 +428,8 @@ function RatingModalDark({ ticket, onClose, onConfirm }: { ticket: any; onClose:
   const [hovered, setHovered] = React.useState(0);
   const [comment, setComment] = React.useState('');
 
+  const displayProtocol = formatTicketProtocol(ticket.number || ticket.id);
+
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="bg-[#18181b] border border-purple-500/30 shadow-[0_0_30px_rgba(168,85,247,0.15)] rounded-2xl p-6 w-full max-w-md text-center text-white">
@@ -383,7 +438,7 @@ function RatingModalDark({ ticket, onClose, onConfirm }: { ticket: any; onClose:
           Este atendimento foi encerrado.<br/>Obrigado!
         </p>
         <div className="my-3 font-semibold text-gray-200">
-          Ticket #{ticket.number || ticket.id}
+          Atendimento #{displayProtocol}
         </div>
         <p className="text-sm text-gray-400 mb-3">Como você avalia nosso atendimento?</p>
         

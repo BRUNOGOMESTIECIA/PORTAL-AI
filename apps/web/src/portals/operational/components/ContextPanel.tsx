@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Shield, User, Monitor, Clock, CheckCircle2, AlertCircle, ExternalLink, Pencil, Check, ChevronDown, ChevronRight } from 'lucide-react';
+import { Shield, User, Monitor, Clock, CheckCircle2, AlertCircle, ExternalLink, Pencil, Check, ChevronDown, ChevronRight, Star } from 'lucide-react';
 import { MockChatSession, MOCK_CLIENTS, MOCK_STAFF, TICKET_CATEGORIES } from '../../../mocks/data';
 import { useNavigate } from 'react-router-dom';
 import { NewManualTicketModal, TicketInitialData } from './NewManualTicketModal';
@@ -403,6 +403,25 @@ export function ContextPanel({
               <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">login</span>
             </div>
           </div>
+
+          {/* Avaliação do Atendimento pelo Cliente (CSAT) */}
+          {session.rating && (
+            <div className="p-3.5 bg-amber-50/80 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/50 rounded-xl space-y-1.5 shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-amber-900 dark:text-amber-300">Avaliação do Cliente</span>
+                <div className="flex text-amber-400">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star key={star} className={`w-3.5 h-3.5 ${star <= session.rating! ? 'fill-amber-400 text-amber-400' : 'text-slate-300 dark:text-slate-700'}`} />
+                  ))}
+                </div>
+              </div>
+              {session.ratingComment && (
+                <p className="text-[11px] text-slate-700 dark:text-slate-300 italic bg-white/80 dark:bg-slate-900/60 p-2 rounded-lg border border-amber-200/50 dark:border-amber-800/30">
+                  "{session.ratingComment}"
+                </p>
+              )}
+            </div>
+          )}
         </section>
 
 

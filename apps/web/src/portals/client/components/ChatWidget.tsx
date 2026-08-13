@@ -28,11 +28,6 @@ export function ChatWidget() {
   const [minimized, setMinimized] = useState(false);
   const [input, setInput] = useState('');
   const [hoursTooltip, setHoursTooltip] = useState(false);
-  const [widgetCsatScore, setWidgetCsatScore] = useState(0);
-  const [widgetCsatHovered, setWidgetCsatHovered] = useState(0);
-  const [widgetCsatComment, setWidgetCsatComment] = useState('');
-  const [widgetCsatSubmitted, setWidgetCsatSubmitted] = useState(false);
-  const [chatCsatDismissed, setChatCsatDismissed] = useState(false);
   const [editingMsgId, setEditingMsgId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState<string>('');
   const [now, setNow] = useState<number>(Date.now());
@@ -288,93 +283,7 @@ export function ChatWidget() {
             </div>
           )}
 
-          {/* Modal Escuro de Avaliação de Atendimento (PDF) ao Encerrar Chat */}
-          {activeChat && (activeChat.status === 'closed' || (activeChat as any).status === 'finished') && !(activeChat as any).rating && !chatCsatDismissed && (
-            <div className="absolute inset-0 z-[60] bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 rounded-2xl animate-in fade-in">
-              <div className="bg-[#18181b] border border-purple-500/30 shadow-[0_0_30px_rgba(168,85,247,0.15)] rounded-2xl p-5 w-full text-center text-white">
-                <h2 className="text-sm font-bold tracking-wide uppercase mb-1">Avaliação de Atendimento</h2>
-                <p className="text-gray-300 text-xs">
-                  Este atendimento foi encerrado.<br/>Obrigado!
-                </p>
-                <div className="my-2.5 font-semibold text-gray-200 text-xs">
-                  Atendimento #{activeChat.ticketId ? formatTicketProtocol(activeChat.ticketId) : activeChat.id}
-                </div>
-                <p className="text-xs text-gray-400 mb-3">Como você avalia nosso atendimento?</p>
-                
-                <div className="flex justify-center gap-1 text-amber-400 text-xl mb-4">
-                  {[1, 2, 3, 4, 5].map((n) => (
-                    <button
-                      key={n}
-                      type="button"
-                      onClick={() => setWidgetCsatScore(n)}
-                      onMouseEnter={() => setWidgetCsatHovered(n)}
-                      onMouseLeave={() => setWidgetCsatHovered(0)}
-                      className="focus:outline-none transition-transform hover:scale-110 cursor-pointer"
-                    >
-                      <Star
-                        className={`h-7 w-7 transition-colors ${
-                          n <= (widgetCsatHovered || widgetCsatScore)
-                            ? 'fill-amber-400 text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]'
-                            : 'text-gray-700 fill-gray-800'
-                        }`}
-                      />
-                    </button>
-                  ))}
-                </div>
 
-                {/* Campo de comentário de no máximo 500 caracteres */}
-                <div className="mb-3 text-left">
-                  <textarea
-                    value={widgetCsatComment}
-                    onChange={(e) => setWidgetCsatComment(e.target.value)}
-                    maxLength={500}
-                    placeholder="Escreva um comentário ou sugestão (opcional, máx 500 caracteres)..."
-                    rows={2}
-                    className="w-full text-[11px] p-2.5 rounded-xl border border-gray-700 bg-gray-900/80 text-gray-200 outline-none focus:border-purple-500 transition-colors resize-none placeholder:text-gray-500"
-                  />
-                  <div className="flex justify-between items-center text-[9px] text-gray-500 mt-0.5 px-1">
-                    <span>Opcional</span>
-                    <span>{widgetCsatComment.length}/500</span>
-                  </div>
-                </div>
-
-                <div className="flex gap-2">
-                  <button 
-                    type="button"
-                    onClick={() => setChatCsatDismissed(true)}
-                    className="flex-1 py-2 rounded-lg border border-gray-600 text-gray-300 hover:bg-gray-800 text-xs font-medium transition-colors cursor-pointer"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      if (widgetCsatScore === 0) return;
-                      await updateChat(activeChat.id, {
-                        rating: widgetCsatScore,
-                        ratingComment: widgetCsatComment,
-                        ratedAt: new Date().toISOString()
-                      } as any);
-                      logSecurityAudit({
-                        protocol: formatTicketProtocol(activeChat.ticketId || activeChat.id),
-                        action: `Pesquisa CSAT Chat (${widgetCsatScore} Estrelas)`,
-                        originPortal: 'Portal do Cliente',
-                        userName: user?.name || 'Cliente',
-                        userEmail: user?.email || '',
-                        details: widgetCsatComment ? `Comentário: ${widgetCsatComment}` : 'Avaliação de chat concluída via widget'
-                      });
-                      toast.success('Obrigado pela sua avaliação!');
-                      setChatCsatDismissed(true);
-                    }}
-                    disabled={widgetCsatScore === 0}
-                    className="flex-1 py-2 rounded-lg bg-white text-black font-semibold text-xs hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                  >
-                    Enviar Avaliação
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* Header */}
           <div className={`flex items-center justify-between px-4 py-3 text-white rounded-t-2xl ${slaStatus.isPaused ? 'bg-slate-900 border-b border-amber-500/30' : 'bg-blue-600'}`}>
