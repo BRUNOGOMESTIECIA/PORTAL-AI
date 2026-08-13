@@ -302,3 +302,23 @@
   .sla-warning { @apply bg-yellow-500; }
   .sla-breach  { @apply bg-red-500; }
 }
+
+/* ♿ OBS-04 FIX: Acessibilidade de Animações Reduzidas (WCAG 2.1 AA / prefers-reduced-motion) */
+.motion-reduced,
+.motion-reduced *,
+.motion-reduced *::before,
+.motion-reduced *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
