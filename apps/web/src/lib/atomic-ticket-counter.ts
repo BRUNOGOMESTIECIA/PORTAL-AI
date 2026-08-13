@@ -57,8 +57,24 @@ export async function generateNextAtomicTicketProtocol(): Promise<{ number: numb
     return { number: nextNumber, formatted };
   } catch (error) {
     console.warn('Fallback local para geração atômica de protocolo:', error);
-    // Fallback sequencial usando timestamp garantido
-    const fallbackSeq = Math.floor(1043 + (Date.now() % 8957));
+    
+    // BUG-03 FIX: Contador monotônico sequencial no localStorage para impedir duplicatas offline
+    let fallbackSeq = 1043;
+    try {
+      const stored = localStorage.getItem('portal_atomic_ticket_counter_fallback');
+      if (stored) {
+        const parsed = parseInt(stored, 10);
+        if (!isNaN(parsed) && parsed >= 1043) {
+          fallbackSeq = parsed + 1;
+        }
+      }
+      localStorage.setItem('portal_atomic_ticket_counter_fallback', fallbackSeq.toString());
+    } catch (e) {
+      // Entropia de alta resolução caso localStorage esteja inacessível
+      const entropy = Math.floor((performance.now() * 100) + (Date.now() % 1000));
+      fallbackSeq = 1043 + (entropy % 8000);
+    }
+
     const formatted = formatTicketProtocol(fallbackSeq);
     return { number: fallbackSeq, formatted };
   }

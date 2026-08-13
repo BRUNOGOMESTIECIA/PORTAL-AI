@@ -54,42 +54,55 @@ export function ChatsProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Inicializa a escuta via Socket.io em tempo real
+  // Inicializa a escuta via Socket.io em tempo real com cleanup correto
   useEffect(() => {
+    let socket: any = null;
+
+    const handleNewMessage = (msgData: any) => {
+      console.info('[Socket.io] Nova mensagem recebida via WebSocket:', msgData);
+      // Atualiza chat com nova mensagem se pertencer a uma sessão conhecida
+      const currentList = [...fallbackChatsRef.current];
+      const idx = currentList.findIndex(c => c.id === msgData.sessionId);
+      if (idx > -1) {
+        const currentMsgs = currentList[idx].messages || [];
+        currentList[idx] = {
+          ...currentList[idx],
+          messages: [
+            ...currentMsgs,
+            {
+              id: msgData.id || `msg_${Date.now()}`,
+              senderName: msgData.senderName || 'Atendente',
+              body: redactSensitiveData(msgData.body || ''),
+              timestamp: msgData.createdAt || new Date().toISOString(),
+              isAgent: msgData.senderType === 'agent',
+            } as any
+          ]
+        };
+        saveFallbackChats(currentList);
+      }
+    };
+
+    const handleSessionStatus = (statusData: any) => {
+      console.info('[Socket.io] Status de sessão alterado:', statusData);
+    };
+
     try {
-      const socket = getSocket();
+      socket = getSocket();
       joinTenantRoom();
 
-      socket.on('chat:message:new', (msgData: any) => {
-        console.info('[Socket.io] Nova mensagem recebida via WebSocket:', msgData);
-        // Atualiza chat com nova mensagem se pertencer a uma sessão conhecida
-        const currentList = [...fallbackChatsRef.current];
-        const idx = currentList.findIndex(c => c.id === msgData.sessionId);
-        if (idx > -1) {
-          const currentMsgs = currentList[idx].messages || [];
-          currentList[idx] = {
-            ...currentList[idx],
-            messages: [
-              ...currentMsgs,
-              {
-                id: msgData.id || `msg_${Date.now()}`,
-                senderName: msgData.senderName || 'Atendente',
-                body: redactSensitiveData(msgData.body || ''),
-                timestamp: msgData.createdAt || new Date().toISOString(),
-                isAgent: msgData.senderType === 'agent',
-              } as any
-            ]
-          };
-          saveFallbackChats(currentList);
-        }
-      });
-
-      socket.on('chat:session:status', (statusData: any) => {
-        console.info('[Socket.io] Status de sessão alterado:', statusData);
-      });
+      socket.on('chat:message:new', handleNewMessage);
+      socket.on('chat:session:status', handleSessionStatus);
     } catch (err) {
       console.info('[Socket.io] Não foi possível conectar ao WsGateway:', err);
     }
+
+    // BUG-04 FIX: Cleanup de listeners para evitar memory leak e mensagens duplicadas
+    return () => {
+      if (socket) {
+        socket.off('chat:message:new', handleNewMessage);
+        socket.off('chat:session:status', handleSessionStatus);
+      }
+    };
   }, [saveFallbackChats]);
 
   // Sincronização BroadcastChannel entre abas locais
