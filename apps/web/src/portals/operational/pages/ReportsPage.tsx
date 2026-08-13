@@ -67,18 +67,37 @@ export default function ReportsPage() {
     return true;
   });
 
+  // Função auxiliar para verificar se o SLA do chamado está estourado
+  const isTicketOverdue = (t: any) => {
+    if (t.slaResolutionMet === false) return true;
+    if (['resolved', 'closed'].includes(t.status)) return false;
+    if (t.slaResolutionDue && new Date(t.slaResolutionDue).getTime() < Date.now()) return true;
+    return false;
+  };
+
   // ─── CÁLCULOS 100% REAIS A PARTIR DOS TICKETS DO BANCO DE DADOS ───
   const realTotal = filteredTickets.length;
   const realResolved = filteredTickets.filter((t) => ['resolved', 'closed'].includes(t.status)).length;
   const realBacklogOpen = filteredTickets.filter((t) => ['new', 'open', 'in_progress', 'pending'].includes(t.status)).length;
-  const realCriticalOpen = filteredTickets.filter((t) => ['new', 'open', 'in_progress', 'pending'].includes(t.status) && t.priority === 'critical').length;
+  
+  // Inclui chamados críticos, de alta prioridade ou com SLA estourado
+  const realCriticalOpen = filteredTickets.filter((t) => 
+    ['new', 'open', 'in_progress', 'pending'].includes(t.status) && 
+    (t.priority === 'critical' || t.priority === 'high' || isTicketOverdue(t))
+  ).length;
 
   // SLA 1ª Resposta
-  const slaFirstMetCount = filteredTickets.filter((t) => t.slaFirstResponseMet !== false).length;
+  const slaFirstMetCount = filteredTickets.filter((t) => {
+    if (t.slaFirstResponseMet === false) return false;
+    if (t.slaFirstResponseDue && new Date(t.slaFirstResponseDue).getTime() < Date.now() && !t.comments?.some((c: any) => c.senderType === 'agent')) {
+      return false;
+    }
+    return true;
+  }).length;
   const realSlaFirstPct = realTotal > 0 ? Math.round((slaFirstMetCount / realTotal) * 100) : 100;
 
   // SLA Resolução
-  const slaResMetCount = filteredTickets.filter((t) => t.slaResolutionMet !== false).length;
+  const slaResMetCount = filteredTickets.filter((t) => !isTicketOverdue(t)).length;
   const realSlaResPct = realTotal > 0 ? Math.round((slaResMetCount / realTotal) * 100) : 100;
 
   // CSAT Real
