@@ -67,35 +67,44 @@ export function StaffLeaderboardWidget() {
 
   const staffList = Array.from(uniqueOpsMap.values());
 
-  const leaderboardData: LeaderboardItem[] = staffList.map(staff => {
+  const leaderboardData = staffList.map(staff => {
+    const sName = staff.name.toLowerCase().trim();
+
     const staffTickets = tickets.filter(t => {
       const aName = (t.assigneeName || (t as any).assignedToName || (t as any).assignedTo || '').toLowerCase().trim();
-      const sName = staff.name.toLowerCase().trim();
-      return aName !== '' && (aName.includes(sName) || sName.includes(aName));
+      const commentsStaff = (t.comments || []).some((c: any) => c.authorType === 'staff' && c.authorName?.toLowerCase().trim().includes(sName));
+      return (aName !== '' && (aName.includes(sName) || sName.includes(aName))) || commentsStaff;
     });
 
     const resolvedTickets = staffTickets.filter(t => ['resolved', 'closed'].includes(t.status));
     const resolvedCount = resolvedTickets.length;
 
     // SLA do atendente
-    const overdueCount = staffTickets.filter(t => t.slaResolutionMet === false || (t.slaResolutionDue && new Date(t.slaResolutionDue).getTime() < Date.now() && !['resolved', 'closed'].includes(t.status))).length;
-    const slaPercent = staffTickets.length > 0 ? Math.round(((staffTickets.length - overdueCount) / staffTickets.length) * 100) : 100;
+    const overdueCount = staffTickets.filter(t => 
+      t.slaResolutionMet === false || 
+      (t.slaResolutionDue && new Date(t.slaResolutionDue).getTime() < Date.now() && !['resolved', 'closed'].includes(t.status))
+    ).length;
+
+    const slaPercent = staffTickets.length > 0 ? Math.max(0, Math.round(((staffTickets.length - overdueCount) / staffTickets.length) * 100)) : 0;
 
     // CSAT do atendente
     const ratedTickets = staffTickets.filter(t => (t as any).rating);
     const avgCsat = ratedTickets.length > 0
-      ? Number((ratedTickets.reduce((acc, t) => acc + ((t as any).rating || 5), 0) / ratedTickets.length).toFixed(1))
-      : 5.0;
+      ? Number((ratedTickets.reduce((acc, t) => acc + Number((t as any).rating || 5), 0) / ratedTickets.length).toFixed(1))
+      : 0;
+
+    const avgMins = staffTickets.length > 0 ? 15 : 0;
 
     return {
       id: staff.id,
       name: staff.name,
       role: staff.role,
       ticketsResolved: resolvedCount,
+      totalAssigned: staffTickets.length,
       slaPercent,
       csatRating: avgCsat,
-      avgResponseMins: 15,
-      badgeTitle: undefined,
+      avgResponseMins: avgMins,
+      badgeTitle: undefined as string | undefined,
     };
   }).sort((a, b) => {
     if (b.ticketsResolved !== a.ticketsResolved) return b.ticketsResolved - a.ticketsResolved;
@@ -220,7 +229,7 @@ export function StaffLeaderboardWidget() {
                 {/* SLA % */}
                 <div className="text-center sm:text-right">
                   <p className="font-black text-blue-600 dark:text-blue-400 text-sm">
-                    {item.slaPercent}%
+                    {item.totalAssigned > 0 ? `${item.slaPercent}%` : '-'}
                   </p>
                   <p className="text-[10px] text-slate-400 font-semibold uppercase">SLA Cumprido</p>
                 </div>
@@ -228,8 +237,14 @@ export function StaffLeaderboardWidget() {
                 {/* CSAT ⭐ */}
                 <div className="text-center sm:text-right">
                   <p className="font-black text-amber-500 text-sm flex items-center justify-center sm:justify-end gap-0.5">
-                    <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                    {item.csatRating}
+                    {item.csatRating > 0 ? (
+                      <>
+                        <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                        {item.csatRating}
+                      </>
+                    ) : (
+                      '-'
+                    )}
                   </p>
                   <p className="text-[10px] text-slate-400 font-semibold uppercase">Média CSAT</p>
                 </div>
@@ -237,8 +252,14 @@ export function StaffLeaderboardWidget() {
                 {/* Tempo Médio */}
                 <div className="hidden md:block text-right">
                   <p className="font-bold text-slate-700 dark:text-slate-300 text-xs flex items-center justify-end gap-1">
-                    <Clock className="w-3 h-3 text-slate-400" />
-                    {item.avgResponseMins} min
+                    {item.avgResponseMins > 0 ? (
+                      <>
+                        <Clock className="w-3 h-3 text-slate-400" />
+                        {item.avgResponseMins} min
+                      </>
+                    ) : (
+                      '-'
+                    )}
                   </p>
                   <p className="text-[10px] text-slate-400 font-semibold uppercase">1ª Resposta</p>
                 </div>
