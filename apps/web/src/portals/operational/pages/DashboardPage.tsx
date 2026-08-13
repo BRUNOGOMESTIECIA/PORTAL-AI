@@ -225,22 +225,42 @@ export default function DashboardPage() {
             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div> Atendentes Online
           </h2>
           <div className="grid grid-cols-2 gap-3">
-            {operators.filter(op => op.status !== 'DELETED').map(op => (
-              <div key={op.id} className="flex items-center justify-between bg-slate-50 border border-slate-100 rounded-lg px-3 py-2">
-                <div className="flex flex-col min-w-0">
-                  <span className="text-[13px] font-semibold text-slate-800 truncate" title={op.fullName}>{op.fullName}</span>
-                  <span className="text-[10px] font-medium text-slate-500">{op.role}</span>
-                </div>
-                {op.isOnline ? (
-                  <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded-full shrink-0">Online</span>
-                ) : (
-                  <span className="text-[10px] font-bold text-slate-500 bg-slate-200 px-1.5 py-0.5 rounded-full shrink-0">Offline</span>
-                )}
-              </div>
-            ))}
-            {operators.filter(op => op.status !== 'DELETED').length === 0 && (
-              <div className="col-span-2 text-center py-4 text-xs text-slate-400">Nenhum operador cadastrado</div>
-            )}
+            {(() => {
+              const uniqueOpsMap = new Map();
+              operators.forEach(op => {
+                if (op.status === 'DELETED') return;
+                const nameStr = op.fullName || op.name || op.displayName || (op.email ? op.email.split('@')[0] : '');
+                if (!nameStr) return; // ignora registros sem nome/email
+                const key = (op.email || nameStr).toLowerCase();
+                if (!uniqueOpsMap.has(key)) {
+                  uniqueOpsMap.set(key, { ...op, formattedName: nameStr });
+                }
+              });
+              const displayOperators = Array.from(uniqueOpsMap.values());
+
+              if (displayOperators.length === 0) {
+                return (
+                  <div className="col-span-2 text-center py-4 text-xs text-slate-400">Nenhum operador cadastrado no momento</div>
+                );
+              }
+
+              return displayOperators.map(op => {
+                const displayRole = op.role || op.userType || op.department || 'Suporte Técnico';
+                return (
+                  <div key={op.id} className="flex items-center justify-between bg-slate-50 border border-slate-100 rounded-lg px-3 py-2">
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-[13px] font-semibold text-slate-800 truncate" title={op.formattedName}>{op.formattedName}</span>
+                      <span className="text-[10px] font-medium text-slate-500">{displayRole}</span>
+                    </div>
+                    {op.isOnline ? (
+                      <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded-full shrink-0">Online</span>
+                    ) : (
+                      <span className="text-[10px] font-bold text-slate-500 bg-slate-200 px-1.5 py-0.5 rounded-full shrink-0">Offline</span>
+                    )}
+                  </div>
+                );
+              });
+            })()}
           </div>
         </div>
 
