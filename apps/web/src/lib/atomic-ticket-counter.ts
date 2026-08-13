@@ -2,7 +2,12 @@ import { doc, runTransaction, increment } from 'firebase/firestore';
 import { instaPassoDb } from './firebase';
 import { logAuditEvent, formatTicketProtocol } from './audit-logger';
 
-const CURRENT_YEAR = new Date().getFullYear();
+/**
+ * Retorna o ano atual dinamicamente em tempo de execução
+ */
+export function getCurrentYear(): number {
+  return new Date().getFullYear();
+}
 
 /**
  * Gerador de Protocolo de Ticket Atômico no Firestore (#2026XXXX) (Item 017)

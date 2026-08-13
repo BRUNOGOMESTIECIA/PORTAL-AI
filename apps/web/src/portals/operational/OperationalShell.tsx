@@ -7,8 +7,7 @@ import {
 } from 'lucide-react';
 
 
-import { useAuth } from '../../hooks/use-mock-auth';
-import { MockStaff, MOCK_STAFF, MOCK_NOTIFICATIONS } from '../../mocks/data';
+import { useAuth, AppUser } from '../../hooks/use-mock-auth';
 import { useChats } from '../../hooks/use-chats';
 import { useTickets } from '../../hooks/use-tickets';
 import { cn } from '../../lib/utils';
@@ -226,27 +225,26 @@ function GlobalChatAlerts({ collapsed }: { collapsed?: boolean }) {
        */
       const sunTzuMode = JSON.parse(localStorage.getItem('portal_sun_tzu_mode') || 'false');
       if (sunTzuMode) {
-        // 1. Mapear a capacidade inicial de todos os agentes N1
-        const staffCapacities: Record<string, { used: number, max: number }> = {};
-        MOCK_STAFF.forEach(staff => {
-          if (staff.role === 'Support Agent') {
-            staffCapacities[staff.id] = { used: 0, max: 3 }; // Base capacity
-          }
-        });
+        // 1. Mapear a capacidade inicial dos agentes ativos
+        const staffCapacities: Record<string, { name: string, used: number, max: number }> = {};
+        if (user?.name) {
+          staffCapacities[user.id || user.name] = { name: user.name, used: 0, max: 3 };
+        }
 
-        // 2. Calcular o uso atual de capacidade de cada agente
+        // 2. Calcular o uso atual de capacidade por agente
         chats.forEach(c => {
           if (c.status === 'active' && c.agentName) {
-            const agentId = MOCK_STAFF.find(s => s.name === c.agentName)?.id;
-            if (agentId && staffCapacities[agentId]) {
-              staffCapacities[agentId].used++;
-              
-              // 3. Regra de Sobrecarga: Verifica se há chats com mais de 35 minutos
-              const chatAgeMs = now - new Date(c.createdAt).getTime();
-              const chatAgeMins = chatAgeMs / (1000 * 60);
-              if (chatAgeMins > 35) {
-                staffCapacities[agentId].max++; // Concede capacidade extra
-              }
+            const agentKey = c.agentName;
+            if (!staffCapacities[agentKey]) {
+              staffCapacities[agentKey] = { name: c.agentName, used: 0, max: 3 };
+            }
+            staffCapacities[agentKey].used++;
+
+            // 3. Regra de Sobrecarga: Verifica se há chats com mais de 35 minutos
+            const chatAgeMs = now - new Date(c.createdAt).getTime();
+            const chatAgeMins = chatAgeMs / (1000 * 60);
+            if (chatAgeMins > 35) {
+              staffCapacities[agentKey].max++; // Concede capacidade extra
             }
           }
         });
@@ -259,38 +257,36 @@ function GlobalChatAlerts({ collapsed }: { collapsed?: boolean }) {
           const waitingChat = waitingChats[0]; // Pega sempre o chat mais antigo da fila
           
           // 5. Encontrar o agente mais ocioso (maior capacidade disponível, menor quantidade de chats usados)
-          let bestAgentId: string | null = null;
+          let bestAgentKey: string | null = null;
           let highestAvailable = 0;
           let lowestUsed = 999;
 
-          Object.entries(staffCapacities).forEach(([agentId, cap]) => {
+          Object.entries(staffCapacities).forEach(([agentKey, cap]) => {
             const available = cap.max - cap.used;
             if (available > 0) {
               if (available > highestAvailable || (available === highestAvailable && cap.used < lowestUsed)) {
                 highestAvailable = available;
                 lowestUsed = cap.used;
-                bestAgentId = agentId;
+                bestAgentKey = agentKey;
               }
             }
           });
 
-          if (bestAgentId) {
+          if (bestAgentKey && staffCapacities[bestAgentKey]) {
             // 6. Atribuir o chat automaticamente para o agente selecionado
-            const agent = MOCK_STAFF.find(s => s.id === bestAgentId);
-            if (agent) {
-              waitingChat.status = 'active';
-              waitingChat.agentName = agent.name;
-              
-              waitingChat.messages.push({
-                id: `m_suntzu_${Date.now()}`,
-                body: `Olá, bem-vindo! Meu nome é ${agent.name} e eu assumi o seu atendimento.`,
-                senderName: agent.name,
-                senderType: 'agent',
-                createdAt: new Date().toISOString()
-              });
-              hasChanges = true;
-              localStorage.setItem('portal_suntzu_last_assign', now.toString());
-            }
+            const agentName = staffCapacities[bestAgentKey].name;
+            waitingChat.status = 'active';
+            waitingChat.agentName = agentName;
+            
+            waitingChat.messages.push({
+              id: `m_suntzu_${Date.now()}`,
+              body: `Olá, bem-vindo! Meu nome é ${agentName} e eu assumi o seu atendimento.`,
+              senderName: agentName,
+              senderType: 'agent',
+              createdAt: new Date().toISOString()
+            });
+            hasChanges = true;
+            localStorage.setItem('portal_suntzu_last_assign', now.toString());
           }
         }
       }
@@ -371,7 +367,6 @@ export default function OperationalShell() {
     }
   };
 
-  const staff = user as MockStaff;
   const location = useLocation();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(() => {
@@ -488,18 +483,6 @@ export default function OperationalShell() {
         read: !!n.read_at || readNotificationIds.has(n.id),
       });
     });
-
-    // Fallback MOCK se nao houver dinamicos
-    if (list.length === 0) {
-      MOCK_NOTIFICATIONS.forEach(m => {
-        list.push({
-          id: m.id,
-          title: m.title,
-          body: m.body,
-          read: m.read || readNotificationIds.has(m.id),
-        });
-      });
-    }
 
     return list;
   }, [chats, tickets, remoteNotifications, readNotificationIds]);
