@@ -21,8 +21,15 @@ function downloadCsvFile(filename: string, csvContent: string) {
 
 /**
  * Exporta a lista de Tickets em formato compatível com Excel (.xlsx / CSV)
+ * OBS-02 FIX: Inclui cabeçalho de classificação DLP e Marca D'água de Confidencialidade ISO 27001
  */
 export function exportTicketsToExcel(tickets: any[], periodText?: string) {
+  const dlpHeader = [
+    `"CLASSIFICAÇÃO DE SEGURANÇA: CONFIDENCIAL - USO INTERNO EXCLUSIVO (DLP CONTROLLED ISO 27001)"`,
+    `"GERADO EM: ${new Date().toLocaleString('pt-BR')} VIA INSTAPASSO SSO - DOCUMENTO AUDITADO"`,
+    ''
+  ];
+
   const headers = [
     'PROTOCOLO',
     'TÍTULO',
@@ -60,7 +67,7 @@ export function exportTicketsToExcel(tickets: any[], periodText?: string) {
   ]);
 
   const metaHeader = periodText ? [`"RELATÓRIO DE TICKETS ITSM - PERÍODO: ${periodText}"`, ''] : [];
-  const csvContent = [...metaHeader, headers.join(';'), ...rows.map(r => r.join(';'))].join('\n');
+  const csvContent = [...dlpHeader, ...metaHeader, headers.join(';'), ...rows.map(r => r.join(';'))].join('\n');
   const filename = `relatorio_tickets_${new Date().toISOString().slice(0, 10)}.csv`;
   downloadCsvFile(filename, csvContent);
 }
@@ -69,6 +76,12 @@ export function exportTicketsToExcel(tickets: any[], periodText?: string) {
  * Exporta os registros de Auditoria de Segurança em formato compatível com Excel
  */
 export function exportAuditLogsToExcel(logs: any[], periodText?: string) {
+  const dlpHeader = [
+    `"CLASSIFICAÇÃO DE SEGURANÇA: CONFIDENCIAL - TRILHA DE AUDITORIA ISO 27001 (DLP CONTROLLED)"`,
+    `"GERADO EM: ${new Date().toLocaleString('pt-BR')} VIA INSTAPASSO SSO - DOCUMENTO AUDITADO"`,
+    ''
+  ];
+
   const headers = [
     'PROTOCOLO',
     'AÇÃO / ORIGEM',
@@ -90,13 +103,13 @@ export function exportAuditLogsToExcel(logs: any[], periodText?: string) {
   ]);
 
   const metaHeader = periodText ? [`"TRILHA DE AUDITORIA ISO 27001 - PERÍODO: ${periodText}"`, ''] : [];
-  const csvContent = [...metaHeader, headers.join(';'), ...rows.map(r => r.join(';'))].join('\n');
+  const csvContent = [...dlpHeader, ...metaHeader, headers.join(';'), ...rows.map(r => r.join(';'))].join('\n');
   const filename = `auditoria_seguranca_iso27001_${new Date().toISOString().slice(0, 10)}.csv`;
   downloadCsvFile(filename, csvContent);
 }
 
 /**
- * Dispara a impressão/geração de PDF corporativo estilizado da transcrição de Chat
+ * Dispara a impressão/geração de PDF corporativo estilizado da transcrição de Chat com Marca D'água DLP
  */
 export function exportChatTranscriptToPdf(session: {
   id: string;
@@ -130,7 +143,8 @@ export function exportChatTranscriptToPdf(session: {
       <meta charset="UTF-8">
       <title>Transcrição de Atendimento - ${protocol}</title>
       <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #1e293b; padding: 40px; margin: 0; background: #fff; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #1e293b; padding: 40px; margin: 0; background: #fff; position: relative; }
+        .watermark { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-35deg); font-size: 42px; font-weight: 900; color: rgba(220, 38, 38, 0.08); text-transform: uppercase; letter-spacing: 6px; pointer-events: none; z-index: 9999; white-space: nowrap; }
         .header { border-bottom: 2px solid #2563eb; padding-bottom: 20px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-start; }
         .logo { font-size: 20px; font-weight: 800; color: #1e293b; letter-spacing: -0.5px; }
         .logo span { color: #2563eb; }
@@ -155,6 +169,9 @@ export function exportChatTranscriptToPdf(session: {
       </style>
     </head>
     <body>
+      <!-- Marca d'água DLP -->
+      <div class="watermark">CONFIDENCIAL — TIECIA DLP — ISO 27001</div>
+
       <div class="no-print" style="margin-bottom: 20px; text-align: right;">
         <button onclick="window.print()" style="background: #2563eb; color: #fff; border: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer;">
           🖨️ Imprimir / Salvar PDF
@@ -165,6 +182,7 @@ export function exportChatTranscriptToPdf(session: {
         <div>
           <div class="logo">TIECIA <span>ITSM</span></div>
           <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Comprovante Oficial de Transcrição de Atendimento</div>
+          <div style="font-size: 10px; color: #dc2626; font-weight: bold; margin-top: 2px;">🔒 CONFIDENCIAL — DOCUMENTO CONTROLADO POR DLP (ISO 27001)</div>
         </div>
         <div style="text-align: right;">
           <div class="badge-protocol">${protocol}</div>
@@ -174,9 +192,9 @@ export function exportChatTranscriptToPdf(session: {
 
       <div class="meta-grid">
         <div class="meta-item"><label>SOLICITANTE</label> ${session.clientName || 'Cliente'} (${session.clientEmail || 'N/A'})</div>
-        <div className="meta-item"><label>OPERADOR RESPONSÁVEL</label> ${session.agentName || 'Atendimento N1'}</div>
-        <div className="meta-item"><label>EMPRESA CLIENTE</label> ${session.companyName || 'Empresa B2B'}</div>
-        <div className="meta-item"><label>IP DE ORIGEM AUDITADO</label> ${session.clientIp || '187.52.190.44'} (Conforme ISO 27001)</div>
+        <div class="meta-item"><label>OPERADOR RESPONSÁVEL</label> ${session.agentName || 'Atendimento N1'}</div>
+        <div class="meta-item"><label>EMPRESA CLIENTE</label> ${session.companyName || 'Empresa B2B'}</div>
+        <div class="meta-item"><label>IP DE ORIGEM AUDITADO</label> ${session.clientIp || '187.52.190.44'} (Conforme ISO 27001)</div>
       </div>
 
       <h3 style="font-size: 14px; color: #334155; margin-bottom: 12px;">Histórico de Mensagens</h3>
@@ -191,7 +209,7 @@ export function exportChatTranscriptToPdf(session: {
       </div>
 
       <div class="footer">
-        Este documento foi gerado automaticamente pelo Sistema ITSM TIECIA / InstaPasso SSO.<br>
+        Este documento é CONFIDENCIAL e gerado pelo Sistema ITSM TIECIA / InstaPasso SSO.<br>
         Todos os dados de conexão e acesso estão registrados em conformidade com o Marco Civil da Internet (Lei 12.965/14) e LGPD.
       </div>
 
@@ -209,7 +227,7 @@ export function exportChatTranscriptToPdf(session: {
 }
 
 /**
- * Dispara a impressão/geração de PDF corporativo executivo de Relatórios
+ * Dispara a impressão/geração de PDF corporativo executivo de Relatórios com Marca D'água DLP
  */
 export function generateExecutivePdfReport(stats: any, filterPeriod: string) {
   const printWindow = window.open('', '_blank', 'width=900,height=1000');
@@ -224,7 +242,8 @@ export function generateExecutivePdfReport(stats: any, filterPeriod: string) {
       <meta charset="UTF-8">
       <title>Relatório Executivo de Desempenho ITSM</title>
       <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #0f172a; padding: 40px; margin: 0; background: #fff; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #0f172a; padding: 40px; margin: 0; background: #fff; position: relative; }
+        .watermark { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-35deg); font-size: 46px; font-weight: 900; color: rgba(220, 38, 38, 0.07); text-transform: uppercase; letter-spacing: 6px; pointer-events: none; z-index: 9999; white-space: nowrap; }
         .header { border-bottom: 2px solid #2563eb; padding-bottom: 20px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-start; }
         .logo { font-size: 22px; font-weight: 800; color: #0f172a; letter-spacing: -0.5px; }
         .logo span { color: #2563eb; }
@@ -246,6 +265,9 @@ export function generateExecutivePdfReport(stats: any, filterPeriod: string) {
       </style>
     </head>
     <body>
+      <!-- Marca d'água DLP -->
+      <div class="watermark">CONFIDENCIAL — PROPRIEDADE TIECIA — DLP CONTROLLED</div>
+
       <div class="no-print" style="margin-bottom: 20px; text-align: right;">
         <button onclick="window.print()" style="background: #2563eb; color: #fff; border: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer;">
           🖨️ Imprimir / Salvar PDF
@@ -257,6 +279,7 @@ export function generateExecutivePdfReport(stats: any, filterPeriod: string) {
           <div class="logo">TIECIA <span>ITSM</span></div>
           <div class="title">Relatório Executivo de Desempenho e Governança</div>
           <div style="font-size: 12px; color: #64748b; margin-top: 2px;">Período Analisado: <strong>${filterPeriod}</strong></div>
+          <div style="font-size: 10px; color: #dc2626; font-weight: bold; margin-top: 3px;">🔒 CLASSIFICAÇÃO: CONFIDENCIAL - USO EXCLUSIVO INTERNO (DLP CONTROLLED)</div>
         </div>
         <div style="text-align: right; font-size: 11px; color: #64748b;">
           <div>Data de Emissão: <strong>${nowStr}</strong></div>
@@ -294,8 +317,8 @@ export function generateExecutivePdfReport(stats: any, filterPeriod: string) {
       </div>
 
       <div class="footer">
-        Relatório Corporativo Gerado pelo Sistema ITSM TIECIA / InstaPasso.<br>
-        Documento Válido para Auditorias Executivas e Cumprimento de SLA Contratual.
+        Relatório Corporativo CONFIDENCIAL Gerado pelo Sistema ITSM TIECIA / InstaPasso.<br>
+        Documento Válido para Auditorias Executivas e Cumprimento de SLA Contratual. Protegido por DLP.
       </div>
 
       <script>

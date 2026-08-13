@@ -1,12 +1,33 @@
-import React, { useState } from 'react';
-import { ShieldCheck, FileText, Lock, X, Printer, Cookie, ExternalLink, Scale, CheckCircle2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ShieldCheck, FileText, Lock, X, Printer, Cookie, ExternalLink, Scale, CheckCircle2, Wifi, WifiOff } from 'lucide-react';
 import { useEscapeModal } from '../../hooks/use-escape-modal';
 import { toast } from 'sonner';
+import { cn } from '../../lib/utils';
 
 export function CorporateFooterWidget() {
   const [activeModal, setActiveModal] = useState<'privacy' | 'terms' | null>(null);
+  const [isOnline, setIsOnline] = useState<boolean>(() => (typeof navigator !== 'undefined' ? navigator.onLine : true));
 
   useEscapeModal(!!activeModal, () => setActiveModal(null));
+
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      toast.success('🌐 PWA Reconectado: Conexão restabelecida. Sincronizando dados em segundo plano.');
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
+      toast.warning('📡 PWA Offline: Operando em modo cache seguro. Suas alterações serão enviadas ao reconectar.');
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   const handlePrintLegal = () => {
     window.print();
@@ -27,8 +48,33 @@ export function CorporateFooterWidget() {
             <span className="hidden sm:inline text-slate-400">Todos os direitos reservados.</span>
           </div>
 
-          {/* Links Legais LGPD */}
+          {/* Links Legais LGPD & PWA Sync Status */}
           <div className="flex items-center gap-4 flex-wrap justify-center">
+            {/* OBS-03 FIX: Indicador visual de status PWA Offline/Online */}
+            <span
+              className={cn(
+                "text-[10px] px-2.5 py-0.5 rounded-full font-mono font-bold flex items-center gap-1.5 transition-all border",
+                isOnline
+                  ? "bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300"
+                  : "bg-amber-50 dark:bg-amber-950/60 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300 animate-pulse"
+              )}
+              title={isOnline ? "PWA conectado e sincronizado com os servidores em tempo real." : "PWA operando em modo offline com cache local seguro."}
+            >
+              {isOnline ? (
+                <>
+                  <Wifi className="w-3 h-3 text-emerald-500" />
+                  <span>PWA Sync Online</span>
+                </>
+              ) : (
+                <>
+                  <WifiOff className="w-3 h-3 text-amber-500" />
+                  <span>PWA Offline (Cache Ativo)</span>
+                </>
+              )}
+            </span>
+
+            <span className="text-slate-300 dark:text-slate-700">•</span>
+
             <button
               type="button"
               onClick={() => setActiveModal('privacy')}
