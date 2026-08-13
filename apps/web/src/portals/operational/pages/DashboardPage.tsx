@@ -72,7 +72,9 @@ export default function DashboardPage() {
 
   const waitingChats = chats.filter((c) => c.status === 'waiting');
   const activeChats = chats.filter((c) => c.status === 'active');
-  const recentTickets = tickets.filter((t) => !['closed'].includes(t.status)).slice(0, 6);
+  const recentTickets = [...tickets]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 6);
   
   // SLA Resolução Real (Sincronizado 100% com a tela de Relatórios)
   const isTicketOverdue = (t: any) => {
@@ -270,7 +272,9 @@ export default function DashboardPage() {
             const st = STATUS_LABELS[ticket.status];
             return (
               <Link key={ticket.id} to={`/operacional/app/tickets/${ticket.id}`} className="flex items-center gap-4 px-5 py-3 hover:bg-slate-50 transition-colors group">
-                <span className="text-xs font-mono text-slate-400 w-12 flex-shrink-0">#{ticket.number}</span>
+                <span className="text-xs font-mono font-bold text-blue-600 dark:text-blue-400 shrink-0">
+                  {formatTicketProtocol(ticket.number || ticket.id)}
+                </span>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-slate-800 truncate group-hover:text-blue-700 transition-colors">{ticket.title}</p>
                   <p className="text-xs text-slate-400">{ticket.requesterName}</p>
