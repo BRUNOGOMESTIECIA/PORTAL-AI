@@ -35,9 +35,36 @@ export interface RateLimiterMetrics {
 
 const STORAGE_RULES_KEY = 'portal_rate_limit_rules';
 const STORAGE_STATS_KEY = 'portal_rate_limit_stats';
+const STORAGE_LOGS_KEY = 'portal_rate_limit_logs';
+const STORAGE_LOCKS_KEY = 'portal_rate_limit_lockouts';
 
 // Memory store para registro de janelas deslizantes (timestamps por IP + Endpoint)
-const requestLogs: Record<string, number[]> = {};
+let requestLogs: Record<string, number[]> = {};
+
+/**
+ * Lê os logs de requisições persistidos (sincronizados entre reloads e abas)
+ */
+function getPersistedLogs(): Record<string, number[]> {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_LOGS_KEY) || localStorage.getItem(STORAGE_LOGS_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return typeof parsed === 'object' && parsed !== null ? parsed : {};
+    }
+  } catch (e) {}
+  return requestLogs;
+}
+
+/**
+ * Persiste os logs de requisições nas storages do navegador
+ */
+function savePersistedLogs(logs: Record<string, number[]>): void {
+  try {
+    const serialized = JSON.stringify(logs);
+    sessionStorage.setItem(STORAGE_LOGS_KEY, serialized);
+    localStorage.setItem(STORAGE_LOGS_KEY, serialized);
+  } catch (e) {}
+}
 
 /**
  * Retorna a lista de regras de Rate Limiting ativas
@@ -140,6 +167,7 @@ function recordBlockedAttempt(): void {
 
 /**
  * Avalia o Rate Limit usando o algoritmo de Janela Deslizante (Sliding Window Log)
+ * BUG-06 FIX: Persistência em Storage + Lockout com carimbo de data/hora resistente a refresh
  */
 export function checkRateLimit(endpointId: string, clientIp: string = '187.52.190.44'): RateLimitCheckResult {
   const rules = getRateLimiterRules();
@@ -160,19 +188,60 @@ export function checkRateLimit(endpointId: string, clientIp: string = '187.52.19
   const windowMs = rule.windowSeconds * 1000;
   const key = `${endpointId}_${clientIp}`;
 
-  if (!requestLogs[key]) {
-    requestLogs[key] = [];
+  const logs = getPersistedLogs();
+
+  if (!logs[key]) {
+    logs[key] = [];
   }
 
   // Remove requisições fora da janela de tempo atual
-  requestLogs[key] = requestLogs[key].filter((timestamp) => now - timestamp < windowMs);
+  logs[key] = logs[key].filter((timestamp) => now - timestamp < windowMs);
 
-  const currentCount = requestLogs[key].length;
+  // BUG-06 FIX: Verifica se há lockout persistente ativo
+  let lockoutUntil = 0;
+  try {
+    const locksRaw = localStorage.getItem(STORAGE_LOCKS_KEY) || sessionStorage.getItem(STORAGE_LOCKS_KEY);
+    if (locksRaw) {
+      const locks = JSON.parse(locksRaw);
+      if (locks[key] && typeof locks[key] === 'number' && locks[key] > now) {
+        lockoutUntil = locks[key];
+      }
+    }
+  } catch (e) {}
+
+  if (lockoutUntil > now) {
+    const resetInSeconds = Math.max(1, Math.ceil((lockoutUntil - now) / 1000));
+    return {
+      allowed: false,
+      currentCount: rule.maxRequests,
+      maxRequests: rule.maxRequests,
+      remaining: 0,
+      resetInSeconds,
+      rule,
+    };
+  }
+
+  const currentCount = logs[key].length;
   const allowed = currentCount < rule.maxRequests;
 
   if (allowed) {
-    requestLogs[key].push(now);
+    logs[key].push(now);
+    savePersistedLogs(logs);
+    requestLogs = logs;
   } else {
+    // BUG-06 FIX: Aplica lockout persistente travado até expiração da janela
+    const lockTime = now + windowMs;
+    try {
+      const locksRaw = localStorage.getItem(STORAGE_LOCKS_KEY) || sessionStorage.getItem(STORAGE_LOCKS_KEY);
+      const locks = locksRaw ? JSON.parse(locksRaw) : {};
+      locks[key] = lockTime;
+      localStorage.setItem(STORAGE_LOCKS_KEY, JSON.stringify(locks));
+      sessionStorage.setItem(STORAGE_LOCKS_KEY, JSON.stringify(locks));
+    } catch (e) {}
+
+    savePersistedLogs(logs);
+    requestLogs = logs;
+
     recordBlockedAttempt();
     logCrudAudit('CREATE', 'rate_limit_locks', key, JSON.stringify({
       action: 'RATE_LIMIT_EXCEEDED_LOCKOUT',
@@ -183,14 +252,14 @@ export function checkRateLimit(endpointId: string, clientIp: string = '187.52.19
     }));
   }
 
-  const oldestInWindow = requestLogs[key][0] || now;
+  const oldestInWindow = logs[key][0] || now;
   const resetInSeconds = Math.max(1, Math.ceil((oldestInWindow + windowMs - now) / 1000));
 
   return {
     allowed,
-    currentCount: allowed ? requestLogs[key].length : currentCount,
+    currentCount: allowed ? logs[key].length : currentCount,
     maxRequests: rule.maxRequests,
-    remaining: Math.max(0, rule.maxRequests - requestLogs[key].length),
+    remaining: Math.max(0, rule.maxRequests - logs[key].length),
     resetInSeconds,
     rule,
   };
@@ -201,7 +270,20 @@ export function checkRateLimit(endpointId: string, clientIp: string = '187.52.19
  */
 export function resetRateLimitWindow(endpointId: string, clientIp: string = '187.52.190.44'): void {
   const key = `${endpointId}_${clientIp}`;
+  const logs = getPersistedLogs();
+  logs[key] = [];
+  savePersistedLogs(logs);
   requestLogs[key] = [];
+
+  try {
+    const locksRaw = localStorage.getItem(STORAGE_LOCKS_KEY);
+    if (locksRaw) {
+      const locks = JSON.parse(locksRaw);
+      delete locks[key];
+      localStorage.setItem(STORAGE_LOCKS_KEY, JSON.stringify(locks));
+      sessionStorage.setItem(STORAGE_LOCKS_KEY, JSON.stringify(locks));
+    }
+  } catch (e) {}
 }
 
 /**
