@@ -108,10 +108,34 @@ export default function DashboardPage() {
 
   const total = tickets.length || 1; // Evitar divisão por zero
 
-  const recentActivity = [...tickets].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 4).map(t => ({
-    text: `${t.requesterName} abriu ticket #${t.number}`,
-    time: formatDistanceToNow(new Date(t.createdAt), { addSuffix: true, locale: ptBR })
-  }));
+  const uniqueTicketsMap = new Map<string, any>();
+  [...tickets]
+    .sort((a, b) => new Date(b.createdAt || Date.now()).getTime() - new Date(a.createdAt || Date.now()).getTime())
+    .forEach(t => {
+      const key = String(t.id || t.number);
+      if (key && !uniqueTicketsMap.has(key)) {
+        uniqueTicketsMap.set(key, t);
+      }
+    });
+
+  const recentActivity = Array.from(uniqueTicketsMap.values()).slice(0, 5).map(t => {
+    const rawReq = t.requesterName || t.clientName || t.authorName || '';
+    const reqName = (rawReq && rawReq !== 'Desconhecido') 
+      ? rawReq 
+      : (t.userEmail ? t.userEmail.split('@')[0] : (t.requesterEmail ? t.requesterEmail.split('@')[0] : 'Solicitante'));
+    
+    const protocol = formatTicketProtocol(t.number || t.id);
+    const isResolved = ['resolved', 'closed'].includes(t.status);
+    const actionText = isResolved ? 'teve o ticket resolvido' : 'abriu o ticket';
+
+    return {
+      ticketId: t.id,
+      protocol,
+      reqName,
+      actionText,
+      time: formatDistanceToNow(new Date(t.createdAt || Date.now()), { addSuffix: true, locale: ptBR })
+    };
+  });
 
   return (
     <div className="space-y-6">
@@ -204,18 +228,28 @@ export default function DashboardPage() {
         {/* Recent activity */}
         <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
           <h2 className="text-sm font-semibold text-slate-700 mb-4">Atividade recente</h2>
-          <div className="space-y-3">
+          <div className="space-y-2">
             {recentActivity.map((item, i) => (
-              <div key={i} className="flex items-start gap-3">
-                <div className="w-6 h-6 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+              <Link 
+                key={i} 
+                to={`/operacional/app/tickets/${item.ticketId}`} 
+                className="flex items-start gap-3 p-2 rounded-lg hover:bg-slate-50 transition-colors group"
+              >
+                <div className="w-6 h-6 rounded-full bg-blue-50 flex items-center justify-center shrink-0 mt-0.5 border border-blue-100">
                   <Clock className="h-3 w-3 text-blue-500" />
                 </div>
-                <div>
-                  <p className="text-xs text-slate-700">{item.text}</p>
-                  <p className="text-xs text-slate-400 mt-0.5">{item.time}</p>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs text-slate-700 font-medium group-hover:text-blue-700 transition-colors">
+                    <span className="font-bold text-slate-900">{item.reqName}</span> {item.actionText}{' '}
+                    <span className="font-mono font-bold text-blue-600 dark:text-blue-400">{item.protocol}</span>
+                  </p>
+                  <p className="text-[10px] text-slate-400 mt-0.5">{item.time}</p>
                 </div>
-              </div>
+              </Link>
             ))}
+            {recentActivity.length === 0 && (
+              <div className="text-center py-4 text-xs text-slate-400">Nenhuma atividade recente</div>
+            )}
           </div>
         </div>
       </div>
