@@ -156,23 +156,59 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(instaPassoAuth, async (firebaseUser) => {
       if (firebaseUser) {
-        // Ativar ponte ANTES de liberar os dados para o usuário
         setIsBridgeReady(false);
         await activateBridge(firebaseUser);
 
-        // Assumimos os dados do usuário direto da sessão do Google
-        // para evitar erros de permissão durante a inicialização
-        setUser({
-          id: firebaseUser.uid,
-          email: firebaseUser.email || '',
-          name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Usuário',
-          type: 'staff',
-          role: 'Administrator',
-          department: 'Administração',
-          permissions: ['chat.attend', 'chat.view', 'tickets.view', 'admin.users', 'admin.settings', 'kb.view', 'catalog.view', 'reports.view'],
-          deviceInfo: currentDevice,
-          sessionId: currentSessionId
-        } as AppUser);
+        const email = (firebaseUser.email || '').toLowerCase();
+        let isStaff = false;
+        let isAdmin = false;
+        let opName = firebaseUser.displayName || email.split('@')[0] || 'Usuário';
+        let opDept = 'TI';
+
+        if (email) {
+          try {
+            const qOp = query(collection(instaPassoDb, 'operators'), where('email', '==', email));
+            const snapOp = await getDocs(qOp);
+            if (!snapOp.empty) {
+              const opData: any = snapOp.docs[0].data();
+              if (opData && opData.status === 'ACTIVE') {
+                isStaff = true;
+                isAdmin = opData.role === 'Super Administrador' || opData.role === 'Administrador';
+                opName = opData.name || opData.fullName || opName;
+                opDept = opData.role || 'TI';
+              }
+            }
+          } catch (e) {
+            console.warn('[Auth] Erro ao verificar operador no Firestore durante restauração de sessão:', e);
+          }
+        }
+
+        if (isStaff) {
+          setUser({
+            id: firebaseUser.uid,
+            email: email,
+            name: opName,
+            type: 'staff',
+            role: isAdmin ? 'Administrator' : 'Agent',
+            department: opDept,
+            permissions: isAdmin 
+              ? ['chat.attend', 'chat.view', 'tickets.view', 'admin.users', 'admin.settings', 'kb.view', 'catalog.view', 'reports.view']
+              : ['chat.attend', 'chat.view', 'tickets.view', 'kb.view', 'catalog.view'],
+            deviceInfo: currentDevice,
+            sessionId: currentSessionId
+          } as AppUser);
+        } else {
+          setUser({
+            id: firebaseUser.uid,
+            email: email,
+            name: firebaseUser.displayName || email.split('@')[0] || 'Usuário',
+            type: 'client',
+            role: 'ClientUser',
+            permissions: ['tickets.view', 'tickets.create', 'chat.view', 'kb.view', 'catalog.view'],
+            deviceInfo: currentDevice,
+            sessionId: currentSessionId
+          } as AppUser);
+        }
       } else {
         setUser(null);
         setIsBridgeReady(false);
@@ -182,10 +218,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => unsubscribe();
   }, [activateBridge, currentDevice, currentSessionId]);
-
-  /**
-   * Realiza login usando email e senha padrão (Firebase Auth).
-
 
   /**
    * Autenticação Híbrida (Google SSO + Validação Zero-Trust no Firestore)
