@@ -135,9 +135,16 @@ export async function validateAndSanitizeFile(file: File): Promise<SanitizationR
     return { safe: false, reason, fileDetails: details };
   }
 
-  // 2. Verificação de Extensão Risco (Blacklist)
-  if (config.blockExecutables && DANGEROUS_EXTENSIONS.includes(fileExt)) {
-    const reason = `Extensão de arquivo não permitida por política de segurança (${fileExt}). Exe/Scripts são estritamente proibidos.`;
+  // 2. BUG-15 FIX: Sanitização de Nome e Detecção de Extensões Duplas / Multi-extensão
+  const cleanName = file.name.trim().replace(/[\s\.]+$|[\0]/g, '').toLowerCase();
+  const nameParts = cleanName.split('.');
+  const allSubExtensions = nameParts.slice(1).map((ext) => `.${ext}`);
+
+  // Verifica se QUALQUER extensão na estrutura do arquivo é perigosa (Ataque ex: foto.php.png, contrato.pdf.exe)
+  const matchedDangerousExt = allSubExtensions.find((ext) => DANGEROUS_EXTENSIONS.includes(ext));
+
+  if (config.blockExecutables && matchedDangerousExt) {
+    const reason = `Arquivo bloqueado: extensão de alto risco detectada na estrutura do arquivo (${matchedDangerousExt}). Arquivos .exe, .bat, .sh, .php, .js e scripts são estritamente proibidos por segurança ISO 27001.`;
     logAuditEvent('FILE_UPLOAD_BLOCKED', `Upload bloqueado (${file.name}): ${reason}`);
     return { safe: false, reason, threatDetected: 'DANGEROUS_FILE_EXTENSION', fileDetails: details };
   }
