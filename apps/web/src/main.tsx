@@ -41,39 +41,19 @@ if (import.meta.env.PROD || import.meta.env.VITE_ENABLE_DEVTOOLS_BLOCKER === 'tr
     if (e.metaKey && e.altKey && ['I', 'i', 'J', 'j', 'U', 'u', 'C', 'c'].includes(e.key)) e.preventDefault();
   });
 
-  // 2. BUG-13 FIX: Detecção contínua de abertura via Menu do Navegador ou janela destacada
-  let isDevToolsDetected = false;
-
+  // 2. BUG-13 FIX: Detecção não-bloqueante de DevTools para auditoria e logs
   const checkDevToolsDeltas = () => {
-    const widthThreshold = window.outerWidth - window.innerWidth > 160;
-    const heightThreshold = window.outerHeight - window.innerHeight > 160;
-    
-    if (widthThreshold || heightThreshold) {
-      if (!isDevToolsDetected) {
-        isDevToolsDetected = true;
-        console.warn('[Security] DevTools detectado por inspeção de dimensões.');
-      }
-    }
-  };
-
-  // Check por armadilha de tempo no debugger
-  const checkDebuggerTiming = () => {
-    const start = performance.now();
     try {
-      const fn = new Function('debugger');
-      fn();
-    } catch (e) {}
-    const end = performance.now();
-    if (end - start > 100) {
-      if (!isDevToolsDetected) {
-        isDevToolsDetected = true;
-        console.warn('[Security] DevTools detectado por atraso no debugger.');
+      const widthThreshold = (window.outerWidth - window.innerWidth) > 200;
+      const heightThreshold = (window.outerHeight - window.innerHeight) > 200;
+      
+      if (widthThreshold || heightThreshold) {
+        console.info('[Security Audit] Inspeção de elementos ou janela reduzida detectada.');
       }
-    }
+    } catch (e) {}
   };
 
   window.addEventListener('resize', checkDevToolsDeltas);
-  setInterval(checkDebuggerTiming, 2000);
 }
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

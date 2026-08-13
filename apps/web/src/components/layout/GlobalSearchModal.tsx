@@ -41,76 +41,98 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
   const searchResults = useMemo(() => {
     if (!query.trim()) return [];
 
-    const q = query.toLowerCase().trim();
-    const results: Array<{
-      id: string;
-      title: string;
-      subtitle: string;
-      category: 'ticket' | 'kb' | 'tool' | 'client';
-      path: string;
-      badge?: string;
-    }> = [];
+    try {
+      const q = query.toLowerCase().trim();
+      const results: Array<{
+        id: string;
+        title: string;
+        subtitle: string;
+        category: 'ticket' | 'kb' | 'tool' | 'client';
+        path: string;
+        badge?: string;
+      }> = [];
 
-    const isStaff = user?.type === 'staff';
+      const isStaff = user?.type === 'staff';
 
-    // 1. Busca por Tickets
-    tickets.forEach((t) => {
-      // Se for cliente, restringe aos seus próprios tickets
-      if (!isStaff && t.requesterEmail !== user?.email) {
-        return;
-      }
+      // 1. Busca por Tickets
+      if (Array.isArray(tickets)) {
+        tickets.forEach((t) => {
+          if (!t) return;
+          // Se for cliente, restringe aos seus próprios tickets
+          if (!isStaff && t.requesterEmail && user?.email && t.requesterEmail !== user.email) {
+            return;
+          }
 
-      const protocolStr = formatTicketProtocol(t.number || t.id).toLowerCase();
-      const titleStr = (t.title || '').toLowerCase();
-      const reqStr = (t.requesterName || '').toLowerCase();
+          const ticketIdStr = String(t.id || '');
+          const ticketNumStr = String(t.number || '');
+          const protocolStr = formatTicketProtocol(t.number || t.id).toLowerCase();
+          const titleStr = String(t.title || '').toLowerCase();
+          const reqStr = String(t.requesterName || '').toLowerCase();
 
-      if (protocolStr.includes(q) || titleStr.includes(q) || reqStr.includes(q)) {
-        results.push({
-          id: `tkt-${t.id}`,
-          title: t.title,
-          subtitle: `${formatTicketProtocol(t.number || t.id)} · Solicitante: ${t.requesterName}`,
-          category: 'ticket',
-          path: isStaff ? `/operacional/app/tickets/${t.id}` : `/cliente/tickets/${t.id}`,
-          badge: t.status.toUpperCase(),
+          if (
+            protocolStr.includes(q) || 
+            titleStr.includes(q) || 
+            reqStr.includes(q) || 
+            ticketIdStr.includes(q) || 
+            ticketNumStr.includes(q)
+          ) {
+            results.push({
+              id: `tkt-${t.id || Math.random()}`,
+              title: t.title || 'Chamado de Suporte',
+              subtitle: `${formatTicketProtocol(t.number || t.id)} · Solicitante: ${t.requesterName || 'Cliente'}`,
+              category: 'ticket',
+              path: isStaff ? `/operacional/app/tickets/${t.id}` : `/cliente/tickets/${t.id}`,
+              badge: (t.status || 'open').toUpperCase(),
+            });
+          }
         });
       }
-    });
 
-    // 2. Busca pelo Catálogo / KB
-    MOCK_CATALOG_ITEMS.forEach((kb: any) => {
-      if (kb.title.toLowerCase().includes(q) || (kb.category || '').toLowerCase().includes(q)) {
-        results.push({
-          id: `kb-${kb.id}`,
-          title: kb.title,
-          subtitle: `Catálogo de Serviços · Categoria: ${kb.category}`,
-          category: 'kb',
-          path: isStaff ? `/operacional/app/catalog` : `/cliente/catalog`,
+      // 2. Busca pelo Catálogo / KB
+      if (Array.isArray(MOCK_CATALOG_ITEMS)) {
+        MOCK_CATALOG_ITEMS.forEach((kb: any) => {
+          if (!kb) return;
+          const kbTitle = String(kb.title || '').toLowerCase();
+          const kbCat = String(kb.category || '').toLowerCase();
+
+          if (kbTitle.includes(q) || kbCat.includes(q)) {
+            results.push({
+              id: `kb-${kb.id || Math.random()}`,
+              title: kb.title || 'Serviço do Catálogo',
+              subtitle: `Catálogo de Serviços · Categoria: ${kb.category || 'Geral'}`,
+              category: 'kb',
+              path: isStaff ? `/operacional/app/catalog` : `/cliente/catalog`,
+            });
+          }
         });
       }
-    });
 
-    // 3. Ferramentas (Somente equipe operacional)
-    if (isStaff) {
-      const tools = [
-        { name: 'InstaPasso SSO & Auditoria', path: '/operacional/app/tools', desc: 'Central de Identidade e Logs ISO 27001' },
-        { name: 'Monitoramento de Impressoras', path: '/operacional/app/tools', desc: 'Contadores e Níveis de Toner' },
-        { name: 'Relatórios Executivos', path: '/operacional/app/reports', desc: 'Exportações PDF e Excel' },
-      ];
+      // 3. Ferramentas (Somente equipe operacional)
+      if (isStaff) {
+        const tools = [
+          { name: 'InstaPasso SSO & Auditoria', path: '/operacional/app/tools', desc: 'Central de Identidade e Logs ISO 27001' },
+          { name: 'Monitoramento de Impressoras', path: '/operacional/app/tools', desc: 'Contadores e Níveis de Toner' },
+          { name: 'Relatórios Executivos', path: '/operacional/app/reports', desc: 'Exportações PDF e Excel' },
+        ];
 
-      tools.forEach((tl, idx) => {
-        if (tl.name.toLowerCase().includes(q) || tl.desc.toLowerCase().includes(q)) {
-          results.push({
-            id: `tool-${idx}`,
-            title: tl.name,
-            subtitle: tl.desc,
-            category: 'tool',
-            path: tl.path,
-          });
-        }
-      });
+        tools.forEach((tl, idx) => {
+          if (tl.name.toLowerCase().includes(q) || tl.desc.toLowerCase().includes(q)) {
+            results.push({
+              id: `tool-${idx}`,
+              title: tl.name,
+              subtitle: tl.desc,
+              category: 'tool',
+              path: tl.path,
+            });
+          }
+        });
+      }
+
+      return results.slice(0, 8); // Limita a 8 resultados
+    } catch (err) {
+      console.warn('Erro ao realizar busca global:', err);
+      return [];
     }
-
-    return results.slice(0, 8); // Limita a 8 resultados
   }, [query, tickets, user]);
 
   const handleSelectResult = (path: string) => {
