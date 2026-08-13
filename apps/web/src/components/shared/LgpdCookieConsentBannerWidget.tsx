@@ -101,21 +101,21 @@ export function LgpdCookieConsentBannerWidget() {
 
       {/* Banner Floating de Consentimento */}
       {isOpen && (
-        <div className="fixed bottom-4 left-4 right-4 md:left-6 md:right-auto md:max-w-xl z-50 bg-slate-900/95 border border-slate-700/90 rounded-3xl p-5 shadow-2xl text-slate-100 backdrop-blur-xl animate-in slide-in-from-bottom duration-300 space-y-4">
+        <div className="fixed bottom-4 left-4 right-4 md:left-6 md:right-auto md:max-w-xl z-50 bg-slate-950 border-2 border-slate-700 rounded-3xl p-5 shadow-2xl text-slate-100 backdrop-blur-2xl animate-in slide-in-from-bottom duration-300 space-y-4">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-slate-800 pb-3">
             <div className="flex items-center gap-2.5">
-              <div className="p-2 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-xl">
+              <div className="p-2 bg-amber-500/20 text-amber-400 border border-amber-500/40 rounded-xl shrink-0">
                 <Cookie className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="text-xs font-extrabold uppercase tracking-wider text-white flex items-center gap-2">
+                <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-100 flex items-center gap-2">
                   Gestão de Consentimento de Cookies (LGPD)
-                  <span className="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-full font-mono font-bold">
-                    Item 014
+                  <span className="text-[10px] bg-amber-500 text-slate-950 font-mono font-extrabold px-2 py-0.5 rounded-full shadow-sm">
+                    ITEM 014
                   </span>
                 </h4>
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[11px] text-slate-300 font-medium">
                   Respeitamos sua privacidade (LGPD Art. 7º, I e IX).
                 </p>
               </div>
@@ -124,45 +124,45 @@ export function LgpdCookieConsentBannerWidget() {
             <button
               type="button"
               onClick={() => setShowDetails(!showDetails)}
-              className="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors"
+              className="p-1.5 text-slate-200 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs font-bold flex items-center gap-1 transition-all cursor-pointer shrink-0"
             >
-              <Sliders className="w-3.5 h-3.5" />
+              <Sliders className="w-3.5 h-3.5 text-amber-400" />
               <span>{showDetails ? 'Ocultar' : 'Personalizar'}</span>
             </button>
           </div>
 
           {/* Resumo da Mensagem */}
-          <p className="text-xs text-slate-300 leading-relaxed">
-            Utilizamos cookies essenciais criptografados para garantir a autenticação segura do SSO InstaPasso (<code className="text-amber-300 font-mono">HttpOnly, Secure, SameSite=Strict</code>) e cookies analíticos para otimizar sua experiência no portal.
+          <p className="text-xs text-slate-200 leading-relaxed font-normal">
+            Utilizamos cookies essenciais criptografados para garantir a autenticação segura do SSO InstaPasso (<code className="bg-slate-800 text-amber-300 font-mono px-1.5 py-0.5 rounded border border-slate-700 font-semibold">HttpOnly, Secure, SameSite=Strict</code>) e cookies analíticos para otimizar sua experiência no portal.
           </p>
 
           {/* Painel Detalhado de Categorias */}
           {showDetails && (
-            <div className="space-y-2.5 bg-slate-950 p-3.5 rounded-2xl border border-slate-800 animate-in fade-in duration-200 text-xs">
+            <div className="space-y-2.5 bg-slate-900 p-3.5 rounded-2xl border border-slate-800 animate-in fade-in duration-200 text-xs">
               {/* Categoria 1: Necessários */}
-              <div className="flex items-center justify-between p-2 bg-slate-900/80 rounded-xl border border-slate-800">
+              <div className="flex items-center justify-between p-2.5 bg-slate-950 rounded-xl border border-slate-800">
                 <div className="space-y-0.5 pr-2">
-                  <span className="font-extrabold text-white flex items-center gap-1.5 text-[11px]">
+                  <span className="font-extrabold text-slate-100 flex items-center gap-1.5 text-[11px]">
                     <Lock className="w-3.5 h-3.5 text-emerald-400" />
                     1. Cookies Necessários & SSO (Obrigatório)
                   </span>
-                  <p className="text-[10px] text-slate-400">
+                  <p className="text-[10px] text-slate-300">
                     Essenciais para a sessão, prevenção contra CSRF e autenticação segura.
                   </p>
                 </div>
-                <span className="text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full shrink-0">
+                <span className="text-[10px] font-extrabold bg-emerald-500 text-slate-950 border border-emerald-400 px-2 py-0.5 rounded-full shrink-0">
                   Sempre Ativo
                 </span>
               </div>
 
               {/* Categoria 2: Analíticos */}
-              <div className="flex items-center justify-between p-2 bg-slate-900/80 rounded-xl border border-slate-800">
+              <div className="flex items-center justify-between p-2.5 bg-slate-950 rounded-xl border border-slate-800">
                 <div className="space-y-0.5 pr-2">
-                  <span className="font-extrabold text-white flex items-center gap-1.5 text-[11px]">
+                  <span className="font-extrabold text-slate-100 flex items-center gap-1.5 text-[11px]">
                     <BarChart className="w-3.5 h-3.5 text-blue-400" />
                     2. Cookies Analíticos & Desempenho
                   </span>
-                  <p className="text-[10px] text-slate-400">
+                  <p className="text-[10px] text-slate-300">
                     Ajudam a medir o tempo de carregamento e o desempenho das requisições.
                   </p>
                 </div>
@@ -178,13 +178,13 @@ export function LgpdCookieConsentBannerWidget() {
               </div>
 
               {/* Categoria 3: Preferências */}
-              <div className="flex items-center justify-between p-2 bg-slate-900/80 rounded-xl border border-slate-800">
+              <div className="flex items-center justify-between p-2.5 bg-slate-950 rounded-xl border border-slate-800">
                 <div className="space-y-0.5 pr-2">
-                  <span className="font-extrabold text-white flex items-center gap-1.5 text-[11px]">
+                  <span className="font-extrabold text-slate-100 flex items-center gap-1.5 text-[11px]">
                     <Settings className="w-3.5 h-3.5 text-purple-400" />
                     3. Preferências de Layout & Tema
                   </span>
-                  <p className="text-[10px] text-slate-400">
+                  <p className="text-[10px] text-slate-300">
                     Armazenam suas preferências de tema (Dark/Light) e densidade de tabela.
                   </p>
                 </div>
@@ -206,7 +206,7 @@ export function LgpdCookieConsentBannerWidget() {
             <button
               type="button"
               onClick={handleRejectOptional}
-              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl transition-colors cursor-pointer"
+              className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-bold rounded-xl transition-colors cursor-pointer"
             >
               Rejeitar Opcionais
             </button>
@@ -215,7 +215,7 @@ export function LgpdCookieConsentBannerWidget() {
               <button
                 type="button"
                 onClick={handleSaveCustom}
-                className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-extrabold rounded-xl transition-colors shadow-md cursor-pointer"
+                className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-extrabold rounded-xl transition-colors shadow-md cursor-pointer"
               >
                 Salvar Escolha
               </button>
@@ -224,9 +224,9 @@ export function LgpdCookieConsentBannerWidget() {
             <button
               type="button"
               onClick={handleAcceptAll}
-              className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold rounded-xl transition-all shadow-lg shadow-emerald-600/30 flex items-center gap-1.5 cursor-pointer"
+              className="px-4 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs rounded-xl transition-all shadow-lg shadow-amber-500/20 flex items-center gap-1.5 cursor-pointer border border-amber-400"
             >
-              <Check className="w-3.5 h-3.5" />
+              <Check className="w-4 h-4 text-slate-950" />
               <span>Aceitar Todos os Cookies</span>
             </button>
           </div>
