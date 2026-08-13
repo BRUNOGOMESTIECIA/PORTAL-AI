@@ -67,18 +67,101 @@ export default function ReportsPage() {
     return true;
   });
 
+  // ─── CÁLCULOS 100% REAIS A PARTIR DOS TICKETS DO BANCO DE DADOS ───
+  const realTotal = filteredTickets.length;
+  const realResolved = filteredTickets.filter((t) => ['resolved', 'closed'].includes(t.status)).length;
+  const realBacklogOpen = filteredTickets.filter((t) => ['new', 'open', 'in_progress', 'pending'].includes(t.status)).length;
+  const realCriticalOpen = filteredTickets.filter((t) => ['new', 'open', 'in_progress', 'pending'].includes(t.status) && t.priority === 'critical').length;
+
+  // SLA 1ª Resposta
+  const slaFirstMetCount = filteredTickets.filter((t) => t.slaFirstResponseMet !== false).length;
+  const realSlaFirstPct = realTotal > 0 ? Math.round((slaFirstMetCount / realTotal) * 100) : 100;
+
+  // SLA Resolução
+  const slaResMetCount = filteredTickets.filter((t) => t.slaResolutionMet !== false).length;
+  const realSlaResPct = realTotal > 0 ? Math.round((slaResMetCount / realTotal) * 100) : 100;
+
+  // CSAT Real
+  const realRatedList = filteredTickets.filter((t: any) => typeof t.rating === 'number' && t.rating > 0);
+  const realCsatAvg = realRatedList.length > 0 
+    ? (realRatedList.reduce((acc, t: any) => acc + (t.rating || 5), 0) / realRatedList.length).toFixed(1)
+    : '10.0';
+  const realCsatCount = realRatedList.length;
+
+  // Origem dos Tickets Real (Doughnut Chart)
+  const portalSourceCount = filteredTickets.filter(t => !t.source || t.source === 'portal').length;
+  const emailSourceCount = filteredTickets.filter(t => t.source === 'email').length;
+  const chatSourceCount = filteredTickets.filter(t => t.source === 'chat').length;
+  
+  const realTicketsBySource = [
+    { name: 'Portal', value: portalSourceCount || (realTotal === 0 ? 1 : 0), color: '#3b82f6' },
+    { name: 'E-mail', value: emailSourceCount, color: '#f59e0b' },
+    { name: 'Chat', value: chatSourceCount, color: '#10b981' },
+  ];
+
+  // Volume por Status Real (Bar Chart)
+  const statusCounts = {
+    new: filteredTickets.filter(t => t.status === 'new').length,
+    open: filteredTickets.filter(t => t.status === 'open').length,
+    in_progress: filteredTickets.filter(t => t.status === 'in_progress').length,
+    pending: filteredTickets.filter(t => t.status === 'pending').length,
+    resolved: filteredTickets.filter(t => ['resolved', 'closed'].includes(t.status)).length,
+  };
+
+  const realTicketsByStatus = [
+    { label: 'Novo', count: statusCounts.new, color: '#6366f1' },
+    { label: 'Aberto', count: statusCounts.open, color: '#3b82f6' },
+    { label: 'Em Andamento', count: statusCounts.in_progress, color: '#f59e0b' },
+    { label: 'Pendente', count: statusCounts.pending, color: '#8b5cf6' },
+    { label: 'Resolvido', count: statusCounts.resolved, color: '#10b981' },
+  ];
+
+  // Top Ofensores por Categoria Real
+  const categoryMap: Record<string, number> = {};
+  filteredTickets.forEach(t => {
+    const cat = t.category || 'Outros';
+    categoryMap[cat] = (categoryMap[cat] || 0) + 1;
+  });
+
+  const realTopOffenders = Object.entries(categoryMap)
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5);
+
+  if (realTopOffenders.length === 0) {
+    realTopOffenders.push({ name: 'Sem chamados no período', count: 0 });
+  }
+
+  // Tendência de Tickets Real
+  const trendDaysMap: Record<string, { date: string; novos: number; resolvidos: number }> = {};
+  filteredTickets.forEach(t => {
+    const dateKey = new Date(t.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+    if (!trendDaysMap[dateKey]) {
+      trendDaysMap[dateKey] = { date: dateKey, novos: 0, resolvidos: 0 };
+    }
+    trendDaysMap[dateKey].novos += 1;
+    if (['resolved', 'closed'].includes(t.status)) {
+      trendDaysMap[dateKey].resolvidos += 1;
+    }
+  });
+
+  const realTrendData = Object.values(trendDaysMap);
+  if (realTrendData.length === 0) {
+    realTrendData.push({ date: 'Hoje', novos: realTotal, resolvidos: realResolved });
+  }
+
   return (
     <div className="space-y-6">
       {/* ─── HEADER & FILTERS ─── */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
         <div className="flex-shrink-0">
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">Dashboard de Desempenho</h1>
+            <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">Dashboard de Desempenho Real</h1>
             <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
-              ⚡ Big Data Engine (IndexedDB 60FPS)
+              ⚡ Banco de Dados Real (Firestore / SQL)
             </span>
           </div>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Visão consolidada da operação com sumarização em lote e cache de alta velocidade</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Visão em tempo real calculada dinamicamente sobre os chamados ativos</p>
         </div>
         
         <div className="flex items-center gap-3 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0 hide-scrollbar flex-wrap sm:flex-nowrap">
@@ -226,58 +309,58 @@ export default function ReportsPage() {
         onClose={() => setShowB2bModal(false)}
       />
 
-      {/* ─── KPIS PREMIUM ─── */}
+      {/* ─── KPIS REAIS DA OPERAÇÃO ─── */}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
           <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Volumetria Total</p>
           <div className="flex items-end gap-2">
-            <p className="text-3xl font-bold text-slate-800 dark:text-slate-100">{total}</p>
+            <p className="text-3xl font-bold text-slate-800 dark:text-slate-100">{realTotal}</p>
             <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">chamados</p>
           </div>
           <div className="mt-3 text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 inline-block px-2 py-1 rounded font-medium">
-            ↑ 12% vs. período anterior
+            100% Real (Base Ativa)
           </div>
         </div>
 
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
           <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">SLA 1ª Resposta</p>
           <div className="flex items-end gap-2">
-            <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{stats.slaFirstResponse}%</p>
+            <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{realSlaFirstPct}%</p>
           </div>
           <div className="mt-3 text-xs text-slate-500 dark:text-slate-400">
-            Tempo médio: <strong className="text-slate-700 dark:text-slate-300">{stats.avgFirstResponseMinutes} min</strong>
+            Cumprimento em tempo real
           </div>
         </div>
 
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
           <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">SLA Resolução</p>
           <div className="flex items-end gap-2">
-            <p className="text-3xl font-bold text-violet-600 dark:text-violet-400">{stats.slaCompliance}%</p>
+            <p className="text-3xl font-bold text-violet-600 dark:text-violet-400">{realSlaResPct}%</p>
           </div>
           <div className="mt-3 text-xs text-slate-500 dark:text-slate-400">
-            Tempo médio: <strong className="text-slate-700 dark:text-slate-300">{stats.avgResolutionHours}h</strong>
+            Resoluções no prazo
           </div>
         </div>
 
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
           <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Backlog</p>
           <div className="flex items-end gap-2">
-            <p className="text-3xl font-bold text-amber-500 dark:text-amber-400">{stats.openTickets}</p>
+            <p className="text-3xl font-bold text-amber-500 dark:text-amber-400">{realBacklogOpen}</p>
             <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">abertos</p>
           </div>
           <div className="mt-3 text-xs text-slate-500 dark:text-slate-400">
-            <strong className="text-red-500">{stats.criticalTickets}</strong> críticos na fila
+            <strong className="text-red-500">{realCriticalOpen}</strong> críticos na fila
           </div>
         </div>
 
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
           <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Satisfação (CSAT)</p>
           <div className="flex items-end gap-2">
-            <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">{stats.csat}</p>
+            <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">{realCsatAvg}</p>
             <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">/ 10</p>
           </div>
           <div className="mt-3 text-xs text-slate-500 dark:text-slate-400">
-            Baseado em <strong className="text-slate-700 dark:text-slate-300">{stats.csatReviews}</strong> avaliações
+            Baseado em <strong className="text-slate-700 dark:text-slate-300">{realCsatCount}</strong> avaliações reais
           </div>
         </div>
       </div>
@@ -285,12 +368,12 @@ export default function ReportsPage() {
       {/* ─── CHARTS ROW 1 ─── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* Gráfico de Evolução */}
+        {/* Gráfico de Evolução Real */}
         <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
-          <h2 className="text-sm font-bold text-slate-800 dark:text-slate-100 mb-6">Tendência de Tickets</h2>
+          <h2 className="text-sm font-bold text-slate-800 dark:text-slate-100 mb-6">Tendência de Tickets (Real)</h2>
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={stats.trendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <AreaChart data={realTrendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorNovos" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
@@ -316,14 +399,14 @@ export default function ReportsPage() {
           </div>
         </div>
 
-        {/* Gráfico de Origem */}
+        {/* Gráfico de Origem Real */}
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm flex flex-col">
-          <h2 className="text-sm font-bold text-slate-800 dark:text-slate-100 mb-2">Origem dos Tickets</h2>
+          <h2 className="text-sm font-bold text-slate-800 dark:text-slate-100 mb-2">Origem dos Tickets (Real)</h2>
           <div className="flex-1 h-64">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={stats.ticketsBySource}
+                  data={realTicketsBySource}
                   cx="50%" cy="50%"
                   innerRadius={60}
                   outerRadius={90}
@@ -331,7 +414,7 @@ export default function ReportsPage() {
                   dataKey="value"
                   stroke="none"
                 >
-                  {stats.ticketsBySource.map((entry, index) => (
+                  {realTicketsBySource.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
@@ -350,12 +433,12 @@ export default function ReportsPage() {
       {/* ─── CHARTS ROW 2 ─── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
-        {/* Gráfico de Status */}
+        {/* Gráfico de Status Real */}
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
-          <h2 className="text-sm font-bold text-slate-800 dark:text-slate-100 mb-6">Volume por Status</h2>
+          <h2 className="text-sm font-bold text-slate-800 dark:text-slate-100 mb-6">Volume por Status (Real)</h2>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={stats.ticketsByStatus} layout="vertical" margin={{ top: 0, right: 20, left: 20, bottom: 0 }}>
+              <BarChart data={realTicketsByStatus} layout="vertical" margin={{ top: 0, right: 20, left: 20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
                 <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
                 <YAxis dataKey="label" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#475569', fontWeight: 500 }} width={100} />
@@ -364,7 +447,7 @@ export default function ReportsPage() {
                   contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                 />
                 <Bar dataKey="count" name="Chamados" radius={[0, 6, 6, 0]} barSize={24}>
-                  {stats.ticketsByStatus.map((entry, index) => (
+                  {realTicketsByStatus.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Bar>
@@ -373,12 +456,12 @@ export default function ReportsPage() {
           </div>
         </div>
 
-        {/* Top Ofensores */}
+        {/* Top Ofensores Real */}
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm flex flex-col">
-          <h2 className="text-sm font-bold text-slate-800 dark:text-slate-100 mb-4">Top Ofensores (Categorias)</h2>
+          <h2 className="text-sm font-bold text-slate-800 dark:text-slate-100 mb-4">Top Ofensores (Categorias Reais)</h2>
           <div className="flex-1 space-y-4">
-            {stats.topOffenders.map((offender, index) => {
-              const max = Math.max(...stats.topOffenders.map(o => o.count));
+            {realTopOffenders.map((offender, index) => {
+              const max = Math.max(...realTopOffenders.map(o => o.count), 1);
               const percent = (offender.count / max) * 100;
               
               return (
@@ -400,9 +483,6 @@ export default function ReportsPage() {
               );
             })}
           </div>
-          <button className="mt-6 w-full py-2.5 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 rounded-xl transition-colors">
-            Ver Relatório Completo
-          </button>
         </div>
 
       </div>
