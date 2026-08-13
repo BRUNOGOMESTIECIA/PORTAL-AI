@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Trophy, Award, Star, CheckCircle2, Clock, Flame, ShieldAlert, Sparkles } from 'lucide-react';
-import { MOCK_STAFF } from '../../../mocks/data';
 import { useTickets } from '../../../hooks/use-tickets';
+import { instaPassoDb } from '../../../lib/firebase';
+import { collection, onSnapshot } from 'firebase/firestore';
 
 interface LeaderboardItem {
   id: string;
@@ -18,34 +19,96 @@ interface LeaderboardItem {
 export function StaffLeaderboardWidget() {
   const { tickets } = useTickets();
   const [period, setPeriod] = useState<'week' | 'month' | 'quarter'>('month');
+  const [operators, setOperators] = useState<any[]>([]);
 
-  // Calcula performance com base na lista de staff e tickets
-  const leaderboardData: LeaderboardItem[] = MOCK_STAFF.map((staff, index) => {
-    // Tickets do operador
-    const staffTickets = tickets.filter(t => t.assigneeName === staff.name || (t as any).assigneeId === staff.id);
-    const resolved = staffTickets.filter(t => t.status === 'resolved' || t.status === 'closed').length;
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(instaPassoDb, 'operators'), (snapshot) => {
+      const ops: any[] = [];
+      snapshot.forEach(doc => {
+        ops.push({ id: doc.id, ...doc.data() });
+      });
+      setOperators(ops);
+    });
+    return () => unsubscribe();
+  }, []);
 
-    // Cálculo simulado/dinâmico de SLA e CSAT com variação por atendente
-    const baseSla = 92 + (index % 3) * 3; 
-    const baseCsat = Number((4.6 + (index % 4) * 0.1).toFixed(1));
-    const baseMins = 12 + index * 3;
+  // Consolida lista de atendentes reais do Firestore + chamados reais
+  const uniqueOpsMap = new Map<string, any>();
 
-    let badgeTitle;
-    if (index === 0) badgeTitle = '👑 Campeão do Mês';
-    else if (index === 1) badgeTitle = '⚡ Mestre em SLA';
-    else if (index === 2) badgeTitle = '⭐ CSAT Nota 5';
+  // 1. Atendentes cadastrados no Firestore
+  operators.forEach(op => {
+    if (op.status === 'DELETED') return;
+    const nameStr = op.fullName || op.name || op.displayName || (op.email ? op.email.split('@')[0] : '');
+    if (!nameStr) return;
+    const key = nameStr.toLowerCase().trim();
+    if (!uniqueOpsMap.has(key)) {
+      uniqueOpsMap.set(key, {
+        id: op.id,
+        name: nameStr,
+        role: op.role || op.userType || op.department || 'Suporte Técnico',
+      });
+    }
+  });
+
+  // 2. Atendentes atribuídos diretamente em tickets reais caso não estejam no Firestore
+  tickets.forEach(t => {
+    const assignee = t.assigneeName || (t as any).assignedToName || (t as any).assignedTo;
+    if (assignee && typeof assignee === 'string' && assignee !== 'Desconhecido') {
+      const key = assignee.toLowerCase().trim();
+      if (!uniqueOpsMap.has(key)) {
+        uniqueOpsMap.set(key, {
+          id: key,
+          name: assignee,
+          role: 'Analista de Suporte',
+        });
+      }
+    }
+  });
+
+  const staffList = Array.from(uniqueOpsMap.values());
+
+  const leaderboardData: LeaderboardItem[] = staffList.map(staff => {
+    const staffTickets = tickets.filter(t => {
+      const aName = (t.assigneeName || (t as any).assignedToName || (t as any).assignedTo || '').toLowerCase().trim();
+      const sName = staff.name.toLowerCase().trim();
+      return aName !== '' && (aName.includes(sName) || sName.includes(aName));
+    });
+
+    const resolvedTickets = staffTickets.filter(t => ['resolved', 'closed'].includes(t.status));
+    const resolvedCount = resolvedTickets.length;
+
+    // SLA do atendente
+    const overdueCount = staffTickets.filter(t => t.slaResolutionMet === false || (t.slaResolutionDue && new Date(t.slaResolutionDue).getTime() < Date.now() && !['resolved', 'closed'].includes(t.status))).length;
+    const slaPercent = staffTickets.length > 0 ? Math.round(((staffTickets.length - overdueCount) / staffTickets.length) * 100) : 100;
+
+    // CSAT do atendente
+    const ratedTickets = staffTickets.filter(t => (t as any).rating);
+    const avgCsat = ratedTickets.length > 0
+      ? Number((ratedTickets.reduce((acc, t) => acc + ((t as any).rating || 5), 0) / ratedTickets.length).toFixed(1))
+      : 5.0;
 
     return {
       id: staff.id,
       name: staff.name,
-      role: staff.role || 'Técnico N1',
-      ticketsResolved: resolved > 0 ? resolved : 14 + (5 - index) * 3,
-      slaPercent: Math.min(100, baseSla),
-      csatRating: Math.min(5, baseCsat),
-      avgResponseMins: baseMins,
-      badgeTitle,
+      role: staff.role,
+      ticketsResolved: resolvedCount,
+      slaPercent,
+      csatRating: avgCsat,
+      avgResponseMins: 15,
+      badgeTitle: undefined,
     };
-  }).sort((a, b) => (b.ticketsResolved * 0.4 + b.slaPercent * 0.4 + b.csatRating * 10) - (a.ticketsResolved * 0.4 + a.slaPercent * 0.4 + a.csatRating * 10));
+  }).sort((a, b) => {
+    if (b.ticketsResolved !== a.ticketsResolved) return b.ticketsResolved - a.ticketsResolved;
+    if (b.slaPercent !== a.slaPercent) return b.slaPercent - a.slaPercent;
+    return b.csatRating - a.csatRating;
+  });
+
+  // Atribui destaques para quem tem produtividade real
+  leaderboardData.forEach((item, index) => {
+    if (index === 0 && item.ticketsResolved > 0) item.badgeTitle = '👑 Campeão do Mês';
+    else if (index === 1 && item.ticketsResolved > 0) item.badgeTitle = '⚡ Mestre em SLA';
+    else if (index === 2 && item.ticketsResolved > 0) item.badgeTitle = '⭐ CSAT Nota 5';
+  });
 
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-6">
