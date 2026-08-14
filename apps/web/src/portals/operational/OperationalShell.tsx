@@ -373,6 +373,8 @@ export default function OperationalShell() {
     const saved = localStorage.getItem('portal_sidebar_collapsed');
     return saved !== null ? JSON.parse(saved) : false;
   });
+  const [isHovered, setIsHovered] = useState(false);
+  const isEffectiveCollapsed = collapsed && !isHovered;
 
   useEffect(() => {
     localStorage.setItem('portal_sidebar_collapsed', JSON.stringify(collapsed));
@@ -505,208 +507,221 @@ export default function OperationalShell() {
   const isActive = (path: string) => location.pathname.startsWith(path);
   const visible = (item: NavItem) => !item.permission || hasPermission(item.permission);
 
-  const SidebarContent = () => (
-    <>
-      {/* Logo */}
-      <div className={cn('flex items-center border-b border-slate-700 h-14 flex-shrink-0 px-4', 'justify-center')}>
-        {collapsed ? (
-          <div className="w-8 h-8 rounded bg-slate-800 flex flex-shrink-0 items-center justify-center text-xs font-bold text-white" title="Logo Minimizado">
-            M
-          </div>
-        ) : (
-          <div className="h-8 w-full max-w-[140px] bg-slate-800 rounded flex items-center justify-center text-xs font-bold text-white" title="Logo Completo">
-            Logo Horizontal
-          </div>
-        )}
-      </div>
-
-      {/* Nav */}
-      <nav className="flex-1 overflow-y-auto p-2 space-y-0.5">
-        {NAV_MAIN.filter(visible).map((item) => {
-          const Icon = item.icon;
-          const active = isActive(item.path);
-          return (
-            <Link
-              key={item.path} to={item.path}
-              onClick={() => setMobileOpen(false)}
-              title={collapsed ? item.label : undefined}
-              className={cn(
-                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                active ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-700 hover:text-white',
-                collapsed && 'justify-center px-2',
-              )}
-            >
-              <Icon className="h-4 w-4 flex-shrink-0" />
-              {!collapsed && <span className="truncate">{item.label}</span>}
-            </Link>
-          );
-        })}
-
-        {/* Bottom Section */}
-        <div className="mt-auto">
-          {/* Widget Fila de Tickets */}
-          {!collapsed && (
-            <div className="px-3 pt-6 pb-2">
-              <div className="border-t border-slate-700/50 pt-4">
-              <button 
-                onClick={() => setShowQueueWidget(!showQueueWidget)}
-                className="w-full flex items-center justify-between text-xs font-semibold text-slate-300 hover:text-white transition-colors mb-3 group"
-              >
-                Fila de Tickets
-                {showQueueWidget ? (
-                  <ChevronDown className="w-3.5 h-3.5 opacity-50 group-hover:opacity-100" />
-                ) : (
-                  <ChevronUp className="w-3.5 h-3.5 opacity-50 group-hover:opacity-100" />
-                )}
-              </button>
-              
-              {showQueueWidget && (
-                <div className="space-y-2.5 mb-4">
-                  <Link to="/operacional/app/tickets?priority=critical" onClick={() => setMobileOpen(false)} className="flex items-center justify-between text-sm hover:bg-slate-800/50 p-1.5 -mx-1.5 rounded-lg transition-colors cursor-pointer group">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
-                        <span className="text-slate-300 group-hover:text-white transition-colors">Crítica</span>
-                      </div>
-                      <span className="bg-slate-800 group-hover:bg-slate-700 text-slate-400 group-hover:text-white text-xs px-2 py-0.5 rounded-md font-medium transition-colors">
-                        {tickets.filter(t => ['new', 'open', 'in_progress', 'pending'].includes(t.status) && t.priority === 'critical').length}
-                      </span>
-                    </Link>
-                    <Link to="/operacional/app/tickets?priority=high" onClick={() => setMobileOpen(false)} className="flex items-center justify-between text-sm hover:bg-slate-800/50 p-1.5 -mx-1.5 rounded-lg transition-colors cursor-pointer group">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-2.5 h-2.5 rounded-full bg-orange-500" />
-                        <span className="text-slate-300 group-hover:text-white transition-colors">Alta prioridade</span>
-                      </div>
-                      <span className="bg-slate-800 group-hover:bg-slate-700 text-slate-400 group-hover:text-white text-xs px-2 py-0.5 rounded-md font-medium transition-colors">
-                        {tickets.filter(t => ['new', 'open', 'in_progress', 'pending'].includes(t.status) && t.priority === 'high').length}
-                      </span>
-                    </Link>
-                    <Link to="/operacional/app/tickets?priority=medium" onClick={() => setMobileOpen(false)} className="flex items-center justify-between text-sm hover:bg-slate-800/50 p-1.5 -mx-1.5 rounded-lg transition-colors cursor-pointer group">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-                        <span className="text-slate-300 group-hover:text-white transition-colors">Média prioridade</span>
-                      </div>
-                      <span className="bg-slate-800 group-hover:bg-slate-700 text-slate-400 group-hover:text-white text-xs px-2 py-0.5 rounded-md font-medium transition-colors">
-                        {tickets.filter(t => ['new', 'open', 'in_progress', 'pending'].includes(t.status) && t.priority === 'medium').length}
-                      </span>
-                    </Link>
-                    <Link to="/operacional/app/tickets?priority=low" onClick={() => setMobileOpen(false)} className="flex items-center justify-between text-sm hover:bg-slate-800/50 p-1.5 -mx-1.5 rounded-lg transition-colors cursor-pointer group">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-2.5 h-2.5 rounded-full bg-slate-400" />
-                        <span className="text-slate-300 group-hover:text-white transition-colors">Baixa prioridade</span>
-                      </div>
-                      <span className="bg-slate-800 group-hover:bg-slate-700 text-slate-400 group-hover:text-white text-xs px-2 py-0.5 rounded-md font-medium transition-colors">
-                        {tickets.filter(t => ['new', 'open', 'in_progress', 'pending'].includes(t.status) && t.priority === 'low').length}
-                      </span>
-                    </Link>
-                  </div>
-              )}
-              
-              <button onClick={() => { setMobileOpen(false); setShowNewTicketModal(true); }} className="w-[85%] mx-auto flex items-center justify-center gap-2 bg-slate-900 hover:bg-black text-white text-[13px] font-medium py-1.5 rounded-md transition-all border border-slate-700/50 mt-4 shadow-sm">
-                <Plus className="w-3.5 h-3.5" /> Novo Ticket Manual
-              </button>
-              </div>
+  const SidebarContent = ({ isCollapsed }: { isCollapsed?: boolean }) => {
+    const isCol = isCollapsed ?? collapsed;
+    return (
+      <>
+        {/* Logo */}
+        <div className={cn('flex items-center border-b border-slate-700 h-14 flex-shrink-0 px-4', 'justify-center')}>
+          {isCol ? (
+            <div className="w-8 h-8 rounded bg-slate-800 flex flex-shrink-0 items-center justify-center text-xs font-bold text-white shadow-sm" title="Logo Minimizado">
+              M
             </div>
-          )}
-
-          {/* ADMIN */}
-          {NAV_ADMIN.filter(visible).length > 0 && (
-            <div className="pb-2">
-              <div className={cn('pt-3 pb-1', !collapsed && 'px-3')}>
-                {!collapsed && (
-                  <button 
-                    onClick={() => setShowAdminWidget(!showAdminWidget)}
-                    className="w-full flex items-center justify-between text-xs font-semibold text-slate-500 hover:text-slate-300 uppercase tracking-wider transition-colors group"
-                  >
-                    Administração
-                    {showAdminWidget ? (
-                      <ChevronDown className="w-3.5 h-3.5 opacity-50 group-hover:opacity-100" />
-                    ) : (
-                      <ChevronUp className="w-3.5 h-3.5 opacity-50 group-hover:opacity-100" />
-                    )}
-                  </button>
-                )}
-                {collapsed && <div className="border-t border-slate-700" />}
-              </div>
-              {(collapsed || showAdminWidget) && NAV_ADMIN.filter(visible).map((item) => {
-                const Icon = item.icon;
-                const active = isActive(item.path);
-                return (
-                  <Link
-                    key={item.path} to={item.path}
-                    onClick={() => setMobileOpen(false)}
-                    title={collapsed ? item.label : undefined}
-                    className={cn(
-                      'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                      active ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-700 hover:text-white',
-                      collapsed && 'justify-center px-2',
-                    )}
-                  >
-                    <Icon className="h-4 w-4 flex-shrink-0" />
-                    {!collapsed && <span className="truncate">{item.label}</span>}
-                  </Link>
-                );
-              })}
-
-              {/* Theme Switcher */}
-              <div className={cn("mt-4 flex flex-col gap-2", collapsed ? "items-center px-0" : "px-3")}>
-                {!collapsed && (
-                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Tema</span>
-                )}
-                <div className={cn("flex items-center justify-between bg-slate-800 border border-slate-700 rounded-md p-1", collapsed && "flex-col")}>
-                  <button
-                    onClick={() => setTheme('light')}
-                    title="Tema Claro"
-                    className={cn("p-1.5 rounded-sm text-slate-400 hover:text-white hover:bg-slate-700 transition-colors", theme === 'light' && "bg-slate-700 text-white")}
-                  >
-                    <Sun className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => setTheme('dark')}
-                    title="Tema Escuro"
-                    className={cn("p-1.5 rounded-sm text-slate-400 hover:text-white hover:bg-slate-700 transition-colors", theme === 'dark' && "bg-slate-700 text-white")}
-                  >
-                    <Moon className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => setTheme('original')}
-                    title="Tema Original"
-                    className={cn("p-1.5 rounded-sm text-slate-400 hover:text-white hover:bg-slate-700 transition-colors", theme === 'original' && "bg-slate-700 text-white")}
-                  >
-                    <Palette className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Chat Alerts under Theme Switcher */}
-              <GlobalChatAlerts collapsed={collapsed} />
+          ) : (
+            <div className="h-8 w-full max-w-[140px] bg-slate-800 rounded flex items-center justify-center text-xs font-bold text-white shadow-sm" title="Logo Completo">
+              Logo Horizontal
             </div>
           )}
         </div>
-      </nav>
 
-      {/* Collapse + Logout */}
-      <div className="border-t border-slate-700 p-2 space-y-1">
-        <button
-          onClick={logout}
-          title="Sair"
-          className={cn('w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-slate-700 hover:text-white transition-colors', collapsed && 'justify-center px-2')}
-        >
-          <LogOut className="h-4 w-4 flex-shrink-0" />
-          {!collapsed && <span>Sair</span>}
-        </button>
-      </div>
-    </>
-  );
+        {/* Nav */}
+        <nav className="flex-1 overflow-y-auto p-2 space-y-0.5 scrollbar-thin">
+          {NAV_MAIN.filter(visible).map((item) => {
+            const Icon = item.icon;
+            const active = isActive(item.path);
+            return (
+              <Link
+                key={item.path} to={item.path}
+                onClick={() => setMobileOpen(false)}
+                title={isCol ? item.label : undefined}
+                className={cn(
+                  'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200',
+                  active ? 'bg-blue-600 text-white shadow-sm font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white',
+                  isCol && 'justify-center px-2',
+                )}
+              >
+                <Icon className="h-4 w-4 flex-shrink-0" />
+                {!isCol && <span className="truncate">{item.label}</span>}
+              </Link>
+            );
+          })}
+
+          {/* Bottom Section */}
+          <div className="mt-auto">
+            {/* Widget Fila de Tickets */}
+            {!isCol && (
+              <div className="px-3 pt-6 pb-2">
+                <div className="border-t border-slate-700/50 pt-4">
+                <button 
+                  onClick={() => setShowQueueWidget(!showQueueWidget)}
+                  className="w-full flex items-center justify-between text-xs font-semibold text-slate-300 hover:text-white transition-colors mb-3 group"
+                >
+                  Fila de Tickets
+                  {showQueueWidget ? (
+                    <ChevronDown className="w-3.5 h-3.5 opacity-50 group-hover:opacity-100" />
+                  ) : (
+                    <ChevronUp className="w-3.5 h-3.5 opacity-50 group-hover:opacity-100" />
+                  )}
+                </button>
+                
+                {showQueueWidget && (
+                  <div className="space-y-2.5 mb-4">
+                    <Link to="/operacional/app/tickets?priority=critical" onClick={() => setMobileOpen(false)} className="flex items-center justify-between text-sm hover:bg-slate-800/50 p-1.5 -mx-1.5 rounded-lg transition-colors cursor-pointer group">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
+                          <span className="text-slate-300 group-hover:text-white transition-colors">Crítica</span>
+                        </div>
+                        <span className="bg-slate-800 group-hover:bg-slate-700 text-slate-400 group-hover:text-white text-xs px-2 py-0.5 rounded-md font-medium transition-colors">
+                          {tickets.filter(t => ['new', 'open', 'in_progress', 'pending'].includes(t.status) && t.priority === 'critical').length}
+                        </span>
+                      </Link>
+                      <Link to="/operacional/app/tickets?priority=high" onClick={() => setMobileOpen(false)} className="flex items-center justify-between text-sm hover:bg-slate-800/50 p-1.5 -mx-1.5 rounded-lg transition-colors cursor-pointer group">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-2.5 h-2.5 rounded-full bg-orange-500" />
+                          <span className="text-slate-300 group-hover:text-white transition-colors">Alta prioridade</span>
+                        </div>
+                        <span className="bg-slate-800 group-hover:bg-slate-700 text-slate-400 group-hover:text-white text-xs px-2 py-0.5 rounded-md font-medium transition-colors">
+                          {tickets.filter(t => ['new', 'open', 'in_progress', 'pending'].includes(t.status) && t.priority === 'high').length}
+                        </span>
+                      </Link>
+                      <Link to="/operacional/app/tickets?priority=medium" onClick={() => setMobileOpen(false)} className="flex items-center justify-between text-sm hover:bg-slate-800/50 p-1.5 -mx-1.5 rounded-lg transition-colors cursor-pointer group">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                          <span className="text-slate-300 group-hover:text-white transition-colors">Média prioridade</span>
+                        </div>
+                        <span className="bg-slate-800 group-hover:bg-slate-700 text-slate-400 group-hover:text-white text-xs px-2 py-0.5 rounded-md font-medium transition-colors">
+                          {tickets.filter(t => ['new', 'open', 'in_progress', 'pending'].includes(t.status) && t.priority === 'medium').length}
+                        </span>
+                      </Link>
+                      <Link to="/operacional/app/tickets?priority=low" onClick={() => setMobileOpen(false)} className="flex items-center justify-between text-sm hover:bg-slate-800/50 p-1.5 -mx-1.5 rounded-lg transition-colors cursor-pointer group">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-2.5 h-2.5 rounded-full bg-slate-400" />
+                          <span className="text-slate-300 group-hover:text-white transition-colors">Baixa prioridade</span>
+                        </div>
+                        <span className="bg-slate-800 group-hover:bg-slate-700 text-slate-400 group-hover:text-white text-xs px-2 py-0.5 rounded-md font-medium transition-colors">
+                          {tickets.filter(t => ['new', 'open', 'in_progress', 'pending'].includes(t.status) && t.priority === 'low').length}
+                        </span>
+                      </Link>
+                    </div>
+                )}
+                
+                <button onClick={() => { setMobileOpen(false); setShowNewTicketModal(true); }} className="w-[85%] mx-auto flex items-center justify-center gap-2 bg-slate-900 hover:bg-black text-white text-[13px] font-medium py-1.5 rounded-md transition-all border border-slate-700/50 mt-4 shadow-sm">
+                  <Plus className="w-3.5 h-3.5" /> Novo Ticket Manual
+                </button>
+                </div>
+              </div>
+            )}
+
+            {/* ADMIN */}
+            {NAV_ADMIN.filter(visible).length > 0 && (
+              <div className="pb-2">
+                <div className={cn('pt-3 pb-1', !isCol && 'px-3')}>
+                  {!isCol && (
+                    <button 
+                      onClick={() => setShowAdminWidget(!showAdminWidget)}
+                      className="w-full flex items-center justify-between text-xs font-semibold text-slate-500 hover:text-slate-300 uppercase tracking-wider transition-colors group"
+                    >
+                      Administração
+                      {showAdminWidget ? (
+                        <ChevronDown className="w-3.5 h-3.5 opacity-50 group-hover:opacity-100" />
+                      ) : (
+                        <ChevronUp className="w-3.5 h-3.5 opacity-50 group-hover:opacity-100" />
+                      )}
+                    </button>
+                  )}
+                  {isCol && <div className="border-t border-slate-700" />}
+                </div>
+                {(isCol || showAdminWidget) && NAV_ADMIN.filter(visible).map((item) => {
+                  const Icon = item.icon;
+                  const active = isActive(item.path);
+                  return (
+                    <Link
+                      key={item.path} to={item.path}
+                      onClick={() => setMobileOpen(false)}
+                      title={isCol ? item.label : undefined}
+                      className={cn(
+                        'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200',
+                        active ? 'bg-blue-600 text-white shadow-sm font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white',
+                        isCol && 'justify-center px-2',
+                      )}
+                    >
+                      <Icon className="h-4 w-4 flex-shrink-0" />
+                      {!isCol && <span className="truncate">{item.label}</span>}
+                    </Link>
+                  );
+                })}
+
+                {/* Theme Switcher */}
+                <div className={cn("mt-4 flex flex-col gap-2", isCol ? "items-center px-0" : "px-3")}>
+                  {!isCol && (
+                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Tema</span>
+                  )}
+                  <div className={cn("flex items-center justify-between bg-slate-800 border border-slate-700 rounded-md p-1", isCol && "flex-col")}>
+                    <button
+                      onClick={() => setTheme('light')}
+                      title="Tema Claro"
+                      className={cn("p-1.5 rounded-sm text-slate-400 hover:text-white hover:bg-slate-700 transition-colors", theme === 'light' && "bg-slate-700 text-white")}
+                    >
+                      <Sun className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => setTheme('dark')}
+                      title="Tema Escuro"
+                      className={cn("p-1.5 rounded-sm text-slate-400 hover:text-white hover:bg-slate-700 transition-colors", theme === 'dark' && "bg-slate-700 text-white")}
+                    >
+                      <Moon className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => setTheme('original')}
+                      title="Tema Original"
+                      className={cn("p-1.5 rounded-sm text-slate-400 hover:text-white hover:bg-slate-700 transition-colors", theme === 'original' && "bg-slate-700 text-white")}
+                    >
+                      <Palette className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Chat Alerts under Theme Switcher */}
+                <GlobalChatAlerts collapsed={isCol} />
+              </div>
+            )}
+          </div>
+        </nav>
+
+        {/* Collapse + Logout */}
+        <div className="border-t border-slate-700 p-2 space-y-1">
+          <button
+            onClick={logout}
+            title="Sair"
+            className={cn('w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-slate-700 hover:text-white transition-colors', isCol && 'justify-center px-2')}
+          >
+            <LogOut className="h-4 w-4 flex-shrink-0" />
+            {!isCol && <span>Sair</span>}
+          </button>
+        </div>
+      </>
+    );
+  };
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-100">
       {/* Desktop sidebar */}
-      <aside className={cn('relative hidden lg:flex flex-col bg-slate-900 transition-all duration-300 flex-shrink-0 z-40', collapsed ? 'w-16' : 'w-60')}>
-        <SidebarContent />
+      <aside 
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        className={cn(
+          'relative hidden lg:flex flex-col bg-slate-900 transition-all duration-300 ease-in-out flex-shrink-0 z-40 shadow-2xl',
+          isEffectiveCollapsed ? 'w-16' : 'w-60'
+        )}
+      >
+        <SidebarContent isCollapsed={isEffectiveCollapsed} />
         <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="absolute -right-3 top-1/2 -translate-y-1/2 flex h-6 w-6 items-center justify-center rounded-full bg-slate-800 border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors shadow-md z-50"
-          title={collapsed ? "Expandir Menu" : "Minimizar Menu"}
+          onClick={(e) => {
+            e.stopPropagation();
+            setCollapsed(!collapsed);
+          }}
+          className="absolute -right-3 top-1/2 -translate-y-1/2 flex h-6 w-6 items-center justify-center rounded-full bg-slate-800 border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-700 transition-all shadow-md z-50 cursor-pointer hover:scale-110"
+          title={collapsed ? "Fixar / Expandir Menu (Travar)" : "Minimizar Menu (Travar)"}
         >
           {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
         </button>
