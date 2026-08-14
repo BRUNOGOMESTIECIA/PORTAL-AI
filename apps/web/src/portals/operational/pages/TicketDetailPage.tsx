@@ -237,17 +237,34 @@ export default function TicketDetailPage() {
         </div>
 
         {/* Meta grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 py-4 border-y border-slate-100">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 py-4 border-y border-slate-100">
           <div>
             <p className="text-xs text-slate-400 mb-0.5">Solicitante</p>
             <div className="flex items-center gap-1.5">
               <User className="h-3.5 w-3.5 text-slate-400" />
-              <p className="text-sm font-medium text-slate-700">{displayRequester}</p>
+              <p className="text-sm font-medium text-slate-700 truncate">{displayRequester}</p>
             </div>
           </div>
           <div>
             <p className="text-xs text-slate-400 mb-0.5">Responsável</p>
-            <p className="text-sm font-medium text-slate-700">{ticket.assigneeName ?? '—'}</p>
+            <p className="text-sm font-medium text-slate-700 truncate">{ticket.assigneeName ?? '—'}</p>
+          </div>
+          <div>
+            <p className="text-xs text-slate-400 mb-1">Mesa / Fila</p>
+            <select
+              value={ticket.team || ''}
+              onChange={(e) => updateTicket(ticket.id, { team: e.target.value || null, updatedAt: new Date().toISOString() })}
+              disabled={!hasPermission('tickets.update')}
+              className="text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-md px-2 py-1 outline-none focus:border-blue-400 hover:bg-slate-100 cursor-pointer w-full max-w-[160px]"
+            >
+              <option value="">Triagem / Sem Mesa</option>
+              {['N1', 'N2', 'N3', 'Infraestrutura', 'Segurança', 'SOC', 'Banco de Dados', 'Cloud / DevOps', 'Sistemas ERP'].map(t => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+              {ticket.team && !['N1', 'N2', 'N3', 'Infraestrutura', 'Segurança', 'SOC', 'Banco de Dados', 'Cloud / DevOps', 'Sistemas ERP'].includes(ticket.team) && (
+                <option value={ticket.team}>{ticket.team}</option>
+              )}
+            </select>
           </div>
           <div>
             <p className="text-xs text-slate-400 mb-1">Categoria (Catálogo)</p>
@@ -256,7 +273,7 @@ export default function TicketDetailPage() {
                 value={ticket.category || 'Outros'}
                 onChange={(e) => updateTicket(ticket.id, { category: e.target.value, updatedAt: new Date().toISOString() })}
                 disabled={!hasPermission('tickets.update')}
-                className="text-sm font-medium text-slate-700 bg-slate-50 border border-slate-200 rounded-md px-2 py-1 outline-none focus:border-blue-400 hover:bg-slate-100 cursor-pointer w-full max-w-[200px]"
+                className="text-xs font-medium text-slate-700 bg-slate-50 border border-slate-200 rounded-md px-2 py-1 outline-none focus:border-blue-400 hover:bg-slate-100 cursor-pointer w-full max-w-[160px]"
               >
                 {Array.from(new Set(MOCK_CATALOG_ITEMS.map(i => i.category))).map(cat => (
                   <option key={cat} value={cat}>{cat}</option>
@@ -266,7 +283,7 @@ export default function TicketDetailPage() {
                 )}
                 <option value="Outros">Outros</option>
               </select>
-              <div className="flex items-center gap-1 text-[10px] text-blue-600 bg-blue-50/80 px-1.5 py-0.5 rounded w-max font-medium border border-blue-100" title="A inteligência artificial leu o relato do cliente e sugeriu esta categoria automaticamente.">
+              <div className="flex items-center gap-1 text-[9px] text-blue-600 bg-blue-50/80 px-1.5 py-0.5 rounded w-max font-medium border border-blue-100" title="A inteligência artificial leu o relato do cliente e sugeriu esta categoria automaticamente.">
                 <Sparkles className="w-2.5 h-2.5" /> Sugerido por IA
               </div>
             </div>
