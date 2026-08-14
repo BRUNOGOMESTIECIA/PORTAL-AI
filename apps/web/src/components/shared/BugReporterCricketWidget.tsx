@@ -7,7 +7,12 @@ import { useEscapeModal } from '../../hooks/use-escape-modal';
 
 export function BugReporterCricketWidget() {
   const [isOpen, setIsOpen] = useState(false);
-  const [isDismissed, setIsDismissed] = useState(false);
+  const [isDismissed, setIsDismissed] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem('grilo_bug_reporter_dismissed') === 'true';
+    }
+    return false;
+  });
   const [bugDescription, setBugDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -16,6 +21,13 @@ export function BugReporterCricketWidget() {
   const { user } = useAuth();
 
   useEscapeModal(isOpen, () => setIsOpen(false));
+
+  const handleDismiss = () => {
+    setIsDismissed(true);
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('grilo_bug_reporter_dismissed', 'true');
+    }
+  };
 
   const maxChars = 500;
   const remainingChars = maxChars - bugDescription.length;
@@ -81,16 +93,7 @@ export function BugReporterCricketWidget() {
   };
 
   if (isDismissed) {
-    return (
-      <button
-        type="button"
-        onClick={() => setIsDismissed(false)}
-        className="fixed bottom-4 right-4 z-40 p-2 bg-amber-500 text-slate-900 rounded-full shadow-lg hover:scale-110 transition-all cursor-pointer flex items-center justify-center opacity-80 hover:opacity-100"
-        title="Reabrir Grilo Relator de Bugs 🦗"
-      >
-        <span className="text-lg">🦗</span>
-      </button>
-    );
+    return null;
   }
 
   return (
@@ -115,7 +118,7 @@ export function BugReporterCricketWidget() {
         {/* Botão de fechar/minimizar */}
         <button
           type="button"
-          onClick={() => setIsDismissed(true)}
+          onClick={handleDismiss}
           className="p-1.5 bg-slate-800/90 hover:bg-slate-900 text-slate-400 hover:text-white rounded-full border border-slate-700 shadow-md transition-colors cursor-pointer"
           title="Minimizar Grilo"
         >
