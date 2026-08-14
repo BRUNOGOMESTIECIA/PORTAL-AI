@@ -43,12 +43,19 @@ export function TicketsProvider({ children }: { children: React.ReactNode }) {
   const channelRef = useRef<BroadcastChannel | null>(null);
 
   const saveFallbackTickets = useCallback((newTickets: MockTicket[]) => {
-    // Auto-correção de nome da mesa se contiver Bub Engenheiros
+    // Auto-correção de nome da mesa e limpeza de descrição de bugs
     const sanitizedTickets = newTickets.map((t) => {
-      if (t.team === 'Bub Engenheiros') {
-        return { ...t, team: 'Bug Engenheiros' };
+      const team = t.team === 'Bub Engenheiros' ? 'Bug Engenheiros' : t.team;
+      let description = t.description;
+
+      if (description && description.includes('**Relato do Usuário:**')) {
+        let cleanText = description.split('**Relato do Usuário:**')[1] || description;
+        if (cleanText.includes('---')) cleanText = cleanText.split('---')[0];
+        if (cleanText.includes('**Metadados do Ambiente:**')) cleanText = cleanText.split('**Metadados do Ambiente:**')[0];
+        description = cleanText.trim() || description;
       }
-      return t;
+
+      return { ...t, team, description };
     });
 
     fallbackTicketsRef.current = sanitizedTickets;

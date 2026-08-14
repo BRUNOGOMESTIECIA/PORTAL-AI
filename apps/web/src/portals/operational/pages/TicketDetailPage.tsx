@@ -321,9 +321,19 @@ export default function TicketDetailPage() {
         <div className="mt-5">
           <h3 className="text-sm font-semibold text-slate-700 mb-2">Descrição</h3>
           <p className="text-sm text-slate-600 leading-relaxed bg-slate-50 rounded-lg p-4 whitespace-pre-wrap">
-            {ticket.description?.includes('**Relato do Usuário:**')
-              ? ticket.description.split('**Relato do Usuário:**')[1]?.split('---')[0]?.trim() || ticket.description
-              : ticket.description}
+            {(() => {
+              let text = ticket.description || 'Sem descrição';
+              if (text.includes('**Relato do Usuário:**')) {
+                text = text.split('**Relato do Usuário:**')[1] || text;
+              }
+              if (text.includes('---')) {
+                text = text.split('---')[0] || text;
+              }
+              if (text.includes('**Metadados do Ambiente:**')) {
+                text = text.split('**Metadados do Ambiente:**')[0] || text;
+              }
+              return text.trim();
+            })()}
           </p>
         </div>
 
