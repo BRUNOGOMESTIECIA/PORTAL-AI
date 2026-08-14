@@ -27,6 +27,7 @@ import { Sun, Moon, Palette } from 'lucide-react';
 import { UserMenu } from '../../components/layout/UserMenu';
 import { CorporateFooterWidget } from '../../components/shared/CorporateFooterWidget';
 import { PageTransitionWrapper } from '../../components/shared/PageTransitionWrapper';
+import { BugReporterCricketWidget } from '../../components/shared/BugReporterCricketWidget';
 import { toast } from 'sonner';
 import { ErrorBoundary } from '../../components/ErrorBoundary';
 import { getSoundSettings, saveSoundSettings, playAlertSound } from '../../lib/sound-effects';
@@ -994,6 +995,9 @@ export default function OperationalShell() {
           toast.success(`⚡ Mensagem de aguarde enviada para ${chat.clientName}!`);
         }}
       />
+
+      {/* Grilo Relator de Bugs (Envia direto para a mesa Bub Engenheiros) */}
+      <BugReporterCricketWidget />
     </div>
   );
 }

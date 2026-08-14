@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Loader2, HeadphonesIcon } from 'lucide-react';
 import { useAuth } from '../../hooks/use-mock-auth';
 import { toast } from 'sonner';
+import { BugReporterCricketWidget } from '../../components/shared/BugReporterCricketWidget';
 
 function GoogleIcon() {
   return (
@@ -74,6 +75,7 @@ export default function ClientLoginPage() {
           </div>
         </div>
       </div>
+      <BugReporterCricketWidget />
     </div>
   );
 }

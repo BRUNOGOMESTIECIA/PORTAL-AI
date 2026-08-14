@@ -11,6 +11,7 @@ import { useTickets } from '../../hooks/use-tickets';
 import { formatTicketProtocol, logSecurityAudit } from '../../lib/audit-logger';
 import { CorporateFooterWidget } from '../../components/shared/CorporateFooterWidget';
 import { PageTransitionWrapper } from '../../components/shared/PageTransitionWrapper';
+import { BugReporterCricketWidget } from '../../components/shared/BugReporterCricketWidget';
 
 import { useChats } from '../../hooks/use-chats';
 import { toast } from 'sonner';
@@ -409,6 +410,9 @@ export default function ClientShell() {
 
       {/* Floating chat */}
       <ChatWidget />
+
+      {/* Grilo Relator de Bugs (Envia para mesa Bub Engenheiros) */}
+      <BugReporterCricketWidget />
 
       {/* Modal Automático de Pesquisa de Satisfação CSAT/NPS Escuro no Centro da Página */}
       {unratedItem && (
