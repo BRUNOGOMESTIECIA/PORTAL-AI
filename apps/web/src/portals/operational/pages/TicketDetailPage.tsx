@@ -117,17 +117,19 @@ export default function TicketDetailPage() {
   
   const ticket = tickets.find((t: any) => {
     if (!id) return false;
-    const cleanId = String(id).replaceAll('#', '').toLowerCase();
-    const cleanTId = String(t.id || '').replaceAll('#', '').toLowerCase();
+    const cleanId = String(id).replace(/^[#/]+/, '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+    const cleanTId = String(t.id || '').replace(/^[#/]+/, '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
     const cleanNum = String(t.number || '').toLowerCase();
-    const formattedProtocol = formatTicketProtocol(t.number || t.id).replaceAll('#', '').toLowerCase();
+    const formattedProtocol = formatTicketProtocol(t.number || t.id).replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
     
     return (
       cleanTId === cleanId ||
       cleanNum === cleanId ||
       formattedProtocol === cleanId ||
       cleanTId.endsWith(cleanId) ||
-      (cleanNum !== '' && cleanId.endsWith(cleanNum))
+      cleanId.endsWith(cleanTId) ||
+      (cleanNum !== '' && cleanId.endsWith(cleanNum)) ||
+      (cleanNum !== '' && cleanTId.endsWith(cleanNum))
     );
   });
 

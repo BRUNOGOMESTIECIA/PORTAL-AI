@@ -42,6 +42,11 @@ function getCompany(ticket: MockTicket) {
   return MOCK_CLIENTS.find(c => c.name === ticket.requesterName)?.company ?? 'Desconhecida';
 }
 
+function getTicketRouteParam(ticket: MockTicket): string {
+  if (ticket.number) return String(ticket.number);
+  return String(ticket.id).replace(/^[#/]+/, '');
+}
+
 type StatusFilterType = 'all' | 'active' | 'unresolved' | TicketStatus;
 type GroupMode = 'team' | 'client';
 
@@ -201,7 +206,7 @@ export default function TicketsPage() {
               return (
                 <tr 
                   key={ticket.id} 
-                  onClick={() => navigate(`/operacional/app/tickets/${ticket.id}`)}
+                  onClick={() => navigate(`/operacional/app/tickets/${getTicketRouteParam(ticket)}`)}
                   className="hover:bg-blue-50/50 dark:hover:bg-slate-800/50 transition-colors group cursor-pointer"
                 >
                   <td className={`${densityConfig.py} font-mono text-xs text-blue-600 dark:text-blue-400 font-bold whitespace-nowrap`}>{formatTicketProtocol(ticket.number)}</td>
@@ -256,7 +261,7 @@ export default function TicketsPage() {
         return (
           <Link
             key={ticket.id}
-            to={`/operacional/app/tickets/${ticket.id}`}
+            to={`/operacional/app/tickets/${getTicketRouteParam(ticket)}`}
             className="group flex flex-col justify-between p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 space-y-3 cursor-pointer block text-left"
           >
             {/* Top Bar: Protocol + Status Badge */}

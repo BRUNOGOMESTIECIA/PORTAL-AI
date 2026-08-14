@@ -415,7 +415,7 @@ export function NewManualTicketModal({ onClose, initialData, onSuccess, isFromCh
         const infraNum = numOnly + 1;
         const infraTicket: MockTicket = {
           ...newTicket,
-          id: `#${new Date().getFullYear()}-${infraNum}`,
+          id: `infra-${new Date().getFullYear()}-${infraNum}`,
           number: infraNum,
           title: infraTitle.trim(),
           description: infraDescription,
