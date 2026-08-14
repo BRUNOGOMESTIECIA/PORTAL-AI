@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus, Users, Clock, Building2, LayoutGrid, List, Kanban as KanbanIcon, AlertTriangle } from 'lucide-react';
 import { TicketStatus, TicketPriority, MockTicket, MOCK_CLIENTS } from '../../../mocks/data';
 import { formatDistanceToNow, isAfter, subDays } from 'date-fns';
@@ -46,6 +46,7 @@ type StatusFilterType = 'all' | 'active' | 'unresolved' | TicketStatus;
 type GroupMode = 'team' | 'client';
 
 export default function TicketsPage() {
+  const navigate = useNavigate();
   const { tickets, updateTicket } = useTickets();
   const { hasPermission } = useAuth();
   const [searchParams] = useSearchParams();
@@ -198,15 +199,16 @@ export default function TicketsPage() {
               const st  = STATUS_CONFIG[ticket.status];
               const pri = PRIORITY_CONFIG[ticket.priority];
               return (
-                <tr key={ticket.id} className="hover:bg-blue-50/50 dark:hover:bg-slate-800/50 transition-colors group">
+                <tr 
+                  key={ticket.id} 
+                  onClick={() => navigate(`/operacional/app/tickets/${ticket.id}`)}
+                  className="hover:bg-blue-50/50 dark:hover:bg-slate-800/50 transition-colors group cursor-pointer"
+                >
                   <td className={`${densityConfig.py} font-mono text-xs text-blue-600 dark:text-blue-400 font-bold whitespace-nowrap`}>{formatTicketProtocol(ticket.number)}</td>
                   <td className={`${densityConfig.py}`}>
-                    <Link
-                      to={`/operacional/app/tickets/${ticket.id}`}
-                      className="font-semibold text-slate-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-1"
-                    >
+                    <span className="font-semibold text-slate-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-1">
                       {ticket.title}
-                    </Link>
+                    </span>
                   </td>
                   <td className={`${densityConfig.py} text-slate-600 dark:text-slate-300 hidden sm:table-cell font-medium`}>{ticket.requesterName}</td>
                   {showCompany ? (
@@ -252,9 +254,10 @@ export default function TicketsPage() {
         const st  = STATUS_CONFIG[ticket.status];
         const pri = PRIORITY_CONFIG[ticket.priority];
         return (
-          <div
+          <Link
             key={ticket.id}
-            className="group flex flex-col justify-between p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 space-y-3"
+            to={`/operacional/app/tickets/${ticket.id}`}
+            className="group flex flex-col justify-between p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 space-y-3 cursor-pointer block text-left"
           >
             {/* Top Bar: Protocol + Status Badge */}
             <div className="flex items-center justify-between gap-2">
@@ -268,12 +271,9 @@ export default function TicketsPage() {
 
             {/* Title & Solicitante */}
             <div>
-              <Link
-                to={`/operacional/app/tickets/${ticket.id}`}
-                className="font-bold text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors text-sm line-clamp-2 leading-snug"
-              >
+              <h3 className="font-bold text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors text-sm line-clamp-2 leading-snug">
                 {ticket.title}
-              </Link>
+              </h3>
               <div className="flex items-center justify-between mt-2 text-xs text-slate-500 dark:text-slate-400">
                 <span className="truncate font-medium">{ticket.requesterName}</span>
                 <div className="flex items-center gap-1 flex-shrink-0">
@@ -293,7 +293,7 @@ export default function TicketsPage() {
                 showProgressBar={true}
               />
             </div>
-          </div>
+          </Link>
         );
       })}
     </div>
