@@ -162,6 +162,28 @@ export default function TicketDetailPage() {
     },
   });
 
+  const safeFormatDate = (dateVal: any, fmt: string = 'dd/MM HH:mm', fallback: string = '—') => {
+    if (!dateVal) return fallback;
+    try {
+      const d = new Date(dateVal);
+      if (isNaN(d.getTime())) return fallback;
+      return format(d, fmt);
+    } catch {
+      return fallback;
+    }
+  };
+
+  const safeFormatDistance = (dateVal: any, fallback: string = 'Recentemente') => {
+    if (!dateVal) return fallback;
+    try {
+      const d = new Date(dateVal);
+      if (isNaN(d.getTime())) return fallback;
+      return formatDistanceToNow(d, { addSuffix: true, locale: ptBR });
+    } catch {
+      return fallback;
+    }
+  };
+
   const st = STATUS_CONFIG[ticket.status as TicketStatus] || { label: ticket.status, color: 'bg-slate-100' };
   const pri = PRIORITY_CONFIG[ticket.priority as TicketPriority] || { label: ticket.priority, color: 'text-slate-500 bg-slate-50' };
   const slaBreached = ticket.slaResolutionMet === false;
@@ -176,10 +198,10 @@ export default function TicketDetailPage() {
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
         <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-mono font-bold text-blue-600 dark:text-blue-400">{formatTicketProtocol(ticket.number)}</span>
+            <span className="text-sm font-mono font-bold text-blue-600 dark:text-blue-400">{formatTicketProtocol(ticket.number || ticket.id)}</span>
             <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${st.color}`}>{st.label}</span>
             <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${pri.color}`}>{pri.label}</span>
-            {slaBreached && <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-red-100 text-red-700">SLA Vencido</span>}
+            {slaBreached && <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-red-100 text-red-700">SLA Vencido</span>}
           </div>
           <div className="flex gap-2">
             <select 
@@ -204,8 +226,8 @@ export default function TicketDetailPage() {
         {/* SLA Live Timer Banner */}
         <div className="mb-4">
           <SlaCountdownBar
-            dueIsoString={ticket.slaResolutionDue}
-            createdIsoString={ticket.createdAt}
+            dueIsoString={ticket.slaResolutionDue || ticket.createdAt || new Date().toISOString()}
+            createdIsoString={ticket.createdAt || new Date().toISOString()}
             status={ticket.status}
             compact={false}
             showProgressBar={true}
@@ -229,7 +251,7 @@ export default function TicketDetailPage() {
             <p className="text-xs text-slate-400 mb-1">Categoria (Catálogo)</p>
             <div className="flex flex-col gap-1.5">
               <select 
-                value={ticket.category}
+                value={ticket.category || 'Outros'}
                 onChange={(e) => updateTicket(ticket.id, { category: e.target.value, updatedAt: new Date().toISOString() })}
                 disabled={!hasPermission('tickets.update')}
                 className="text-sm font-medium text-slate-700 bg-slate-50 border border-slate-200 rounded-md px-2 py-1 outline-none focus:border-blue-400 hover:bg-slate-100 cursor-pointer w-full max-w-[200px]"
@@ -252,7 +274,7 @@ export default function TicketDetailPage() {
             <div className="flex items-center gap-1.5">
               <Clock className="h-3.5 w-3.5 text-slate-400" />
               <p className="text-sm font-medium text-slate-700">
-                {formatDistanceToNow(new Date(ticket.createdAt), { addSuffix: true, locale: ptBR })}
+                {safeFormatDistance(ticket.createdAt)}
               </p>
             </div>
           </div>
@@ -262,14 +284,14 @@ export default function TicketDetailPage() {
         <div className="grid grid-cols-2 gap-4 mt-4">
           <div className={`rounded-lg px-3 py-2 ${ticket.slaFirstResponseMet ? 'bg-green-50 border border-green-100' : 'bg-red-50 border border-red-100'}`}>
             <p className="text-xs font-medium text-slate-500">1ª Resposta</p>
-            <p className="text-sm font-semibold mt-0.5 text-slate-700">{format(new Date(ticket.slaFirstResponseDue), 'dd/MM HH:mm')}</p>
+            <p className="text-sm font-semibold mt-0.5 text-slate-700">{safeFormatDate(ticket.slaFirstResponseDue)}</p>
             <p className={`text-xs mt-0.5 ${ticket.slaFirstResponseMet ? 'text-green-600' : 'text-red-600'}`}>
               {ticket.slaFirstResponseMet === null ? 'Aguardando' : ticket.slaFirstResponseMet ? 'Cumprido' : 'Vencido'}
             </p>
           </div>
           <div className={`rounded-lg px-3 py-2 ${ticket.slaResolutionMet === true ? 'bg-green-50 border border-green-100' : ticket.slaResolutionMet === false ? 'bg-red-50 border border-red-100' : 'bg-slate-50 border border-slate-100'}`}>
             <p className="text-xs font-medium text-slate-500">Resolução</p>
-            <p className="text-sm font-semibold mt-0.5 text-slate-700">{format(new Date(ticket.slaResolutionDue), 'dd/MM HH:mm')}</p>
+            <p className="text-sm font-semibold mt-0.5 text-slate-700">{safeFormatDate(ticket.slaResolutionDue)}</p>
             <p className={`text-xs mt-0.5 ${ticket.slaResolutionMet === true ? 'text-green-600' : ticket.slaResolutionMet === false ? 'text-red-600' : 'text-slate-500'}`}>
               {ticket.slaResolutionMet === null ? 'Em andamento' : ticket.slaResolutionMet ? 'Cumprido' : 'Vencido'}
             </p>
@@ -446,31 +468,6 @@ export default function TicketDetailPage() {
             />
           </DiscreteExpandableWidget>
         </div>
-
-        {(ticket as any).rating && (
-          <div className="mt-5 p-4 bg-amber-50/70 border border-amber-200/80 rounded-xl">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-1.5">
-                <Star className="w-4 h-4 fill-amber-400 text-amber-500" />
-                <span className="text-xs font-bold text-amber-900">Avaliação CSAT do Cliente</span>
-              </div>
-              <div className="flex items-center gap-0.5">
-                {[1, 2, 3, 4, 5].map((n) => (
-                  <Star
-                    key={n}
-                    className={`w-3.5 h-3.5 ${n <= ((ticket as any).rating || 5) ? 'fill-amber-400 text-amber-400' : 'text-slate-200'}`}
-                  />
-                ))}
-                <span className="text-xs font-bold text-slate-800 ml-1">{(ticket as any).rating}.0</span>
-              </div>
-            </div>
-            {(ticket as any).ratingComment && (
-              <p className="text-xs text-slate-700 italic bg-white p-2.5 rounded-lg border border-amber-100 mt-1">
-                "{(ticket as any).ratingComment}"
-              </p>
-            )}
-          </div>
-        )}
       </div>
 
       {/* Comments */}
