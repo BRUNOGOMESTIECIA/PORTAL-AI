@@ -3,6 +3,8 @@ import { toast } from 'sonner';
 
 export type ToolTargetId = 
   | 'global' 
+  | 'pipefy'
+  | 'appsheet'
   | 'impressoras' 
   | 'biometria' 
   | 'monitoramento' 
@@ -78,6 +80,32 @@ const DEFAULT_INTEGRATIONS: ApiIntegration[] = [
     authType: 'bearer',
     status: 'online',
     latencyMs: 45,
+    lastPingAt: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'api_pipefy_inbound',
+    name: 'Automação Inbound Pipefy (Webhooks)',
+    targetToolId: 'pipefy',
+    baseUrl: 'https://api.pipefy.com/graphql',
+    authType: 'bearer',
+    apiKey: 'pipefy_token_live_2026',
+    status: 'online',
+    latencyMs: 32,
+    lastPingAt: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'api_appsheet_webhook',
+    name: 'Integração Google AppSheet (Automações & Cards)',
+    targetToolId: 'appsheet',
+    baseUrl: 'https://api.appsheet.com/api/v2/apps',
+    authType: 'apikey',
+    apiKey: 'appsheet_sec_key_2026',
+    status: 'online',
+    latencyMs: 29,
     lastPingAt: new Date().toISOString(),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()

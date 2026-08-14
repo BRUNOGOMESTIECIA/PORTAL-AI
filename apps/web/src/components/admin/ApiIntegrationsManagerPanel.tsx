@@ -9,6 +9,8 @@ import { toast } from 'sonner';
 
 const TOOL_OPTIONS: { id: ToolTargetId; label: string; icon: React.ElementType }[] = [
   { id: 'global', label: '🌐 Global / Backend ITSM (NestJS)', icon: Globe },
+  { id: 'pipefy', label: '💜 Pipefy (Webhooks Inbound / Cards)', icon: Globe },
+  { id: 'appsheet', label: '📊 Google AppSheet (Automações & Webhook)', icon: Server },
   { id: 'impressoras', label: '🖨️ Monitoramento de Impressoras', icon: Printer },
   { id: 'monitoramento', label: '🖥️ Monitoramento de Equipamentos & RMM', icon: Cpu },
   { id: 'biometria', label: '🔑 Acesso Biométrico', icon: Fingerprint },
