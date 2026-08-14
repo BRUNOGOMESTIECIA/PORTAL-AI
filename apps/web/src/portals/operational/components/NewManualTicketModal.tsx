@@ -17,7 +17,7 @@ import { useDynamicQueues } from '../pages/admin/QueuesManagerPanel';
 // ─── Options ──────────────────────────────────────────────────────────────────
 const TICKET_TYPES = ['Incidente', 'Solicitação', 'Dúvida', 'Manutenção Preventiva'];
 
-const TEAMS = ['N1', 'N2', 'N3', 'SOC', 'Infraestrutura', 'Segurança', 'Banco de Dados', 'Cloud / DevOps', 'Sistemas ERP', 'Triagem'];
+const TEAMS = ['N1', 'N2', 'N3', 'Bug Engenheiros', 'SOC', 'Infraestrutura', 'Segurança', 'Banco de Dados', 'Cloud / DevOps', 'Sistemas ERP', 'Triagem'];
 
 const PRIORITIES: { value: TicketPriority; label: string; color: string; dot: string }[] = [
   { value: 'low',      label: 'Baixa',   color: 'text-slate-500',  dot: 'bg-slate-400' },

@@ -43,10 +43,18 @@ export function TicketsProvider({ children }: { children: React.ReactNode }) {
   const channelRef = useRef<BroadcastChannel | null>(null);
 
   const saveFallbackTickets = useCallback((newTickets: MockTicket[]) => {
-    fallbackTicketsRef.current = newTickets;
-    setTickets(newTickets);
+    // Auto-correção de nome da mesa se contiver Bub Engenheiros
+    const sanitizedTickets = newTickets.map((t) => {
+      if (t.team === 'Bub Engenheiros') {
+        return { ...t, team: 'Bug Engenheiros' };
+      }
+      return t;
+    });
+
+    fallbackTicketsRef.current = sanitizedTickets;
+    setTickets(sanitizedTickets);
     try {
-      localStorage.setItem('portal_fallback_tickets', JSON.stringify(newTickets));
+      localStorage.setItem('portal_fallback_tickets', JSON.stringify(sanitizedTickets));
     } catch (e) {
       console.warn('Não foi possível salvar tickets no localStorage:', e);
     }

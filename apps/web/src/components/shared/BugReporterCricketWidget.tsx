@@ -39,12 +39,12 @@ export function BugReporterCricketWidget() {
         id: ticketId,
         number: nextNumber,
         title: `[BUG REPORT] ${bugDescription.slice(0, 45)}...`,
-        description: `🦗 **BUG REPORTADO VIA GRILO BUG REPORTER**\n\n**Relato do Usuário:**\n${bugDescription.trim()}\n\n---\n**Metadados do Ambiente:**\n• **Mesa de Destino:** Bub Engenheiros\n• **Página:** ${currentUrl}\n• **Navegador:** ${browserInfo}\n• **Usuário:** ${user?.name || 'Solicitante Anônimo'} (${user?.email || 'Sem e-mail'})\n• **Data/Hora:** ${new Date().toLocaleString('pt-BR')}`,
+        description: `🦗 **BUG REPORTADO VIA GRILO BUG REPORTER**\n\n**Relato do Usuário:**\n${bugDescription.trim()}\n\n---\n**Metadados do Ambiente:**\n• **Mesa de Destino:** Bug Engenheiros\n• **Página:** ${currentUrl}\n• **Navegador:** ${browserInfo}\n• **Usuário:** ${user?.name || 'Solicitante Anônimo'} (${user?.email || 'Sem e-mail'})\n• **Data/Hora:** ${new Date().toLocaleString('pt-BR')}`,
         status: 'new',
         priority: 'high',
         category: 'Incidente',
         type: 'Incidente',
-        team: 'Bub Engenheiros',
+        team: 'Bug Engenheiros',
         requesterId: user?.id || 'req_bug_reporter',
         requesterName: user?.name || 'Solicitante Anônimo',
         requesterEmail: user?.email || 'bug@insta-passo.com',
@@ -55,7 +55,7 @@ export function BugReporterCricketWidget() {
         comments: [
           {
             id: `c_bug_${Date.now()}`,
-            body: `🐛 Bug registrado e encaminhado diretamente para a mesa **Bub Engenheiros**.`,
+            body: `🐛 Bug registrado e encaminhado diretamente para a mesa **Bug Engenheiros**.`,
             senderName: 'Grilo Bug Reporter',
             senderType: 'system',
             createdAt: nowIso,
@@ -66,7 +66,7 @@ export function BugReporterCricketWidget() {
       await createTicket(newTicket);
 
       setIsSuccess(true);
-      toast.success('🐛 Bug enviado com sucesso para a mesa Bub Engenheiros!');
+      toast.success('🐛 Bug enviado com sucesso para a mesa Bug Engenheiros!');
       setTimeout(() => {
         setIsSuccess(false);
         setIsOpen(false);
@@ -138,7 +138,7 @@ export function BugReporterCricketWidget() {
                     Relatar um Bug / Problema Técnico
                   </h3>
                   <p className="text-xs text-slate-400">
-                    Sua mensagem será enviada direto para a mesa <strong className="text-amber-400">Bub Engenheiros</strong>.
+                    Sua mensagem será enviada direto para a mesa <strong className="text-amber-400">Bug Engenheiros</strong>.
                   </p>
                 </div>
               </div>
@@ -159,7 +159,7 @@ export function BugReporterCricketWidget() {
                 </div>
                 <h4 className="text-lg font-bold text-white">Bug Reportado com Sucesso! 🎉</h4>
                 <p className="text-xs text-slate-300 max-w-sm mx-auto">
-                  A equipe da mesa <strong className="text-amber-400">Bub Engenheiros</strong> foi notificada e já iniciou a análise técnica.
+                  A equipe da mesa <strong className="text-amber-400">Bug Engenheiros</strong> foi notificada e já iniciou a análise técnica.
                 </p>
               </div>
             ) : (
@@ -210,7 +210,7 @@ export function BugReporterCricketWidget() {
                     className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 text-xs font-black rounded-xl transition-all shadow-lg shadow-amber-500/20 flex items-center gap-2 cursor-pointer disabled:opacity-50"
                   >
                     <Send className="w-3.5 h-3.5" />
-                    <span>{isSubmitting ? 'Enviando...' : 'Enviar para Bub Engenheiros'}</span>
+                    <span>{isSubmitting ? 'Enviando...' : 'Enviar para Bug Engenheiros'}</span>
                   </button>
                 </div>
               </form>
