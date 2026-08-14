@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Apresentação Oficial - Ecossistema ITSM InstaPassos</title>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&family=JetBrains+Mono:wght@400;700&display=swap');
+
+    @page {
+      size: A4;
+      margin: 20mm;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      color: #0f172a;
+      background-color: #ffffff;
+      line-height: 1.6;
+      margin: 0;
+      padding: 40px;
+    }
+
+    .cover-page {
+      text-align: center;
+      padding: 60px 20px;
+      border-bottom: 4px solid #3b82f6;
+      margin-bottom: 40px;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: #ffffff;
+      border-radius: 24px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    }
+
+    .cover-logo {
+      font-size: 42px;
+      font-weight: 900;
+      letter-spacing: -1px;
+      color: #60a5fa;
+      margin-bottom: 10px;
+    }
+
+    .cover-title {
+      font-size: 26px;
+      font-weight: 800;
+      margin-bottom: 12px;
+    }
+
+    .cover-subtitle {
+      font-size: 14px;
+      color: #94a3b8;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    h1, h2, h3 {
+      color: #0f172a;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+
+    h2 {
+      font-size: 20px;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 8px;
+      margin-top: 36px;
+      display: flex;
+      items-center: center;
+      gap: 8px;
+    }
+
+    h3 {
+      font-size: 16px;
+      color: #2563eb;
+      margin-top: 24px;
+    }
+
+    p, li {
+      font-size: 13px;
+      color: #334155;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 700;
+      background: #eff6ff;
+      color: #2563eb;
+      border: 1px solid #bfdbfe;
+    }
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin: 20px 0;
+    }
+
+    .card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 16px;
+    }
+
+    .card-title {
+      font-weight: 800;
+      font-size: 14px;
+      color: #0f172a;
+      margin-bottom: 6px;
+    }
+
+    .card-text {
+      font-size: 12px;
+      color: #64748b;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      font-size: 12px;
+    }
+
+    th, td {
+      border: 1px solid #e2e8f0;
+      padding: 10px;
+      text-align: left;
+    }
+
+    th {
+      background-color: #f1f5f9;
+      font-weight: 700;
+      color: #1e293b;
+    }
+
+    .footer-print {
+      margin-top: 50px;
+      padding-top: 20px;
+      border-top: 1px solid #e2e8f0;
+      text-align: center;
+      font-size: 11px;
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- CAPA -->
+  <div class="cover-page">
+    <div class="cover-logo">⚡ INSTAPASSOS ITSM</div>
+    <div class="cover-title">Manual Executivo de Apresentação & Governança</div>
+    <div class="cover-subtitle">Portal Operacional • Portal do Cliente • Módulo InstaPasso • Painel TV NOC • Grilo Relator de Bugs</div>
+  </div>
+
+  <!-- SEÇÃO 1: VISÃO GERAL -->
+  <h2>🌐 1. Visão Geral do Ecossistema</h2>
+  <p>
+    O <strong>Ecossistema ITSM InstaPassos</strong> é uma plataforma omni-channel de gestão de atendimento de TI, governança de serviços e automação operacional. Desenvolvido sobre arquitetura <strong>Serverless de Alta Disponibilidade</strong> (composto por Cloud Firestore, API NestJS REST, PWA Offline Sync e conformidade integral com a LGPD Lei 13.709/18).
+  </p>
+
+  <div class="card-grid">
+    <div class="card">
+      <div class="card-title">⚡ Desempenho & Disponibilidade</div>
+      <div class="card-text">PWA com suporte a offline sync e carregamento ultrarrápido para analistas e clientes finais.</div>
+    </div>
+    <div class="card">
+      <div class="card-title">🛡️ Governança LGPD (Art. 6º e 7º)</div>
+      <div class="card-text">Detecção de IP Drift, logs imutáveis de auditoria e mascaramento preventivo de dados sensíveis.</div>
+    </div>
+  </div>
+
+  <!-- SEÇÃO 2: PORTAL OPERACIONAL -->
+  <h2>📊 2. Portal Operacional (NOC & Atendimento Especializado)</h2>
+  <p>Central de atendimento para supervisores, analistas de TI e engenheiros.</p>
+
+  <h3>2.1 Dashboard Operacional em Tempo Real</h3>
+  <ul>
+    <li><strong>SLA Compliance (67% Real-Time):** Cálculo dinâmico entre tickets resolvidos dentro do prazo estipulado vs. total.</li>
+    <li><strong>Volumetria Ativa:** Monitoramento ao vivo de chamados abertos atribuídos à equipe N1.</li>
+    <li><strong>Média de CSAT & TMA:** Avaliação contínua da satisfação do cliente (1 a 5 estrelas).</li>
+    <li><strong>Menu Lateral Expansível:** Expansão ao passar o cursor (hover) e trava opcional por clique.</li>
+  </ul>
+
+  <h3>2.2 Agrupamento por Mesas de Atendimento</h3>
+  <p>Os chamados são distribuídos dinamicamente entre mesas especializadas:</p>
+  <ul>
+    <li><span class="badge">N1 / Triagem</span> Primeiro atendimento e qualificação.</li>
+    <li><span class="badge">N2 / Avançado</span> Resolução de média complexidade.</li>
+    <li><span class="badge">N3 / Especialistas</span> Atendimento de alta complexidade.</li>
+    <li><span class="badge">Bug Engenheiros</span> Mesa exclusiva para recebimento de chamados reportados via Grilinho de Telemetria.</li>
+    <li><span class="badge">Outras Mesas</span> SOC, Infraestrutura, Banco de Dados, DevOps, ERP.</li>
+  </ul>
+
+  <h3>2.3 Painel Standalone Smart TV NOC (`/tv-noc`)</h3>
+  <p>
+    URL direta <code>https://portal-ai-web.vercel.app/tv-noc</code> sem necessidade de login/senha, otimizada para monitores de videowall em sala de NOC com atualização automática a cada 30 segundos.
+  </p>
+
+  <!-- SEÇÃO 3: PORTAL DO CLIENTE -->
+  <h2>👤 3. Portal do Cliente (Self-Service)</h2>
+  <p>Interface simplificada para o usuário final abrir e acompanhar solicitações.</p>
+  <ul>
+    <li><strong>Catálogo Inteligente com IA:</strong> Classificação automática da categoria do chamado através de IA.</li>
+    <li><strong>Protocolo Único `#2026XXXX`:</strong> Rastreamento completo da linha do tempo do atendimento.</li>
+    <li><strong>Pesquisa de Satisfação CSAT:</strong> Modal automático central escuro (1 a 5 estrelas + comentário até 500 caracteres).</li>
+  </ul>
+
+  <!-- SEÇÃO 4: GRILO RELATOR DE BUGS -->
+  <h2>🦗 4. Grilo Relator de Bugs (Engenharia de Software)</h2>
+  <p>
+    Widget flutuante presente em todas as telas para reporte técnico direto à equipe de engenharia:
+  </p>
+  <ul>
+    <li><strong>Limite Estreito de 500 Caracteres:</strong> Campo de digitação com contador regressivo <code>0 / 500</code>.</li>
+    <li><strong>Descrição 100% Limpa:</strong> O texto do usuário permanece limpo sem poluição visual.</li>
+    <li><strong>Metadados em Comentários:</strong> URL da página, navegador e timestamp são anexados como comentário do sistema.</li>
+    <li><strong>Fechamento Completo:</strong> Ao clicar no <code>X</code>, o grilinho desaparece 100% da tela durante a sessão.</li>
+  </ul>
+
+  <!-- SEÇÃO 5: MÓDULO INSTAPASSO -->
+  <h2>👣 5. Módulo InstaPasso (Passos Guiados)</h2>
+  <p>
+    Instruções visuais passo a passo para padronização de procedimentos recorrentes de TI (onboarding, credenciais e checklists), reduzindo o Tempo Médio de Atendimento (TMA).
+  </p>
+
+  <!-- TABELA RESUMO -->
+  <h2>📋 Tabela Comparativa de Recursos</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Recurso / Módulo</th>
+        <th>Portal Operacional</th>
+        <th>Portal do Cliente</th>
+        <th>Smart TV NOC</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Autenticação Requerida</td>
+        <td>Sim (Login/SSO)</td>
+        <td>Sim (Login/SSO)</td>
+        <td>Não (Público / Direct Link)</td>
+      </tr>
+      <tr>
+        <td>Métricas de SLA Compliance</td>
+        <td>Sim (67% Real-Time)</td>
+        <td>Linha do Tempo</td>
+        <td>Sim (Destaque em Tela Cheia)</td>
+      </tr>
+      <tr>
+        <td>Grilo Relator de Bugs (🦗)</td>
+        <td>Sim</td>
+        <td>Sim</td>
+        <td>Não (Visualização)</td>
+      </tr>
+      <tr>
+        <td>CSAT / Avaliação de Atendimento</td>
+        <td>Visualização / Dashboard</td>
+        <td>Pesquisa Automática</td>
+        <td>Exibição de Média</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="footer-print">
+    Documento Oficial de Apresentação — Ecossistema ITSM InstaPassos &copy; 2026. Gerado automaticamente.
+  </div>
+
+</body>
+</html>
