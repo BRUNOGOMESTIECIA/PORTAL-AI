@@ -39,7 +39,7 @@ export function BugReporterCricketWidget() {
         id: ticketId,
         number: nextNumber,
         title: `[BUG REPORT] ${bugDescription.slice(0, 45)}...`,
-        description: `🦗 **BUG REPORTADO VIA GRILO BUG REPORTER**\n\n**Relato do Usuário:**\n${bugDescription.trim()}\n\n---\n**Metadados do Ambiente:**\n• **Mesa de Destino:** Bug Engenheiros\n• **Página:** ${currentUrl}\n• **Navegador:** ${browserInfo}\n• **Usuário:** ${user?.name || 'Solicitante Anônimo'} (${user?.email || 'Sem e-mail'})\n• **Data/Hora:** ${new Date().toLocaleString('pt-BR')}`,
+        description: bugDescription.trim(),
         status: 'new',
         priority: 'high',
         category: 'Incidente',
@@ -55,7 +55,7 @@ export function BugReporterCricketWidget() {
         comments: [
           {
             id: `c_bug_${Date.now()}`,
-            body: `🐛 Bug registrado e encaminhado diretamente para a mesa **Bug Engenheiros**.`,
+            body: `🦗 **METADADOS TÉCNICOS DO AMBIENTE (CAPTURADOS PELO GRILO)**\n• **Mesa de Destino:** Bug Engenheiros\n• **Página de Origem:** ${currentUrl}\n• **Navegador:** ${browserInfo}\n• **Usuário:** ${user?.name || 'Solicitante Anônimo'} (${user?.email || 'Sem e-mail'})\n• **Data/Hora:** ${new Date().toLocaleString('pt-BR')}`,
             senderName: 'Grilo Bug Reporter',
             senderType: 'system',
             createdAt: nowIso,

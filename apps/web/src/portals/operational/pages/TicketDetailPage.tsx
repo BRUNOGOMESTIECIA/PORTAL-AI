@@ -320,7 +320,11 @@ export default function TicketDetailPage() {
         {/* Description */}
         <div className="mt-5">
           <h3 className="text-sm font-semibold text-slate-700 mb-2">Descrição</h3>
-          <p className="text-sm text-slate-600 leading-relaxed bg-slate-50 rounded-lg p-4">{ticket.description}</p>
+          <p className="text-sm text-slate-600 leading-relaxed bg-slate-50 rounded-lg p-4 whitespace-pre-wrap">
+            {ticket.description?.includes('**Relato do Usuário:**')
+              ? ticket.description.split('**Relato do Usuário:**')[1]?.split('---')[0]?.trim() || ticket.description
+              : ticket.description}
+          </p>
         </div>
 
         {/* Tags */}
