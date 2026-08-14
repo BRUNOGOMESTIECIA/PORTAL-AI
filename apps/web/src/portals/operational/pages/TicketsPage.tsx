@@ -69,19 +69,37 @@ export default function TicketsPage() {
   // ── Filtragem ────────────────────────────────────────────────────────────────
   const filteredTickets = useMemo(() => {
     return tickets.filter((t) => {
-      const matchStatusTab = statusFilter === 'all'
-        ? true
-        : statusFilter === 'active'
-          ? ['new', 'open', 'in_progress', 'pending'].includes(t.status)
-          : statusFilter === 'unresolved'
-            ? ['new', 'open', 'pending'].includes(t.status)
-            : t.status === statusFilter;
+      const searchLower = advancedFilters.search.toLowerCase().trim();
+      const cleanSearchDigits = searchLower.replace(/\D/g, '');
 
-      const searchLower = advancedFilters.search.toLowerCase();
+      // Se houver busca digitada pelo usuário, abrimos para buscar em todos os status (não oculta resolvidos)
+      const matchStatusTab = searchLower
+        ? true
+        : statusFilter === 'all'
+          ? true
+          : statusFilter === 'active'
+            ? ['new', 'open', 'in_progress', 'pending'].includes(t.status)
+            : statusFilter === 'unresolved'
+              ? ['new', 'open', 'pending'].includes(t.status)
+              : t.status === statusFilter;
+
+      const formattedProtocol = formatTicketProtocol(t.number || t.id).toLowerCase();
+      const ticketNumStr = String(t.number || t.id || '').toLowerCase();
+      const titleStr = String(t.title || '').toLowerCase();
+      const descStr = String(t.description || '').toLowerCase();
+      const reqStr = String(t.requesterName || '').toLowerCase();
+      const teamStr = String(t.team || '').toLowerCase();
+      const catStr = String(t.category || '').toLowerCase();
+
       const matchSearch = !searchLower ||
-        t.title.toLowerCase().includes(searchLower) ||
-        t.requesterName.toLowerCase().includes(searchLower) ||
-        String(t.number).includes(searchLower);
+        titleStr.includes(searchLower) ||
+        descStr.includes(searchLower) ||
+        reqStr.includes(searchLower) ||
+        teamStr.includes(searchLower) ||
+        catStr.includes(searchLower) ||
+        formattedProtocol.includes(searchLower) ||
+        ticketNumStr.includes(searchLower) ||
+        (cleanSearchDigits.length > 2 && ticketNumStr.includes(cleanSearchDigits));
 
       const companyName = getCompany(t);
       const matchCompany   = advancedFilters.company.length === 0 || advancedFilters.company.includes(companyName);

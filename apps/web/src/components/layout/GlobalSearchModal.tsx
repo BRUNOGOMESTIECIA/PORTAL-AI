@@ -63,23 +63,29 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
             return;
           }
 
-          const ticketIdStr = String(t.id || '');
-          const ticketNumStr = String(t.number || '');
+          const ticketIdStr = String(t.id || '').toLowerCase();
+          const ticketNumStr = String(t.number || '').toLowerCase();
           const protocolStr = formatTicketProtocol(t.number || t.id).toLowerCase();
           const titleStr = String(t.title || '').toLowerCase();
+          const descStr = String(t.description || '').toLowerCase();
           const reqStr = String(t.requesterName || '').toLowerCase();
+          const teamStr = String(t.team || '').toLowerCase();
+          const cleanQ = q.replace(/\D/g, '');
 
           if (
             protocolStr.includes(q) || 
             titleStr.includes(q) || 
+            descStr.includes(q) ||
             reqStr.includes(q) || 
+            teamStr.includes(q) ||
             ticketIdStr.includes(q) || 
-            ticketNumStr.includes(q)
+            ticketNumStr.includes(q) ||
+            (cleanQ.length > 2 && (ticketNumStr.includes(cleanQ) || protocolStr.includes(cleanQ)))
           ) {
             results.push({
               id: `tkt-${t.id || Math.random()}`,
               title: t.title || 'Chamado de Suporte',
-              subtitle: `${formatTicketProtocol(t.number || t.id)} · Solicitante: ${t.requesterName || 'Cliente'}`,
+              subtitle: `${formatTicketProtocol(t.number || t.id)} · Mesa: ${t.team || 'N1'} · Solicitante: ${t.requesterName || 'Cliente'}`,
               category: 'ticket',
               path: isStaff ? `/operacional/app/tickets/${t.id}` : `/cliente/tickets/${t.id}`,
               badge: (t.status || 'open').toUpperCase(),
