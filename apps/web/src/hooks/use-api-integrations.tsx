@@ -118,7 +118,21 @@ export function ApiIntegrationsProvider({ children }: { children: React.ReactNod
       const saved = localStorage.getItem('portal_api_integrations_vault');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const hasPipefy = parsed.some((i: any) => i.targetToolId === 'pipefy' || i.id === 'api_pipefy_inbound');
+          const hasAppSheet = parsed.some((i: any) => i.targetToolId === 'appsheet' || i.id === 'api_appsheet_webhook');
+          const merged = [...parsed];
+
+          if (!hasPipefy) {
+            const pipefyItem = DEFAULT_INTEGRATIONS.find((i) => i.id === 'api_pipefy_inbound');
+            if (pipefyItem) merged.push(pipefyItem);
+          }
+          if (!hasAppSheet) {
+            const appsheetItem = DEFAULT_INTEGRATIONS.find((i) => i.id === 'api_appsheet_webhook');
+            if (appsheetItem) merged.push(appsheetItem);
+          }
+          return merged;
+        }
       }
       return DEFAULT_INTEGRATIONS;
     } catch {
