@@ -115,16 +115,37 @@ export default function TicketDetailPage() {
   const [statusChangeRequest, setStatusChangeRequest] = useState<{ newStatus: TicketStatus } | null>(null);
   const [statusReason, setStatusReason] = useState('');
   
-  const ticket = tickets.find((t: any) => t.id === id);
+  const ticket = tickets.find((t: any) => {
+    if (!id) return false;
+    const cleanId = String(id).replaceAll('#', '').toLowerCase();
+    const cleanTId = String(t.id || '').replaceAll('#', '').toLowerCase();
+    const cleanNum = String(t.number || '').toLowerCase();
+    const formattedProtocol = formatTicketProtocol(t.number || t.id).replaceAll('#', '').toLowerCase();
+    
+    return (
+      cleanTId === cleanId ||
+      cleanNum === cleanId ||
+      formattedProtocol === cleanId ||
+      cleanTId.endsWith(cleanId) ||
+      (cleanNum !== '' && cleanId.endsWith(cleanNum))
+    );
+  });
 
   if (!ticket) {
     return (
-      <div className="text-center py-20">
-        <p className="text-slate-500">Ticket não encontrado.</p>
-        <Link to="/operacional/app/tickets" className="text-blue-600 hover:underline text-sm mt-2 inline-block">Voltar</Link>
+      <div className="text-center py-20 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-8 shadow-sm">
+        <p className="text-slate-700 dark:text-slate-300 font-bold text-base">Ticket não encontrado.</p>
+        <p className="text-slate-400 text-xs mt-1">O protocolo pesquisado ({id}) não foi localizado no banco de dados ativo.</p>
+        <Link to="/operacional/app/tickets" className="bg-blue-600 text-white font-bold text-xs px-4 py-2 rounded-xl hover:bg-blue-700 transition-all mt-4 inline-block shadow-sm">
+          Voltar para a lista de tickets
+        </Link>
       </div>
     );
   }
+
+  const displayRequester = (ticket.requesterName && ticket.requesterName !== 'Desconhecido')
+    ? ticket.requesterName
+    : ((ticket as any).clientName || (ticket as any).authorName || (ticket.requesterEmail ? ticket.requesterEmail.split('@')[0] : 'Solicitante'));
 
   // ⌨️ Atalhos Operacionais Seguros (Item 093): Alt+R (Responder), Alt+F (Fechar), Alt+A (Atribuir)
   useOperationalShortcuts({
@@ -197,7 +218,7 @@ export default function TicketDetailPage() {
             <p className="text-xs text-slate-400 mb-0.5">Solicitante</p>
             <div className="flex items-center gap-1.5">
               <User className="h-3.5 w-3.5 text-slate-400" />
-              <p className="text-sm font-medium text-slate-700">{ticket.requesterName}</p>
+              <p className="text-sm font-medium text-slate-700">{displayRequester}</p>
             </div>
           </div>
           <div>
