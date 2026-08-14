@@ -744,7 +744,20 @@ export default function OperationalShell() {
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Topbar */}
         <header className="flex h-14 items-center justify-between border-b border-slate-200 bg-white px-4 sm:px-6 flex-shrink-0">
-          <button onClick={() => setMobileOpen(true)} className="lg:hidden text-slate-500 hover:text-slate-800">
+          {/* Botão de Menu Hambúrguer (Funciona em Desktop e Mobile com Hover e Clique) */}
+          <button 
+            onClick={() => {
+              if (window.innerWidth < 1024) {
+                setMobileOpen(!mobileOpen);
+              } else {
+                setCollapsed(!collapsed);
+              }
+            }}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            className="flex items-center justify-center p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer mr-2"
+            title={collapsed ? "Expandir / Fixar Menu Sidebar" : "Minimizar Menu Sidebar"}
+          >
             <Menu className="h-5 w-5" />
           </button>
           
