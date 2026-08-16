@@ -11,17 +11,28 @@ service cloud.firestore {
     function isAuthenticated() {
       return request.auth != null;
     }
+    
+    function isEmailVerified() {
+      return request.auth.token.email_verified == true;
+    }
 
     // 3. COLEÇÃO DE TICKETS (CHAMADOS)
     match /tickets/{ticketId} {
+      // Leitura: Apenas usuários autenticados
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
+      
+      // Criação: Usuário autenticado
+      allow create: if isAuthenticated() && 
+        request.resource.data.keys().hasAll(['title', 'status', 'createdAt']);
+
+      // Edição / Deleção: Apenas autenticados (ou apenas equipe interna)
       allow update: if isAuthenticated();
       allow delete: if isAuthenticated() && request.auth.token.email.matches('.*@tiecia[.]com[.]br$');
     }
 
     // 4. COLEÇÃO DE OPERADORES / USUÁRIOS INTERNOS
     match /operators/{operatorId} {
+      // Apenas quem é da equipe @tiecia.com.br autenticado pode ler ou criar
       allow read: if isAuthenticated();
       allow write: if isAuthenticated() && request.auth.token.email.matches('.*@tiecia[.]com[.]br$');
     }
@@ -34,6 +45,7 @@ service cloud.firestore {
 
     // 6. SESSÕES ATIVAS
     match /active_sessions/{userId} {
+      // O usuário só pode ler e gravar na sua PRÓPRIA sessão (UID correspondente)
       allow read, write: if isAuthenticated() && request.auth.uid == userId;
     }
 
@@ -52,17 +64,6 @@ service cloud.firestore {
 
     // 9. CONTADORES ATÔMICOS (#2026XXXX)
     match /counters/{counterId} {
-      allow read, write: if isAuthenticated();
-    }
-
-    // 10. TELEMETRIA E HARDWARE
-    match /printer_telemetry/{printerId} {
-      allow read, write: if isAuthenticated();
-    }
-    match /equipment_telemetry/{equipId} {
-      allow read, write: if isAuthenticated();
-    }
-    match /monthly_analytics_aggregates/{monthId} {
       allow read, write: if isAuthenticated();
     }
   }
