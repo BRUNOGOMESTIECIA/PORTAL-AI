@@ -2,59 +2,68 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Regra padrão: nega acesso por padrão (Zero-Trust)
+    // 1. REGRA ZERO-TRUST: Bloqueia tudo por padrão
     match /{document=**} {
       allow read, write: if false;
     }
 
-    // Regra de Operadores (Apenas usuários autenticados)
-    match /operators/{operatorId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null;
+    // 2. FUNÇÕES AUXILIARES DE SEGURANÇA
+    function isAuthenticated() {
+      return request.auth != null;
     }
 
-    // Regra de Domínios B2B Autorizados (Leitura autenticada)
-    match /domains/{domainId} {
-      allow read: if true;
-      allow write: if request.auth != null;
-    }
-
-    // Regra de Chamados (Tickets)
+    // 3. COLEÇÃO DE TICKETS (CHAMADOS)
     match /tickets/{ticketId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null;
-      allow update, delete: if request.auth != null;
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated();
+      allow delete: if isAuthenticated() && request.auth.token.email.matches('.*@tiecia[.]com[.]br$');
     }
 
-    // Regra de Sessoes de Chat (Live Chat)
+    // 4. COLEÇÃO DE OPERADORES / USUÁRIOS INTERNOS
+    match /operators/{operatorId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && request.auth.token.email.matches('.*@tiecia[.]com[.]br$');
+    }
+
+    // 5. DOMÍNIOS AUTORIZADOS B2B
+    match /domains/{domainId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && request.auth.token.email.matches('.*@tiecia[.]com[.]br$');
+    }
+
+    // 6. SESSÕES ATIVAS
+    match /active_sessions/{userId} {
+      allow read, write: if isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // 7. SESSÕES DE CHAT EM TEMPO REAL
     match /chat_sessions/{chatId} {
-      allow read, create, update: if true;
-      allow delete: if request.auth != null;
+      allow read, create, update: if isAuthenticated();
+      allow delete: if isAuthenticated() && request.auth.token.email.matches('.*@tiecia[.]com[.]br$');
     }
 
-    // Regra de Contadores Atômicos (#2026XXXX)
-    match /counters/{counterId} {
-      allow read, write: if true;
-    }
-
-    // Regra de Trilha de Auditoria ISO 27001
+    // 8. LOGS DE AUDITORIA (ISO 27001 - IMUTÁVEIS)
     match /security_audit_logs/{logId} {
-      allow create: if true;
-      allow read: if request.auth != null;
-      allow update, delete: if false; // Auditoria Imutável (Nunca pode ser apagada ou editada)
+      allow create: if true; // Permite registrar inclusive tentativas de login com falha
+      allow read: if isAuthenticated() && request.auth.token.email.matches('.*@tiecia[.]com[.]br$');
+      allow update, delete: if false; // NUNCA podem ser alterados ou apagados
     }
 
-    // Regra de Telemetria de Impressoras e Hardware (Sonda Outbound)
+    // 9. CONTADORES ATÔMICOS (#2026XXXX)
+    match /counters/{counterId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // 10. TELEMETRIA E HARDWARE
     match /printer_telemetry/{printerId} {
-      allow read, write: if true;
+      allow read, write: if isAuthenticated();
     }
     match /equipment_telemetry/{equipId} {
-      allow read, write: if true;
+      allow read, write: if isAuthenticated();
     }
-
-    // Regra de Resumos de Big Data
     match /monthly_analytics_aggregates/{monthId} {
-      allow read, write: if true;
+      allow read, write: if isAuthenticated();
     }
   }
 }
