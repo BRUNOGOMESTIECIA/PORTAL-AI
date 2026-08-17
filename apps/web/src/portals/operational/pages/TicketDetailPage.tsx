@@ -255,28 +255,7 @@ export default function TicketDetailPage() {
               onChange={(e) => {
                 const newStatus = e.target.value as TicketStatus;
                 if (newStatus === ticket.status) return;
-
-                const isClosing = ['resolved', 'closed'].includes(newStatus);
-                const newComment = {
-                  id: `c${Date.now()}`,
-                  authorName: activeAgentName,
-                  authorType: 'staff' as const,
-                  body: `Status alterado para ${STATUS_CONFIG[newStatus].label} por ${activeAgentName}.`,
-                  isInternal: true,
-                  createdAt: new Date().toISOString()
-                };
-
-                updateTicket(ticket.id, {
-                  status: newStatus,
-                  assigneeName: ticket.assigneeName || activeAgentName,
-                  assignedTo: (ticket as any).assignedTo || activeAgentName,
-                  resolvedByName: isClosing ? activeAgentName : (ticket as any).resolvedByName,
-                  closedByName: isClosing ? activeAgentName : (ticket as any).closedByName,
-                  comments: [...ticket.comments, newComment],
-                  updatedAt: new Date().toISOString()
-                });
-
-                toast.success(`Status do ticket alterado para ${STATUS_CONFIG[newStatus].label}!`);
+                setStatusChangeRequest({ newStatus });
               }}
               className="text-sm font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg px-3 py-1.5 outline-none focus:border-blue-400 text-slate-700 dark:text-slate-200 cursor-pointer shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
