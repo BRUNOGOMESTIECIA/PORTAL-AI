@@ -75,28 +75,25 @@ export default function TvNocStandalonePage() {
     return false;
   };
 
-  const effectiveTickets = tickets && tickets.length > 0 ? tickets : MOCK_TICKETS;
-  const effectiveChats = chats && chats.length > 0 ? chats : MOCK_CHATS;
-
-  const openTickets = effectiveTickets.filter((t) => !['closed', 'resolved'].includes(t.status));
+  const openTickets = tickets.filter((t) => !['closed', 'resolved'].includes(t.status));
   const openTicketsCount = openTickets.length;
   const n1TicketsCount = openTickets.filter((t) => !t.team || t.team === 'N1' || t.team === 'Suporte N1').length;
 
-  const slaResMetCount = effectiveTickets.filter((t) => !isTicketOverdue(t)).length;
-  const realSlaPct = effectiveTickets.length > 0 ? Math.round((slaResMetCount / effectiveTickets.length) * 100) : 64;
+  const slaResMetCount = tickets.filter((t) => !isTicketOverdue(t)).length;
+  const realSlaPct = tickets.length > 0 ? Math.round((slaResMetCount / tickets.length) * 100) : 100;
 
   // CSAT real
-  const ratedTickets = effectiveTickets.filter((t: any) => t.csatRating && t.csatRating > 0);
+  const ratedTickets = tickets.filter((t: any) => t.csatRating && t.csatRating > 0);
   const csatScore = ratedTickets.length > 0
     ? (ratedTickets.reduce((acc: number, t: any) => acc + (t.csatRating || 5), 0) / ratedTickets.length).toFixed(2)
-    : '4.92';
+    : '5.00';
 
   // Fila de Chat
-  const waitingChatsCount = (effectiveChats as any[]).filter((c: any) => c.status === 'waiting').length;
-  const activeChatsCount = (effectiveChats as any[]).filter((c: any) => c.status === 'active' || c.status === 'in_progress').length;
+  const waitingChatsCount = (chats as any[]).filter((c: any) => c.status === 'waiting').length;
+  const activeChatsCount = (chats as any[]).filter((c: any) => c.status === 'active' || c.status === 'in_progress').length;
 
   // Stream de Incidentes & Chamados Críticos
-  const nocStreamTickets = [...effectiveTickets]
+  const nocStreamTickets = [...tickets]
     .sort((a, b) => {
       const aOverdue = isTicketOverdue(a) ? 1 : 0;
       const bOverdue = isTicketOverdue(b) ? 1 : 0;

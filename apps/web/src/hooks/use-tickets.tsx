@@ -32,9 +32,9 @@ export function TicketsProvider({ children }: { children: React.ReactNode }) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
-      return MOCK_TICKETS;
+      return [];
     } catch {
-      return MOCK_TICKETS;
+      return [];
     }
   });
 
@@ -173,13 +173,8 @@ export function TicketsProvider({ children }: { children: React.ReactNode }) {
       if (saved) {
         try { 
           const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) setTickets(parsed);
-          else setTickets(MOCK_TICKETS);
-        } catch (e) {
-          setTickets(MOCK_TICKETS);
-        }
-      } else {
-        setTickets(MOCK_TICKETS);
+          if (Array.isArray(parsed)) setTickets(parsed);
+        } catch (e) {}
       }
     });
 

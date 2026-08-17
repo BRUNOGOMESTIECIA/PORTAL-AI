@@ -65,9 +65,9 @@ export function ChatsProvider({ children }: { children: React.ReactNode }) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
-      return MOCK_CHATS;
+      return [];
     } catch {
-      return MOCK_CHATS;
+      return [];
     }
   });
 
@@ -225,13 +225,8 @@ export function ChatsProvider({ children }: { children: React.ReactNode }) {
       if (saved) {
         try { 
           const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) setChats(parsed);
-          else setChats(MOCK_CHATS);
-        } catch (e) {
-          setChats(MOCK_CHATS);
-        }
-      } else {
-        setChats(MOCK_CHATS);
+          if (Array.isArray(parsed)) setChats(parsed);
+        } catch (e) {}
       }
     });
 
