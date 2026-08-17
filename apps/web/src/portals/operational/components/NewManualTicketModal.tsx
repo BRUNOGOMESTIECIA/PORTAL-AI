@@ -379,7 +379,10 @@ export function NewManualTicketModal({ onClose, initialData, onSuccess, isFromCh
       const client = MOCK_CLIENTS.find(c => c.id === formDataToSubmit.requesterId);
       const assignee = MOCK_STAFF.find(s => s.id === formDataToSubmit.assigneeId);
       const numOnly = parseInt(createdProtocol.replace(/\D/g, '').slice(-4)) || 1043;
-      
+      const activeAgentName = user?.name || (user?.email ? user.email.split('@')[0] : 'Atendente');
+      const finalAssigneeName = assignee?.name || activeAgentName;
+      const isClosing = ['resolved', 'closed'].includes(intendedStatus);
+
       const newTicket: MockTicket = {
         id: createdProtocol,
         number: numOnly,
@@ -392,7 +395,11 @@ export function NewManualTicketModal({ onClose, initialData, onSuccess, isFromCh
         requesterId: formDataToSubmit.requesterId,
         requesterName: client?.name || 'Desconhecido',
         requesterEmail: client?.email || '',
-        assigneeName: assignee?.name || null,
+        assigneeName: finalAssigneeName,
+        assignedToName: finalAssigneeName,
+        assignedTo: finalAssigneeName,
+        resolvedByName: isClosing ? finalAssigneeName : undefined,
+        closedByName: isClosing ? finalAssigneeName : undefined,
         team: formDataToSubmit.team || null,
         slaFirstResponseDue: new Date().toISOString(),
         slaResolutionDue: new Date().toISOString(),
@@ -405,7 +412,7 @@ export function NewManualTicketModal({ onClose, initialData, onSuccess, isFromCh
         tags: [],
         comments: formDataToSubmit.internalNote ? [{
           id: `c_${Date.now()}`,
-          authorName: assignee?.name || 'Sistema',
+          authorName: finalAssigneeName,
           authorType: 'staff',
           body: formDataToSubmit.internalNote,
           isInternal: true,

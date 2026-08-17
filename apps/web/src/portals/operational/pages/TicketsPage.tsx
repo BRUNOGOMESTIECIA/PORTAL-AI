@@ -53,7 +53,7 @@ type GroupMode = 'team' | 'client';
 export default function TicketsPage() {
   const navigate = useNavigate();
   const { tickets, updateTicket } = useTickets();
-  const { hasPermission } = useAuth();
+  const { user, hasPermission } = useAuth();
   const [searchParams] = useSearchParams();
   const urlPriority = searchParams.get('priority');
   
@@ -80,8 +80,14 @@ export default function TicketsPage() {
           : statusFilter === 'active'
             ? ['new', 'open', 'in_progress', 'pending'].includes(t.status)
             : statusFilter === 'unresolved'
-              ? ['new', 'open', 'pending'].includes(t.status)
-              : t.status === statusFilter;
+              ? ['new', 'open', 'in_progress', 'pending'].includes(t.status)
+              : statusFilter === 'new'
+                ? t.status === 'new'
+                : statusFilter === 'in_progress'
+                  ? ['in_progress', 'open', 'pending'].includes(t.status)
+                  : statusFilter === 'resolved'
+                    ? ['resolved', 'closed'].includes(t.status)
+                    : t.status === statusFilter;
 
       const formattedProtocol = formatTicketProtocol(t.number || t.id).toLowerCase();
       const ticketNumStr = String(t.number || t.id || '').toLowerCase();
@@ -180,10 +186,10 @@ export default function TicketsPage() {
   const counts = {
     all:         tickets.length,
     active:      tickets.filter(t => ['new','open','in_progress','pending'].includes(t.status)).length,
-    unresolved:  tickets.filter(t => ['new','open','pending'].includes(t.status)).length,
+    unresolved:  tickets.filter(t => ['new','open','in_progress','pending'].includes(t.status)).length,
     new:         tickets.filter(t => t.status === 'new').length,
-    in_progress: tickets.filter(t => t.status === 'in_progress').length,
-    resolved:    tickets.filter(t => t.status === 'resolved').length,
+    in_progress: tickets.filter(t => ['in_progress','open','pending'].includes(t.status)).length,
+    resolved:    tickets.filter(t => ['resolved','closed'].includes(t.status)).length,
   };
 
   const statusTabs: { key: StatusFilterType; label: string; count: number }[] = [
@@ -244,7 +250,13 @@ export default function TicketsPage() {
                     </td>
                   )}
                   <td className={`${densityConfig.py} text-slate-500 dark:text-slate-400 hidden lg:table-cell`}>
-                    {ticket.assigneeName ?? <span className="text-slate-300 dark:text-slate-600">—</span>}
+                    {ticket.assigneeName || (ticket as any).assignedToName ? (
+                      <span className="font-semibold text-slate-700 dark:text-slate-200">{ticket.assigneeName || (ticket as any).assignedToName}</span>
+                    ) : (
+                      <span className="text-amber-600 dark:text-amber-400 font-bold bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded text-[10px] border border-amber-200 dark:border-amber-800">
+                        Sem Atendente
+                      </span>
+                    )}
                   </td>
                   <td className={`${densityConfig.py}`}>
                     <div className="flex items-center gap-1.5">
@@ -292,17 +304,46 @@ export default function TicketsPage() {
               </span>
             </div>
 
-            {/* Title & Solicitante */}
+            {/* Title & Solicitante / Atendente */}
             <div>
               <h3 className="font-bold text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors text-sm line-clamp-2 leading-snug">
                 {ticket.title}
               </h3>
               <div className="flex items-center justify-between mt-2 text-xs text-slate-500 dark:text-slate-400">
-                <span className="truncate font-medium">{ticket.requesterName}</span>
+                <span className="truncate font-medium flex items-center gap-1" title={`Solicitante: ${ticket.requesterName}`}>
+                  <span>👤</span> <span className="truncate">{ticket.requesterName}</span>
+                </span>
                 <div className="flex items-center gap-1 flex-shrink-0">
                   <div className={`w-2 h-2 rounded-full ${pri.dot}`} />
-                  <span className="text-[11px]">{pri.label}</span>
+                  <span className="text-[11px] font-semibold">{pri.label}</span>
                 </div>
+              </div>
+
+              {/* Responsável / Atendente */}
+              <div className="flex items-center justify-between mt-1.5 pt-1.5 border-t border-slate-100 dark:border-slate-800/60 text-[11px]">
+                <span className="text-slate-500 dark:text-slate-400 truncate max-w-[70%]">
+                  🎧 Atendente: <strong className="text-slate-800 dark:text-slate-200 font-bold">{ticket.assigneeName || (ticket as any).assignedToName || 'Não atribuído'}</strong>
+                </span>
+                {hasPermission('tickets.update') && (!ticket.assigneeName && !(ticket as any).assignedToName) && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      const activeAgentName = user?.name || (user?.email ? user.email.split('@')[0] : 'Atendente');
+                      updateTicket(ticket.id, {
+                        assigneeName: activeAgentName,
+                        assignedTo: activeAgentName,
+                        status: ticket.status === 'new' ? 'in_progress' : ticket.status,
+                        updatedAt: new Date().toISOString()
+                      });
+                    }}
+                    className="text-[10px] font-bold bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 hover:bg-blue-200 px-2 py-0.5 rounded-full transition-all shrink-0"
+                    title="Atribuir este chamado ao seu usuário"
+                  >
+                    + Assumir
+                  </button>
+                )}
               </div>
             </div>
 
