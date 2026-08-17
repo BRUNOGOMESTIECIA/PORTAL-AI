@@ -208,21 +208,13 @@ export function TicketsProvider({ children }: { children: React.ReactNode }) {
   }, [saveFallbackTickets]);
 
   const updateTicket = useCallback(async (id: string, updates: Partial<MockTicket>) => {
-    const cleanId = String(id).replace(/^[#/]+/, '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+    const cleanId = String(id).replace(/^[#/]+/, '').toLowerCase();
     const currentList = [...fallbackTicketsRef.current];
     const idx = currentList.findIndex(t => {
-      const cleanTId = String(t.id || '').replace(/^[#/]+/, '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
-      const cleanNum = String(t.number || '').toLowerCase();
-      const formattedProtocol = String(t.number || t.id || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
       return (
         t.id === id ||
-        cleanTId === cleanId ||
-        cleanNum === cleanId ||
-        formattedProtocol === cleanId ||
-        cleanTId.endsWith(cleanId) ||
-        cleanId.endsWith(cleanTId) ||
-        (cleanNum !== '' && cleanId.endsWith(cleanNum)) ||
-        (cleanNum !== '' && cleanTId.endsWith(cleanNum))
+        String(t.id).toLowerCase() === cleanId ||
+        (t.number && String(t.number) === cleanId)
       );
     });
 

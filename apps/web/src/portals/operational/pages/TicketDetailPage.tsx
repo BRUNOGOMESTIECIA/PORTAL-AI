@@ -234,19 +234,6 @@ export default function TicketDetailPage() {
                   updatedAt: new Date().toISOString()
                 });
 
-                if (isClosing) {
-                  // Cascata: resolve automaticamente todos os tickets filhos vinculados
-                  tickets.filter((t: any) => t.parentTicketId === ticket.id || (ticket as any).childTicketIds?.includes(t.id)).forEach((child: any) => {
-                    updateTicket(child.id, {
-                      status: 'resolved',
-                      assigneeName: child.assigneeName || activeAgentName,
-                      resolvedByName: activeAgentName,
-                      closedByName: activeAgentName,
-                      updatedAt: new Date().toISOString()
-                    });
-                  });
-                }
-
                 toast.success(`Status do ticket alterado para ${STATUS_CONFIG[newStatus].label}!`);
               }}
               className="text-sm font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg px-3 py-1.5 outline-none focus:border-blue-400 text-slate-700 dark:text-slate-200 cursor-pointer shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
