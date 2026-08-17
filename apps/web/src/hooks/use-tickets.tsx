@@ -152,7 +152,7 @@ export function TicketsProvider({ children }: { children: React.ReactNode }) {
           slaResolutionMet: data.slaResolutionMet ?? true,
           source: data.source || 'portal',
           createdAt: data.createdAt || new Date().toISOString(),
-          updatedAt: data.updatedAt || data.createdAt || new Date().toISOString(),
+          updatedAt: data.updatedAt || data.createdAt || '2026-01-01T00:00:00.000Z',
           closedAt: data.closedAt || null,
           tags: data.tags || [],
           comments: data.comments || [],
@@ -164,15 +164,27 @@ export function TicketsProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (firestoreTickets.length > 0) {
-        // Deduplicação inteligente de tickets por protocolo/número
+        // Deduplicação inteligente de tickets por protocolo/número com prioridade ao estado mais recente
         const uniqueMap = new Map<string, MockTicket>();
+
+        // 1. Inicializa o mapa com os tickets atuais em memória/localStorage
+        fallbackTicketsRef.current.forEach(localT => {
+          const proto = formatTicketProtocol(localT.number || localT.id);
+          uniqueMap.set(proto, localT);
+        });
+
+        // 2. Mescla com os dados do Firestore respeitando updatedAt
         firestoreTickets.forEach(t => {
           const proto = formatTicketProtocol(t.number || t.id);
           const existing = uniqueMap.get(proto);
-          if (!existing || new Date(t.updatedAt).getTime() >= new Date(existing.updatedAt).getTime()) {
+          const tUpdated = new Date(t.updatedAt || t.createdAt || '2000-01-01').getTime();
+          const existingUpdated = existing ? new Date(existing.updatedAt || existing.createdAt || '2000-01-01').getTime() : 0;
+
+          if (!existing || tUpdated > existingUpdated) {
             uniqueMap.set(proto, t);
           }
         });
+
         const deduplicated = Array.from(uniqueMap.values());
         deduplicated.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         saveFallbackTickets(deduplicated);
@@ -214,6 +226,9 @@ export function TicketsProvider({ children }: { children: React.ReactNode }) {
     // 2. Grava no Firestore como fallback
     try {
       await setDoc(doc(db, 'tickets', ticket.id), ticket);
+      if (ticket.number) {
+        await setDoc(doc(db, 'tickets', String(ticket.number)), ticket, { merge: true });
+      }
     } catch (error) {
       console.warn("Erro ao salvar ticket no Firestore:", error);
     }
@@ -240,10 +255,11 @@ export function TicketsProvider({ children }: { children: React.ReactNode }) {
 
     if (idx > -1) {
       const targetTicket = currentList[idx];
+      const nowIso = new Date().toISOString();
       const updatedTicket = { 
         ...targetTicket, 
         ...updates, 
-        updatedAt: updates.updatedAt || new Date().toISOString() 
+        updatedAt: updates.updatedAt || nowIso 
       } as MockTicket;
       
       currentList[idx] = updatedTicket;
@@ -258,12 +274,15 @@ export function TicketsProvider({ children }: { children: React.ReactNode }) {
         console.info('[Tickets API] Falha ao atualizar via API REST (atualizado em fallback):', apiError?.message);
       }
 
-      // 2. Atualiza no Firestore como fallback usando setDoc com merge: true
+      // 2. Atualiza no Firestore como fallback em todas as chaves associadas
       try {
+        const protoKey = formatTicketProtocol(targetTicket.number || targetTicket.id).replace(/^[#/]+/, '');
         await setDoc(doc(db, 'tickets', targetTicket.id), updatedTicket, { merge: true });
-        const cleanDocId = targetTicket.id.replace(/^[#/]+/, '');
-        if (cleanDocId !== targetTicket.id) {
-          await setDoc(doc(db, 'tickets', cleanDocId), updatedTicket, { merge: true });
+        if (targetTicket.number) {
+          await setDoc(doc(db, 'tickets', String(targetTicket.number)), updatedTicket, { merge: true });
+        }
+        if (protoKey && protoKey !== targetTicket.id) {
+          await setDoc(doc(db, 'tickets', protoKey), updatedTicket, { merge: true });
         }
       } catch (error) {
         console.warn("Erro ao atualizar ticket no Firestore:", error);

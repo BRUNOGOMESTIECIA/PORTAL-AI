@@ -57,7 +57,20 @@ export default function TicketsPage() {
   const [searchParams] = useSearchParams();
   const urlPriority = searchParams.get('priority');
   
-  const [statusFilter, setStatusFilter]         = useState<StatusFilterType>('active');
+  const [statusFilter, setStatusFilter] = useState<StatusFilterType>(() => {
+    try {
+      const savedTab = sessionStorage.getItem('tickets_active_tab') as StatusFilterType;
+      if (savedTab) return savedTab;
+    } catch {}
+    return 'active';
+  });
+
+  const handleSetStatusFilter = (tab: StatusFilterType) => {
+    setStatusFilter(tab);
+    try {
+      sessionStorage.setItem('tickets_active_tab', tab);
+    } catch {}
+  };
   const [groupMode, setGroupMode]               = useState<GroupMode>('team');
   const [viewLayout, setViewLayout]             = useState<'kanban' | 'table'>('kanban');
   const { density, setDensity, config: densityConfig } = useTableDensity();
@@ -420,7 +433,7 @@ export default function TicketsPage() {
           {statusTabs.map((opt) => (
             <button
               key={opt.key}
-              onClick={() => setStatusFilter(opt.key)}
+              onClick={() => handleSetStatusFilter(opt.key)}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
                 statusFilter === opt.key
                   ? 'bg-slate-800 text-white dark:bg-blue-600 dark:text-white shadow-sm'
