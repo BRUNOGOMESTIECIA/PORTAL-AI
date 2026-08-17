@@ -206,16 +206,50 @@ export default function TicketDetailPage() {
             <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${pri.color}`}>{pri.label}</span>
             {slaBreached && <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-red-100 text-red-700">SLA Vencido</span>}
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
             <select 
-              value={ticket.status} 
+              value={['resolved', 'closed'].includes(ticket.status) ? 'resolved' : ticket.status} 
               disabled={!hasPermission('tickets.update')}
               onChange={(e) => {
-                if (e.target.value !== ticket.status) {
-                  setStatusChangeRequest({ newStatus: e.target.value as TicketStatus });
+                const newStatus = e.target.value as TicketStatus;
+                if (newStatus === ticket.status) return;
+
+                const isClosing = ['resolved', 'closed'].includes(newStatus);
+                const newComment = {
+                  id: `c${Date.now()}`,
+                  authorName: activeAgentName,
+                  authorType: 'staff' as const,
+                  body: `Status alterado para ${STATUS_CONFIG[newStatus].label} por ${activeAgentName}.`,
+                  isInternal: true,
+                  createdAt: new Date().toISOString()
+                };
+
+                updateTicket(ticket.id, {
+                  status: newStatus,
+                  assigneeName: ticket.assigneeName || activeAgentName,
+                  assignedTo: (ticket as any).assignedTo || activeAgentName,
+                  resolvedByName: isClosing ? activeAgentName : (ticket as any).resolvedByName,
+                  closedByName: isClosing ? activeAgentName : (ticket as any).closedByName,
+                  comments: [...ticket.comments, newComment],
+                  updatedAt: new Date().toISOString()
+                });
+
+                if (isClosing) {
+                  // Cascata: resolve automaticamente todos os tickets filhos vinculados
+                  tickets.filter((t: any) => t.parentTicketId === ticket.id || (ticket as any).childTicketIds?.includes(t.id)).forEach((child: any) => {
+                    updateTicket(child.id, {
+                      status: 'resolved',
+                      assigneeName: child.assigneeName || activeAgentName,
+                      resolvedByName: activeAgentName,
+                      closedByName: activeAgentName,
+                      updatedAt: new Date().toISOString()
+                    });
+                  });
                 }
+
+                toast.success(`Status do ticket alterado para ${STATUS_CONFIG[newStatus].label}!`);
               }}
-              className="text-sm border border-slate-200 rounded-lg px-3 py-1.5 outline-none focus:border-blue-400 text-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="text-sm font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg px-3 py-1.5 outline-none focus:border-blue-400 text-slate-700 dark:text-slate-200 cursor-pointer shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {Object.entries(STATUS_CONFIG).filter(([k]) => k !== 'closed').map(([k, v]) => {
                 if (k === 'resolved' && !hasPermission('tickets.close')) return null;

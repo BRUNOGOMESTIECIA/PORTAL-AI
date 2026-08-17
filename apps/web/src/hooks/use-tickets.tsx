@@ -208,27 +208,52 @@ export function TicketsProvider({ children }: { children: React.ReactNode }) {
   }, [saveFallbackTickets]);
 
   const updateTicket = useCallback(async (id: string, updates: Partial<MockTicket>) => {
+    const cleanId = String(id).replace(/^[#/]+/, '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
     const currentList = [...fallbackTicketsRef.current];
-    const idx = currentList.findIndex(t => t.id === id);
+    const idx = currentList.findIndex(t => {
+      const cleanTId = String(t.id || '').replace(/^[#/]+/, '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+      const cleanNum = String(t.number || '').toLowerCase();
+      const formattedProtocol = String(t.number || t.id || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+      return (
+        t.id === id ||
+        cleanTId === cleanId ||
+        cleanNum === cleanId ||
+        formattedProtocol === cleanId ||
+        cleanTId.endsWith(cleanId) ||
+        cleanId.endsWith(cleanTId) ||
+        (cleanNum !== '' && cleanId.endsWith(cleanNum)) ||
+        (cleanNum !== '' && cleanTId.endsWith(cleanNum))
+      );
+    });
+
     if (idx > -1) {
-      currentList[idx] = { ...currentList[idx], ...updates } as MockTicket;
+      const targetTicket = currentList[idx];
+      const updatedTicket = { 
+        ...targetTicket, 
+        ...updates, 
+        updatedAt: updates.updatedAt || new Date().toISOString() 
+      } as MockTicket;
+      
+      currentList[idx] = updatedTicket;
       saveFallbackTickets(currentList);
       channelRef.current?.postMessage({ type: 'SYNC_TICKETS', payload: currentList });
-    }
 
-    // 1. Tenta atualizar via API NestJS real
-    try {
-      await apiClient.patch(`/tickets/${id}`, updates);
-      console.info('[Tickets API] Ticket atualizado no Banco SQL com sucesso!');
-    } catch (apiError: any) {
-      console.info('[Tickets API] Falha ao atualizar via API REST (atualizado em fallback):', apiError?.message);
-    }
+      // 1. Tenta atualizar via API NestJS real
+      try {
+        await apiClient.patch(`/tickets/${targetTicket.id}`, updates);
+        console.info('[Tickets API] Ticket atualizado no Banco SQL com sucesso!');
+      } catch (apiError: any) {
+        console.info('[Tickets API] Falha ao atualizar via API REST (atualizado em fallback):', apiError?.message);
+      }
 
-    // 2. Atualiza no Firestore como fallback
-    try {
-      await updateDoc(doc(db, 'tickets', id), updates);
-    } catch (error) {
-      console.warn("Erro ao atualizar ticket no Firestore:", error);
+      // 2. Atualiza no Firestore como fallback usando setDoc com merge: true
+      try {
+        await setDoc(doc(db, 'tickets', targetTicket.id), updatedTicket, { merge: true });
+      } catch (error) {
+        console.warn("Erro ao atualizar ticket no Firestore:", error);
+      }
+    } else {
+      console.warn(`[useTickets] Ticket com ID ${id} não localizado na lista.`);
     }
   }, [saveFallbackTickets]);
 

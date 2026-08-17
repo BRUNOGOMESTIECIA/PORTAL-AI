@@ -317,31 +317,60 @@ export default function TicketsPage() {
                 </div>
               </div>
 
-              {/* Responsável / Atendente */}
-              <div className="flex items-center justify-between mt-1.5 pt-1.5 border-t border-slate-100 dark:border-slate-800/60 text-[11px]">
-                <span className="text-slate-500 dark:text-slate-400 truncate max-w-[70%]">
+              {/* Responsável / Atendente & Ação Rápida */}
+              <div className="flex items-center justify-between mt-1.5 pt-1.5 border-t border-slate-100 dark:border-slate-800/60 text-[11px] gap-1">
+                <span className="text-slate-500 dark:text-slate-400 truncate flex-1">
                   🎧 Atendente: <strong className="text-slate-800 dark:text-slate-200 font-bold">{ticket.assigneeName || (ticket as any).assignedToName || 'Não atribuído'}</strong>
                 </span>
-                {hasPermission('tickets.update') && (!ticket.assigneeName && !(ticket as any).assignedToName) && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      const activeAgentName = user?.name || (user?.email ? user.email.split('@')[0] : 'Atendente');
-                      updateTicket(ticket.id, {
-                        assigneeName: activeAgentName,
-                        assignedTo: activeAgentName,
-                        status: ticket.status === 'new' ? 'in_progress' : ticket.status,
-                        updatedAt: new Date().toISOString()
-                      });
-                    }}
-                    className="text-[10px] font-bold bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 hover:bg-blue-200 px-2 py-0.5 rounded-full transition-all shrink-0"
-                    title="Atribuir este chamado ao seu usuário"
-                  >
-                    + Assumir
-                  </button>
-                )}
+                <div className="flex items-center gap-1 shrink-0">
+                  {hasPermission('tickets.update') && (!ticket.assigneeName && !(ticket as any).assignedToName) && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const activeAgentName = user?.name || (user?.email ? user.email.split('@')[0] : 'Atendente');
+                        updateTicket(ticket.id, {
+                          assigneeName: activeAgentName,
+                          assignedTo: activeAgentName,
+                          status: ticket.status === 'new' ? 'in_progress' : ticket.status,
+                          updatedAt: new Date().toISOString()
+                        });
+                      }}
+                      className="text-[10px] font-bold bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 hover:bg-blue-200 px-2 py-0.5 rounded-full transition-all"
+                      title="Atribuir este chamado ao seu usuário"
+                    >
+                      + Assumir
+                    </button>
+                  )}
+                  {hasPermission('tickets.close') && !['resolved', 'closed'].includes(ticket.status) && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const activeAgentName = user?.name || (user?.email ? user.email.split('@')[0] : 'Atendente');
+                        updateTicket(ticket.id, {
+                          status: 'resolved',
+                          assigneeName: ticket.assigneeName || activeAgentName,
+                          assignedTo: (ticket as any).assignedTo || activeAgentName,
+                          resolvedByName: activeAgentName,
+                          closedByName: activeAgentName,
+                          updatedAt: new Date().toISOString()
+                        });
+                      }}
+                      className="text-[10px] font-bold bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200 px-2 py-0.5 rounded-full transition-all"
+                      title="Marcar este chamado como Resolvido imediatamente"
+                    >
+                      ✓ Resolver
+                    </button>
+                  )}
+                  {['resolved', 'closed'].includes(ticket.status) && (
+                    <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-full">
+                      ✓ Concluído
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 
