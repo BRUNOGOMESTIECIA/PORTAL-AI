@@ -185,6 +185,11 @@ export interface MockTicket {
   type: string; category: string;
   requesterId: string; requesterName: string; requesterEmail: string;
   assigneeName: string | null; team: string | null;
+  assignedTo?: string | null;
+  assignedToName?: string | null;
+  operatorName?: string | null;
+  resolvedByName?: string | null;
+  closedByName?: string | null;
   slaFirstResponseDue: string; slaResolutionDue: string;
   slaFirstResponseMet: boolean | null; slaResolutionMet: boolean | null;
   source: 'portal' | 'email' | 'chat' | 'api' | 'technician';

@@ -7,6 +7,7 @@ import { MockChatSession, MockChatMessage, MOCK_CLIENTS, MOCK_STAFF, MOCK_MACROS
 import { ContextPanel } from '../components/ContextPanel';
 import { useAuth } from '../../../hooks/use-mock-auth';
 import { useChats } from '../../../hooks/use-chats';
+import { useTickets } from '../../../hooks/use-tickets';
 import { apiClient } from '../../../lib/api-client';
 
 import { exportChatTranscriptToPdf } from '../../../lib/export-utils';
@@ -120,6 +121,7 @@ function getDynamicSlaWaitMessage(session: MockChatSession | null): string {
 export default function ChatQueuePage() {
   const { hasPermission, user } = useAuth();
   const { chats, updateChat } = useChats();
+  const { updateTicket } = useTickets();
   const [searchParams] = useSearchParams();
   
   const [realStaff, setRealStaff] = useState<any[]>(MOCK_STAFF);
@@ -513,14 +515,20 @@ export default function ChatQueuePage() {
 
         } else {
           setActiveTab(newStatus === 'waiting' ? 'entrada' : 'encerrados');
-          const updates: any = { status: newStatus };
+          const currentAgentName = user?.name || (user?.email ? user.email.split('@')[0] : 'Atendente');
+          const finalAgentName = chatInMock.agentName && chatInMock.agentName !== 'Atendente' ? chatInMock.agentName : currentAgentName;
+
+          const updates: any = { 
+            status: newStatus,
+            agentName: finalAgentName
+          };
           if (ticketId) {
             updates.ticketId = ticketId;
             updates.messages = [
               ...chatInMock.messages,
               {
                 id: `m_system_${Date.now()}`,
-                body: `Atendimento encerrado. O chamado ${formatTicketProtocol(ticketId)} foi atualizado com as informações desta conversa.`,
+                body: `Atendimento encerrado por ${finalAgentName}. O chamado ${formatTicketProtocol(ticketId)} foi atualizado com as informações desta conversa.`,
                 senderName: 'Sistema',
                 senderType: 'system',
                 createdAt: new Date().toISOString()
@@ -529,6 +537,23 @@ export default function ChatQueuePage() {
           }
 
           await updateChat(chatInMock.id, updates);
+
+          // Se encerrou o chat e há ticket vinculado, atualiza o ticket no Firestore creditando a resolução ao atendente
+          const targetTicketId = ticketId || chatInMock.ticketId;
+          if ((newStatus === 'closed' || newStatus === 'finished') && targetTicketId) {
+            try {
+              updateTicket(targetTicketId, {
+                status: 'resolved',
+                assigneeName: finalAgentName,
+                assignedTo: finalAgentName,
+                resolvedByName: finalAgentName,
+                closedByName: finalAgentName,
+                updatedAt: new Date().toISOString()
+              });
+            } catch (e) {
+              console.info('[ChatQueue] Erro ao sincronizar chamado vinculado:', e);
+            }
+          }
 
           // Disparo Automático de E-mail de Transcrição ao Encerrar Chat (Item 119)
           if (newStatus === 'closed' || newStatus === 'finished') {

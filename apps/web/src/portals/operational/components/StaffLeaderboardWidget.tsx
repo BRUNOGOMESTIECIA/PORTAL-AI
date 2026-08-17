@@ -70,14 +70,30 @@ export function StaffLeaderboardWidget() {
   const leaderboardData = staffList.map(staff => {
     const sName = staff.name.toLowerCase().trim();
 
-    const staffTickets = tickets.filter(t => {
-      const aName = (t.assigneeName || (t as any).assignedToName || (t as any).assignedTo || '').toLowerCase().trim();
-      const commentsStaff = (t.comments || []).some((c: any) => c.authorType === 'staff' && c.authorName?.toLowerCase().trim().includes(sName));
-      return (aName !== '' && (aName.includes(sName) || sName.includes(aName))) || commentsStaff;
+    const staffTickets = tickets.filter((t: any) => {
+      const aFields = [
+        t.assigneeName,
+        (t as any).assignedToName,
+        (t as any).assignedTo,
+        (t as any).operatorName,
+        (t as any).resolvedByName,
+        (t as any).closedByName,
+        (t as any).agentName
+      ].filter(Boolean).map((s: any) => String(s).toLowerCase().trim());
+
+      const sPrefix = staff.name.split(' ')[0].toLowerCase().trim();
+      const isAssigned = aFields.some(f => f.includes(sName) || sName.includes(f) || (sPrefix && f.includes(sPrefix)));
+      const commentsStaff = (t.comments || []).some((c: any) => {
+        const author = (c.authorName || '').toLowerCase().trim();
+        return author && (author.includes(sName) || sName.includes(author) || (sPrefix && author.includes(sPrefix)));
+      });
+
+      return isAssigned || commentsStaff;
     });
 
     const resolvedTickets = staffTickets.filter(t => ['resolved', 'closed'].includes(t.status));
     const resolvedCount = resolvedTickets.length;
+    const inProgressCount = staffTickets.filter(t => ['new', 'open', 'in_progress', 'pending'].includes(t.status)).length;
 
     // SLA do atendente
     const overdueCount = staffTickets.filter(t => 
@@ -85,13 +101,13 @@ export function StaffLeaderboardWidget() {
       (t.slaResolutionDue && new Date(t.slaResolutionDue).getTime() < Date.now() && !['resolved', 'closed'].includes(t.status))
     ).length;
 
-    const slaPercent = staffTickets.length > 0 ? Math.max(0, Math.round(((staffTickets.length - overdueCount) / staffTickets.length) * 100)) : 0;
+    const slaPercent = staffTickets.length > 0 ? Math.max(0, Math.round(((staffTickets.length - overdueCount) / staffTickets.length) * 100)) : 100;
 
     // CSAT do atendente
-    const ratedTickets = staffTickets.filter(t => (t as any).rating);
+    const ratedTickets = staffTickets.filter(t => typeof (t as any).rating === 'number' && (t as any).rating > 0);
     const avgCsat = ratedTickets.length > 0
       ? Number((ratedTickets.reduce((acc, t) => acc + Number((t as any).rating || 5), 0) / ratedTickets.length).toFixed(1))
-      : 0;
+      : 5.0;
 
     const avgMins = staffTickets.length > 0 ? 15 : 0;
 
@@ -100,6 +116,7 @@ export function StaffLeaderboardWidget() {
       name: staff.name,
       role: staff.role,
       ticketsResolved: resolvedCount,
+      inProgressCount,
       totalAssigned: staffTickets.length,
       slaPercent,
       csatRating: avgCsat,
@@ -108,6 +125,7 @@ export function StaffLeaderboardWidget() {
     };
   }).sort((a, b) => {
     if (b.ticketsResolved !== a.ticketsResolved) return b.ticketsResolved - a.ticketsResolved;
+    if (b.inProgressCount !== a.inProgressCount) return b.inProgressCount - a.inProgressCount;
     if (b.slaPercent !== a.slaPercent) return b.slaPercent - a.slaPercent;
     return b.csatRating - a.csatRating;
   });
@@ -217,6 +235,15 @@ export function StaffLeaderboardWidget() {
               {/* Métricas Principais */}
               <div className="flex items-center justify-between sm:justify-end gap-6 mt-3 sm:mt-0 pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-slate-800 text-xs">
                 
+                {/* Tickets Em Andamento */}
+                <div className="text-center sm:text-right">
+                  <p className="font-black text-amber-600 dark:text-amber-400 text-sm flex items-center justify-center sm:justify-end gap-1">
+                    <Clock className="w-3.5 h-3.5 text-amber-500" />
+                    {item.inProgressCount}
+                  </p>
+                  <p className="text-[10px] text-slate-400 font-semibold uppercase">Em Andamento</p>
+                </div>
+
                 {/* Tickets Resolvidos */}
                 <div className="text-center sm:text-right">
                   <p className="font-black text-slate-900 dark:text-slate-100 text-sm flex items-center justify-center sm:justify-end gap-1">

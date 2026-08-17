@@ -108,8 +108,9 @@ const PRIORITY_CONFIG: Record<TicketPriority, { label: string; color: string }> 
 
 export default function TicketDetailPage() {
   const { id } = useParams();
-  const { hasPermission } = useAuth();
+  const { user, hasPermission } = useAuth();
   const { tickets, updateTicket } = useTickets();
+  const activeAgentName = user?.name || (user?.email ? user.email.split('@')[0] : 'Atendente');
   const [commentText, setCommentText] = useState('');
   const [isInternal, setIsInternal] = useState(false);
   const [statusChangeRequest, setStatusChangeRequest] = useState<{ newStatus: TicketStatus } | null>(null);
@@ -247,7 +248,27 @@ export default function TicketDetailPage() {
           </div>
           <div>
             <p className="text-xs text-slate-400 mb-0.5">Responsável</p>
-            <p className="text-sm font-medium text-slate-700 truncate">{ticket.assigneeName ?? '—'}</p>
+            <div className="flex items-center gap-1.5">
+              <p className="text-sm font-medium text-slate-700 truncate">{ticket.assigneeName || (ticket as any).assignedToName || 'Não atribuído'}</p>
+              {hasPermission('tickets.update') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    updateTicket(ticket.id, {
+                      assigneeName: activeAgentName,
+                      assignedTo: activeAgentName,
+                      status: ticket.status === 'new' ? 'in_progress' : ticket.status,
+                      updatedAt: new Date().toISOString()
+                    });
+                    toast.success(`Chamado atribuído a ${activeAgentName}!`);
+                  }}
+                  className="text-[10px] font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2 py-0.5 rounded-full border border-blue-200 transition-colors shrink-0"
+                  title="Atribuir este chamado para o seu usuário"
+                >
+                  Assumir Chamado
+                </button>
+              )}
+            </div>
           </div>
           <div>
             <p className="text-xs text-slate-400 mb-1">Mesa / Fila</p>
@@ -562,7 +583,7 @@ export default function TicketDetailPage() {
               onClick={() => {
                 const newComment = {
                   id: `c${Date.now()}`,
-                  authorName: 'Atendente Atual',
+                  authorName: activeAgentName,
                   authorType: 'staff' as const,
                   body: commentText,
                   isInternal,
@@ -570,6 +591,7 @@ export default function TicketDetailPage() {
                 };
                 updateTicket(ticket.id, {
                   comments: [...ticket.comments, newComment],
+                  assigneeName: ticket.assigneeName || activeAgentName,
                   updatedAt: new Date().toISOString()
                 });
                 setCommentText('');
@@ -617,15 +639,21 @@ export default function TicketDetailPage() {
                   onClick={() => {
                     const newComment = {
                       id: `c${Date.now()}`,
-                      authorName: 'Atendente Atual',
+                      authorName: activeAgentName,
                       authorType: 'staff' as const,
                       body: `Status alterado para ${STATUS_CONFIG[statusChangeRequest.newStatus].label}. Motivo: ${statusReason.trim()}`,
                       isInternal: true,
                       createdAt: new Date().toISOString()
                     };
                     
+                    const isClosing = ['resolved', 'closed'].includes(statusChangeRequest.newStatus);
+
                     updateTicket(ticket.id, {
                       status: statusChangeRequest.newStatus,
+                      assigneeName: ticket.assigneeName || activeAgentName,
+                      assignedTo: (ticket as any).assignedTo || activeAgentName,
+                      resolvedByName: isClosing ? activeAgentName : (ticket as any).resolvedByName,
+                      closedByName: isClosing ? activeAgentName : (ticket as any).closedByName,
                       comments: [...ticket.comments, newComment],
                       updatedAt: new Date().toISOString()
                     });

@@ -7,8 +7,9 @@ import { useChats } from '../../../hooks/use-chats';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { MOCK_TICKETS, MOCK_CHATS } from '../../../mocks/data';
-import { auth } from '../../../lib/firebase';
+import { auth, instaPassoDb } from '../../../lib/firebase';
 import { signInAnonymously } from 'firebase/auth';
+import { collection, onSnapshot } from 'firebase/firestore';
 
 interface TopAgent {
   id: string;
@@ -22,6 +23,18 @@ interface TopAgent {
 export default function TvNocStandalonePage() {
   const { tickets } = useTickets();
   const { chats } = useChats();
+  const [operators, setOperators] = useState<any[]>([]);
+
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(instaPassoDb, 'operators'), (snapshot) => {
+      const ops: any[] = [];
+      snapshot.forEach(doc => {
+        ops.push({ id: doc.id, ...doc.data() });
+      });
+      setOperators(ops);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const [timeString, setTimeString] = useState('');
   const [refreshCountdown, setRefreshCountdown] = useState(30);
@@ -97,50 +110,89 @@ export default function TvNocStandalonePage() {
     ? (ratedTickets.reduce((acc: number, t: any) => acc + (t.csatRating || 5), 0) / ratedTickets.length).toFixed(2)
     : '5.00';
 
-  // Ranking 100% REAL dos atendentes calculado diretamente dos chamados do Firestore
+  // Ranking 100% REAL dos atendentes sincronizado com o Leaderboard Operacional
   const topAgents = useMemo(() => {
-    const agentMap: Record<string, { name: string; avatarUrl: string; ratings: number[]; resolvedCount: number; totalCount: number }> = {};
+    const uniqueOpsMap = new Map<string, any>();
 
+    // 1. Atendentes cadastrados no Firestore (aron, Nicolas, Shibe, Felipe Oliveira, Bruno Gomes, etc.)
+    operators.forEach(op => {
+      if (op.status === 'DELETED') return;
+      const nameStr = op.fullName || op.name || op.displayName || (op.email ? op.email.split('@')[0] : '');
+      if (!nameStr) return;
+      const key = nameStr.toLowerCase().trim();
+      if (!uniqueOpsMap.has(key)) {
+        uniqueOpsMap.set(key, {
+          id: op.id || key,
+          name: nameStr,
+          avatarUrl: op.photoURL || op.avatar || op.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(nameStr)}&background=0284c7&color=ffffff&bold=true`,
+        });
+      }
+    });
+
+    // 2. Atendentes atribuídos em tickets reais caso não estejam na lista cadastrada
     tickets.forEach((t: any) => {
-      const name = t.assignedToName || t.operatorName || (typeof t.assignedTo === 'string' && t.assignedTo.trim().length > 1 ? t.assignedTo : null);
-      if (name) {
-        if (!agentMap[name]) {
-          agentMap[name] = { 
-            name, 
-            avatarUrl: t.assignedToPhoto || t.operatorPhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=0284c7&color=ffffff&bold=true`,
-            ratings: [], 
-            resolvedCount: 0,
-            totalCount: 0 
-          };
-        }
-        agentMap[name].totalCount += 1;
-        if (['resolved', 'closed'].includes(t.status)) {
-          agentMap[name].resolvedCount += 1;
-        }
-        if (t.csatRating && t.csatRating > 0) {
-          agentMap[name].ratings.push(t.csatRating);
+      const assignee = t.assigneeName || t.assignedToName || t.assignedTo || t.resolvedByName || t.operatorName;
+      if (assignee && typeof assignee === 'string' && assignee !== 'Desconhecido') {
+        const key = assignee.toLowerCase().trim();
+        if (!uniqueOpsMap.has(key)) {
+          uniqueOpsMap.set(key, {
+            id: key,
+            name: assignee,
+            avatarUrl: t.assignedToPhoto || t.operatorPhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(assignee)}&background=0284c7&color=ffffff&bold=true`,
+          });
         }
       }
     });
 
-    const realRanked = Object.values(agentMap)
-      .map((op, idx) => {
-        const avg = op.ratings.length > 0
-          ? op.ratings.reduce((a, b) => a + b, 0) / op.ratings.length
-          : 5.0;
-        return {
-          id: `real-op-${idx}`,
-          rank: 0,
-          name: op.name,
-          avatarUrl: op.avatarUrl,
-          csat: avg,
-          resolvedTickets: op.resolvedCount || op.totalCount,
-        };
-      })
-      .sort((a, b) => b.csat - a.csat || b.resolvedTickets - a.resolvedTickets);
+    const staffList = Array.from(uniqueOpsMap.values());
+
+    const realRanked = staffList.map(staff => {
+      const sName = staff.name.toLowerCase().trim();
+      const sPrefix = staff.name.split(' ')[0].toLowerCase().trim();
+
+      const staffTickets = tickets.filter((t: any) => {
+        const aFields = [
+          t.assigneeName,
+          t.assignedToName,
+          t.assignedTo,
+          t.operatorName,
+          t.resolvedByName,
+          t.closedByName,
+          t.agentName
+        ].filter(Boolean).map((s: any) => String(s).toLowerCase().trim());
+
+        const isAssigned = aFields.some(f => f.includes(sName) || sName.includes(f) || (sPrefix && f.includes(sPrefix)));
+        const commentsStaff = (t.comments || []).some((c: any) => {
+          const author = (c.authorName || '').toLowerCase().trim();
+          return author && (author.includes(sName) || sName.includes(author) || (sPrefix && author.includes(sPrefix)));
+        });
+
+        return isAssigned || commentsStaff;
+      });
+
+      const resolvedTickets = staffTickets.filter((t: any) => ['resolved', 'closed'].includes(t.status));
+      const resolvedCount = resolvedTickets.length;
+
+      const ratedTickets = staffTickets.filter((t: any) => typeof t.rating === 'number' && t.rating > 0);
+      const avgCsat = ratedTickets.length > 0
+        ? Number((ratedTickets.reduce((acc, t: any) => acc + Number(t.rating || 5), 0) / ratedTickets.length).toFixed(2))
+        : 5.0;
+
+      return {
+        id: staff.id,
+        rank: 0,
+        name: staff.name,
+        avatarUrl: staff.avatarUrl,
+        csat: avgCsat,
+        resolvedTickets: resolvedCount,
+      };
+    }).sort((a, b) => {
+      if (b.resolvedTickets !== a.resolvedTickets) return b.resolvedTickets - a.resolvedTickets;
+      return b.csat - a.csat;
+    });
 
     return realRanked.slice(0, 5).map((ag, i) => ({ ...ag, rank: i + 1 }));
-  }, [tickets]);
+  }, [operators, tickets]);
 
   // Fila de Chat
   const waitingChatsCount = (chats as any[]).filter((c: any) => c.status === 'waiting').length;
