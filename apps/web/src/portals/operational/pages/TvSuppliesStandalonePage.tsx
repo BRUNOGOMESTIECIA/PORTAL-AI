@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Package, RefreshCw, AlertTriangle, CheckCircle2, Truck, 
   Maximize2, Minimize2, Tv, Copy, Check, ArrowRightLeft, 
-  Box, Printer, Laptop, ShieldCheck, Clock, Layers
+  Box, Printer, Laptop, ShieldCheck, Clock, Layers, Smartphone, Building2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { logAuditEvent, formatTicketProtocol } from '../../../lib/audit-logger';
@@ -33,6 +33,64 @@ interface EquipmentExchange {
   priority: 'low' | 'medium' | 'high' | 'urgent';
   createdAt: string;
 }
+
+interface ClientEquipmentSummary {
+  id: string;
+  rank: number;
+  name: string;
+  totalEquipments: number;
+  computersCount: number;
+  mobilesCount: number;
+  printersCount: number;
+}
+
+const TOP_5_CLIENTS_EQUIPMENT: ClientEquipmentSummary[] = [
+  {
+    id: 'cli1',
+    rank: 1,
+    name: 'Cliente ABC Tecnologia Ltda',
+    totalEquipments: 48,
+    computersCount: 28,
+    mobilesCount: 14,
+    printersCount: 6,
+  },
+  {
+    id: 'cli2',
+    rank: 2,
+    name: 'Indústria Metalúrgica SP',
+    totalEquipments: 36,
+    computersCount: 22,
+    mobilesCount: 10,
+    printersCount: 4,
+  },
+  {
+    id: 'cli3',
+    rank: 3,
+    name: 'Grupo Varejo & Distribuição Brasil',
+    totalEquipments: 29,
+    computersCount: 18,
+    mobilesCount: 8,
+    printersCount: 3,
+  },
+  {
+    id: 'cli4',
+    rank: 4,
+    name: 'Hospital Santa Clara',
+    totalEquipments: 24,
+    computersCount: 15,
+    mobilesCount: 6,
+    printersCount: 3,
+  },
+  {
+    id: 'cli5',
+    rank: 5,
+    name: 'Consultoria Financeira SP',
+    totalEquipments: 19,
+    computersCount: 12,
+    mobilesCount: 5,
+    printersCount: 2,
+  },
+];
 
 const DEFAULT_SUPPLIES: SupplyItem[] = [
   { id: 'sup1', name: 'Toner HP W1105A (105A) Preto', category: 'Impressão', currentStock: 2, minStock: 5, unit: 'unid', status: 'critical' },
@@ -367,58 +425,122 @@ export default function TvSuppliesStandalonePage() {
         </div>
       </div>
 
-      {/* ── FEED INFERIOR DE TROCAS & REQUISIÇÕES AO VIVO ── */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-2xl backdrop-blur-md">
-        <div className="flex items-center justify-between mb-3 px-1">
-          <div className="flex items-center gap-2">
-            <RefreshCw className="w-4 h-4 text-amber-400 animate-spin" style={{ animationDuration: '6s' }} />
-            <h2 className="text-xs font-black tracking-wider uppercase text-slate-200">
-              FEED DE TROCAS & PEDIDOS DE EQUIPAMENTOS EM ANDAMENTO (MESA NOC STREAM)
-            </h2>
+      {/* ── PAINEL INFERIOR: TOP 5 CLIENTES & FEED DE TROCAS ── */}
+      <div className="space-y-3">
+        {/* 🏆 TOP 5 CLIENTES — ALOCAÇÃO DE EQUIPAMENTOS NO CLIENTE (COMPUTADORES, CELULARES, IMPRESSORAS) */}
+        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-2xl backdrop-blur-md">
+          <div className="flex items-center justify-between mb-2.5 px-1">
+            <div className="flex items-center gap-2">
+              <Building2 className="w-4 h-4 text-emerald-400" />
+              <h2 className="text-xs font-black tracking-wider uppercase text-slate-200">
+                TOP 5 CLIENTES — ALOCAÇÃO DE EQUIPAMENTOS NO CLIENTE (COMPUTADORES, CELULARES & IMPRESSORAS)
+              </h2>
+            </div>
+            <span className="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full font-mono font-bold">
+              182 EQUIPAMENTOS NO CLIENTE
+            </span>
           </div>
-          <span className="text-[11px] font-semibold text-slate-400">
-            {DEFAULT_EXCHANGES.length} Registros Ativos
-          </span>
-        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-          {DEFAULT_EXCHANGES.map((exc) => {
-            const statusConfig = {
-              pending: { label: 'PENDENTE', color: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
-              preparing: { label: 'PREPARANDO', color: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
-              in_transit: { label: 'A CAMINHO', color: 'bg-purple-500/20 text-purple-300 border-purple-500/30' },
-              completed: { label: 'ENTREGUE', color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' }
-            }[exc.status];
-
-            return (
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+            {TOP_5_CLIENTS_EQUIPMENT.map((cli) => (
               <div
-                key={exc.id}
-                className="bg-slate-950/70 border border-slate-800 rounded-xl p-3 flex flex-col justify-between hover:border-slate-700 transition-colors"
+                key={cli.id}
+                className="bg-slate-950/70 border border-slate-800 rounded-xl p-3 flex flex-col justify-between hover:border-slate-700 transition-colors relative overflow-hidden"
               >
-                <div>
-                  <div className="flex items-center justify-between gap-2 mb-1.5">
-                    <span className="text-xs font-mono font-black text-amber-400">
-                      {exc.protocol}
-                    </span>
-                    <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${statusConfig.color}`}>
-                      {statusConfig.label}
-                    </span>
-                  </div>
-                  <h3 className="text-xs font-bold text-slate-100 truncate" title={exc.newEquipment}>
-                    {exc.newEquipment}
-                  </h3>
-                  <p className="text-[10px] text-slate-400 truncate mt-0.5">
-                    Substitui: {exc.oldEquipment}
-                  </p>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className={`text-[10px] font-mono font-black px-2 py-0.5 rounded-md ${
+                    cli.rank === 1 ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'bg-slate-800 text-slate-400'
+                  }`}>
+                    #{cli.rank} TOP CLIENTE
+                  </span>
+                  <span className="text-xs font-black font-mono text-emerald-400">
+                    {cli.totalEquipments} <span className="text-[9px] font-semibold text-slate-400 uppercase">Ativos</span>
+                  </span>
                 </div>
 
-                <div className="flex items-center justify-between text-[9px] text-slate-500 border-t border-slate-900 pt-2 mt-2 font-medium">
-                  <span className="truncate max-w-[120px] text-slate-400">{exc.requester} ({exc.department.split(' ')[0]})</span>
-                  <span>{new Date(exc.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+                <h3 className="text-xs font-bold text-slate-100 truncate mb-2" title={cli.name}>
+                  {cli.name}
+                </h3>
+
+                {/* Sub-tipos de Equipamentos: Computadores, Celulares e Impressoras */}
+                <div className="space-y-1 text-[10px] bg-slate-900/60 rounded-lg p-2 border border-slate-800/80">
+                  <div className="flex items-center justify-between text-slate-300">
+                    <span className="flex items-center gap-1">
+                      <Laptop className="w-3 h-3 text-blue-400" /> Computadores:
+                    </span>
+                    <span className="font-bold text-white">{cli.computersCount}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-slate-300">
+                    <span className="flex items-center gap-1">
+                      <Smartphone className="w-3 h-3 text-purple-400" /> Celulares:
+                    </span>
+                    <span className="font-bold text-white">{cli.mobilesCount}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-slate-300">
+                    <span className="flex items-center gap-1">
+                      <Printer className="w-3 h-3 text-teal-400" /> Impressoras:
+                    </span>
+                    <span className="font-bold text-white">{cli.printersCount}</span>
+                  </div>
                 </div>
               </div>
-            );
-          })}
+            ))}
+          </div>
+        </div>
+
+        {/* ── FEED DE TROCAS & REQUISIÇÕES AO VIVO ── */}
+        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-3 shadow-2xl backdrop-blur-md">
+          <div className="flex items-center justify-between mb-2 px-1">
+            <div className="flex items-center gap-2">
+              <RefreshCw className="w-3.5 h-3.5 text-amber-400 animate-spin" style={{ animationDuration: '6s' }} />
+              <h2 className="text-[11px] font-black tracking-wider uppercase text-slate-200">
+                FEED DE TROCAS & PEDIDOS DE EQUIPAMENTOS EM ANDAMENTO (STREAM NOC)
+              </h2>
+            </div>
+            <span className="text-[10px] font-semibold text-slate-400">
+              {DEFAULT_EXCHANGES.length} Registros Ativos
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-2.5">
+            {DEFAULT_EXCHANGES.map((exc) => {
+              const statusConfig = {
+                pending: { label: 'PENDENTE', color: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
+                preparing: { label: 'PREPARANDO', color: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
+                in_transit: { label: 'A CAMINHO', color: 'bg-purple-500/20 text-purple-300 border-purple-500/30' },
+                completed: { label: 'ENTREGUE', color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' }
+              }[exc.status];
+
+              return (
+                <div
+                  key={exc.id}
+                  className="bg-slate-950/70 border border-slate-800 rounded-xl p-2.5 flex flex-col justify-between hover:border-slate-700 transition-colors"
+                >
+                  <div>
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <span className="text-[11px] font-mono font-black text-amber-400">
+                        {exc.protocol}
+                      </span>
+                      <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border ${statusConfig.color}`}>
+                        {statusConfig.label}
+                      </span>
+                    </div>
+                    <h3 className="text-[11px] font-bold text-slate-100 truncate" title={exc.newEquipment}>
+                      {exc.newEquipment}
+                    </h3>
+                    <p className="text-[9px] text-slate-400 truncate">
+                      Substitui: {exc.oldEquipment}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-between text-[8px] text-slate-500 border-t border-slate-900 pt-1.5 mt-1.5 font-medium">
+                    <span className="truncate max-w-[120px] text-slate-400">{exc.requester} ({exc.department.split(' ')[0]})</span>
+                    <span>{new Date(exc.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>
