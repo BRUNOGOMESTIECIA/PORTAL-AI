@@ -96,7 +96,7 @@ const STATUS_CONFIG: Record<TicketStatus, { label: string; color: string }> = {
   in_progress: { label: 'Em andamento', color: 'bg-amber-100 text-amber-700' },
   pending: { label: 'Pendente', color: 'bg-purple-100 text-purple-700' },
   resolved: { label: 'Resolvido', color: 'bg-green-100 text-green-700' },
-  closed: { label: 'Fechado', color: 'bg-slate-100 text-slate-600' },
+  closed: { label: 'Resolvido', color: 'bg-green-100 text-green-700' },
 };
 
 const PRIORITY_CONFIG: Record<TicketPriority, { label: string; color: string }> = {
@@ -217,8 +217,8 @@ export default function TicketDetailPage() {
               }}
               className="text-sm border border-slate-200 rounded-lg px-3 py-1.5 outline-none focus:border-blue-400 text-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {Object.entries(STATUS_CONFIG).map(([k, v]) => {
-                if (['resolved', 'closed'].includes(k) && !hasPermission('tickets.close')) return null;
+              {Object.entries(STATUS_CONFIG).filter(([k]) => k !== 'closed').map(([k, v]) => {
+                if (k === 'resolved' && !hasPermission('tickets.close')) return null;
                 return <option key={k} value={k}>{v.label}</option>;
               })}
             </select>

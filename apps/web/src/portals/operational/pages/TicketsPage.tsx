@@ -20,7 +20,7 @@ const STATUS_CONFIG: Record<TicketStatus, { label: string; color: string }> = {
   in_progress: { label: 'Em andamento',  color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' },
   pending:     { label: 'Pendente',      color: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' },
   resolved:    { label: 'Resolvido',     color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' },
-  closed:      { label: 'Fechado',       color: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400' },
+  closed:      { label: 'Resolvido',     color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' },
 };
 
 const PRIORITY_CONFIG: Record<TicketPriority, { label: string; dot: string }> = {
@@ -86,10 +86,8 @@ export default function TicketsPage() {
                 : statusFilter === 'in_progress'
                   ? ['in_progress', 'open', 'pending'].includes(t.status)
                   : statusFilter === 'resolved'
-                    ? t.status === 'resolved'
-                    : statusFilter === 'closed'
-                      ? t.status === 'closed'
-                      : t.status === statusFilter;
+                    ? ['resolved', 'closed'].includes(t.status)
+                    : t.status === statusFilter;
 
       const formattedProtocol = formatTicketProtocol(t.number || t.id).toLowerCase();
       const ticketNumStr = String(t.number || t.id || '').toLowerCase();
@@ -191,8 +189,7 @@ export default function TicketsPage() {
     unresolved:  tickets.filter(t => ['new','open','in_progress','pending'].includes(t.status)).length,
     new:         tickets.filter(t => t.status === 'new').length,
     in_progress: tickets.filter(t => ['in_progress','open','pending'].includes(t.status)).length,
-    resolved:    tickets.filter(t => t.status === 'resolved').length,
-    closed:      tickets.filter(t => t.status === 'closed').length,
+    resolved:    tickets.filter(t => ['resolved','closed'].includes(t.status)).length,
   };
 
   const statusTabs: { key: StatusFilterType; label: string; count: number }[] = [
@@ -202,7 +199,6 @@ export default function TicketsPage() {
     { key: 'new',         label: 'Novos',           count: counts.new },
     { key: 'in_progress', label: 'Em andamento',    count: counts.in_progress },
     { key: 'resolved',    label: 'Resolvidos',      count: counts.resolved },
-    { key: 'closed',      label: 'Fechados',        count: counts.closed },
   ];
 
   // ── Tabela de tickets ────────────────────────────────────────────────────────
