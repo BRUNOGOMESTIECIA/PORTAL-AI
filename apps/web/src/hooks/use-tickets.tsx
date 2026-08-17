@@ -6,6 +6,7 @@ import {
 } from 'firebase/firestore';
 import { MockTicket, MOCK_TICKETS } from '../mocks/data';
 import { apiClient } from '../lib/api-client';
+import { formatTicketProtocol } from '../lib/audit-logger';
 
 interface TicketsContextValue {
   tickets: MockTicket[];
@@ -209,12 +210,20 @@ export function TicketsProvider({ children }: { children: React.ReactNode }) {
 
   const updateTicket = useCallback(async (id: string, updates: Partial<MockTicket>) => {
     const cleanId = String(id).replace(/^[#/]+/, '').toLowerCase();
+    const cleanDigits = cleanId.replace(/\D/g, '');
     const currentList = [...fallbackTicketsRef.current];
     const idx = currentList.findIndex(t => {
+      const tId = String(t.id || '').toLowerCase();
+      const tNumStr = String(t.number || '');
+      const tNumDigits = tNumStr.padStart(4, '0');
+      const formattedProtocol = formatTicketProtocol(t.number || t.id).replace(/^[#/]+/, '').toLowerCase();
+
       return (
         t.id === id ||
-        String(t.id).toLowerCase() === cleanId ||
-        (t.number && String(t.number) === cleanId)
+        tId === cleanId ||
+        tNumStr === cleanId ||
+        formattedProtocol === cleanId ||
+        (cleanDigits.length >= 4 && tNumDigits.length >= 4 && cleanDigits.endsWith(tNumDigits))
       );
     });
 

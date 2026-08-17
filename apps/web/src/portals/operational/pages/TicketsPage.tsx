@@ -320,10 +320,10 @@ export default function TicketsPage() {
               {/* Responsável / Atendente & Ação Rápida */}
               <div className="flex items-center justify-between mt-1.5 pt-1.5 border-t border-slate-100 dark:border-slate-800/60 text-[11px] gap-1">
                 <span className="text-slate-500 dark:text-slate-400 truncate flex-1">
-                  🎧 Atendente: <strong className="text-slate-800 dark:text-slate-200 font-bold">{ticket.assigneeName || (ticket as any).assignedToName || 'Não atribuído'}</strong>
+                  🎧 Atendente: <strong className="text-slate-800 dark:text-slate-200 font-bold">{ticket.assigneeName || (ticket as any).assignedToName || (ticket as any).assignedTo || 'Não atribuído'}</strong>
                 </span>
                 <div className="flex items-center gap-1 shrink-0">
-                  {hasPermission('tickets.update') && (!ticket.assigneeName && !(ticket as any).assignedToName) && (
+                  {hasPermission('tickets.update') && (!ticket.assigneeName && !(ticket as any).assignedToName && !(ticket as any).assignedTo) && (
                     <button
                       type="button"
                       onClick={(e) => {
@@ -333,6 +333,7 @@ export default function TicketsPage() {
                         updateTicket(ticket.id, {
                           assigneeName: activeAgentName,
                           assignedTo: activeAgentName,
+                          assignedToName: activeAgentName,
                           status: ticket.status === 'new' ? 'in_progress' : ticket.status,
                           updatedAt: new Date().toISOString()
                         });
