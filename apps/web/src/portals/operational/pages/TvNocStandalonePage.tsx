@@ -17,56 +17,7 @@ interface TopAgent {
   avatarUrl: string;
   csat: number;
   resolvedTickets: number;
-  badge: string;
 }
-
-const DEFAULT_TOP_AGENTS: TopAgent[] = [
-  {
-    id: 'ag1',
-    rank: 1,
-    name: 'Ana Souza',
-    avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
-    csat: 4.98,
-    resolvedTickets: 142,
-    badge: '🏆 #1 TOP CSAT'
-  },
-  {
-    id: 'ag2',
-    rank: 2,
-    name: 'Carlos Eduardo',
-    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-    csat: 4.95,
-    resolvedTickets: 128,
-    badge: '⭐ EXCELÊNCIA'
-  },
-  {
-    id: 'ag3',
-    rank: 3,
-    name: 'Mariana Lima',
-    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-    csat: 4.92,
-    resolvedTickets: 115,
-    badge: '⚡ RÁPIDA SOLUÇÃO'
-  },
-  {
-    id: 'ag4',
-    rank: 4,
-    name: 'Rafael Santos',
-    avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
-    csat: 4.89,
-    resolvedTickets: 98,
-    badge: '🔥 DESTAQUE NOC'
-  },
-  {
-    id: 'ag5',
-    rank: 5,
-    name: 'Fernanda Oliveira',
-    avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
-    csat: 4.87,
-    resolvedTickets: 91,
-    badge: '🎯 100% SLA'
-  }
-];
 
 export default function TvNocStandalonePage() {
   const { tickets } = useTickets();
@@ -146,17 +97,26 @@ export default function TvNocStandalonePage() {
     ? (ratedTickets.reduce((acc: number, t: any) => acc + (t.csatRating || 5), 0) / ratedTickets.length).toFixed(2)
     : '5.00';
 
-  // Ranking dinâmico dos 5 melhores atendentes com foto e nota
+  // Ranking 100% REAL dos atendentes calculado diretamente dos chamados do Firestore
   const topAgents = useMemo(() => {
-    const agentMap: Record<string, { name: string; ratings: number[]; count: number }> = {};
+    const agentMap: Record<string, { name: string; avatarUrl: string; ratings: number[]; resolvedCount: number; totalCount: number }> = {};
 
     tickets.forEach((t: any) => {
-      const name = t.assignedToName || t.operatorName || (t.assignedTo && typeof t.assignedTo === 'string' ? t.assignedTo : null);
+      const name = t.assignedToName || t.operatorName || (typeof t.assignedTo === 'string' && t.assignedTo.trim().length > 1 ? t.assignedTo : null);
       if (name) {
         if (!agentMap[name]) {
-          agentMap[name] = { name, ratings: [], count: 0 };
+          agentMap[name] = { 
+            name, 
+            avatarUrl: t.assignedToPhoto || t.operatorPhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=0284c7&color=ffffff&bold=true`,
+            ratings: [], 
+            resolvedCount: 0,
+            totalCount: 0 
+          };
         }
-        agentMap[name].count += 1;
+        agentMap[name].totalCount += 1;
+        if (['resolved', 'closed'].includes(t.status)) {
+          agentMap[name].resolvedCount += 1;
+        }
         if (t.csatRating && t.csatRating > 0) {
           agentMap[name].ratings.push(t.csatRating);
         }
@@ -169,22 +129,17 @@ export default function TvNocStandalonePage() {
           ? op.ratings.reduce((a, b) => a + b, 0) / op.ratings.length
           : 5.0;
         return {
-          id: `op-${idx}`,
-          rank: idx + 1,
+          id: `real-op-${idx}`,
+          rank: 0,
           name: op.name,
-          avatarUrl: DEFAULT_TOP_AGENTS[idx % DEFAULT_TOP_AGENTS.length].avatarUrl,
+          avatarUrl: op.avatarUrl,
           csat: avg,
-          resolvedTickets: op.count,
-          badge: 'TOP ATENDENTE'
+          resolvedTickets: op.resolvedCount || op.totalCount,
         };
       })
       .sort((a, b) => b.csat - a.csat || b.resolvedTickets - a.resolvedTickets);
 
-    if (realRanked.length >= 3) {
-      return realRanked.slice(0, 5).map((ag, i) => ({ ...ag, rank: i + 1 }));
-    }
-
-    return DEFAULT_TOP_AGENTS;
+    return realRanked.slice(0, 5).map((ag, i) => ({ ...ag, rank: i + 1 }));
   }, [tickets]);
 
   // Fila de Chat
@@ -316,60 +271,70 @@ export default function TvNocStandalonePage() {
             </span>
           </div>
 
-          {/* Lista do Top 5 Atendentes com Foto, Nome, Nota e Atendimentos */}
-          <div className="space-y-1 my-1">
-            {topAgents.slice(0, 5).map((agent) => (
-              <div
-                key={agent.id}
-                className="flex items-center justify-between bg-slate-950/70 border border-slate-800/80 rounded-xl px-2 py-1 hover:border-amber-500/30 transition-colors"
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  {/* Rank Badge (#1 Dourado) */}
-                  <span className={`text-[9px] font-black font-mono px-1.5 py-0.5 rounded ${
-                    agent.rank === 1
-                      ? 'bg-amber-500/30 text-amber-300 border border-amber-500/50'
-                      : 'bg-slate-800 text-slate-400'
-                  }`}>
-                    #{agent.rank}
-                  </span>
+          {/* Lista 100% REAL dos Atendentes extraídos dos chamados do banco (Firestore) */}
+          {topAgents.length === 0 ? (
+            <div className="my-auto py-4 text-center space-y-1.5">
+              <User className="w-7 h-7 text-slate-600 mx-auto" />
+              <p className="text-[11px] font-bold text-slate-300">SEM ATENDENTES ATRIBUÍDOS AINDA</p>
+              <p className="text-[9px] text-slate-500 max-w-[200px] mx-auto leading-relaxed">
+                Os atendentes aparecerão aqui no Top 5 conforme forem vinculados aos chamados no Firestore.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-1 my-1">
+              {topAgents.map((agent) => (
+                <div
+                  key={agent.id}
+                  className="flex items-center justify-between bg-slate-950/70 border border-slate-800/80 rounded-xl px-2 py-1 hover:border-amber-500/30 transition-colors"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    {/* Rank Badge (#1 Dourado) */}
+                    <span className={`text-[9px] font-black font-mono px-1.5 py-0.5 rounded ${
+                      agent.rank === 1
+                        ? 'bg-amber-500/30 text-amber-300 border border-amber-500/50'
+                        : 'bg-slate-800 text-slate-400'
+                    }`}>
+                      #{agent.rank}
+                    </span>
 
-                  {/* Foto do Atendente */}
-                  <div className="relative flex-shrink-0">
-                    <img
-                      src={agent.avatarUrl}
-                      alt={agent.name}
-                      className="w-6 h-6 rounded-full object-cover border border-slate-700 shadow-sm"
-                    />
-                    <span className="absolute bottom-0 right-0 w-1.5 h-1.5 rounded-full bg-emerald-400 border border-slate-950" />
+                    {/* Foto do Atendente */}
+                    <div className="relative flex-shrink-0">
+                      <img
+                        src={agent.avatarUrl}
+                        alt={agent.name}
+                        className="w-6 h-6 rounded-full object-cover border border-slate-700 shadow-sm"
+                      />
+                      <span className="absolute bottom-0 right-0 w-1.5 h-1.5 rounded-full bg-emerald-400 border border-slate-950" />
+                    </div>
+
+                    {/* Nome do Atendente */}
+                    <div className="min-w-0">
+                      <span className="text-[11px] font-bold text-slate-100 block truncate" title={agent.name}>
+                        {agent.name}
+                      </span>
+                    </div>
                   </div>
 
-                  {/* Nome do Atendente */}
-                  <div className="min-w-0">
-                    <span className="text-[11px] font-bold text-slate-100 block truncate" title={agent.name}>
-                      {agent.name}
+                  {/* Avaliação CSAT & Chamados */}
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <span className="text-[9px] text-slate-400 font-medium">
+                      {agent.resolvedTickets} res.
                     </span>
+                    <div className="flex items-center gap-0.5 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded-md">
+                      <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
+                      <span className="text-[10px] font-black font-mono text-amber-300">
+                        {agent.csat.toFixed(2)}
+                      </span>
+                    </div>
                   </div>
                 </div>
-
-                {/* Avaliação CSAT & Chamados */}
-                <div className="flex items-center gap-1.5 flex-shrink-0">
-                  <span className="text-[9px] text-slate-400 font-medium">
-                    {agent.resolvedTickets} res.
-                  </span>
-                  <div className="flex items-center gap-0.5 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded-md">
-                    <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
-                    <span className="text-[10px] font-black font-mono text-amber-300">
-                      {agent.csat.toFixed(2)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
           <div className="flex items-center justify-between text-[9px] text-amber-400/90 font-medium border-t border-slate-800/80 pt-1 mt-0.5">
             <span>Média da Equipe: {csatScore} / 5.0</span>
-            <span>{ratedTickets.length > 0 ? `${ratedTickets.length} avaliações` : '98.4% CSAT'}</span>
+            <span>{ratedTickets.length > 0 ? `${ratedTickets.length} avaliações` : `${topAgents.length} Atendentes Reais`}</span>
           </div>
         </div>
 
