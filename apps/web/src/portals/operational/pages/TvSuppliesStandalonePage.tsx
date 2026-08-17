@@ -247,26 +247,47 @@ export default function TvSuppliesStandalonePage() {
 
       {/* ── GRID DOS 4 CARDS PRINCIPAIS ── */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 my-auto">
-        {/* CARD 1: Trocas & Substituições */}
+        {/* CARD 1: Equipamentos (No Cliente, Em Estoque, Em Manutenção) */}
         <div className="bg-slate-900/80 border border-slate-800/90 rounded-3xl p-6 shadow-xl flex flex-col justify-between h-72 backdrop-blur-md relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-2xl" />
           <div className="flex items-center justify-between text-slate-400">
             <span className="text-xs font-black uppercase tracking-wider text-slate-300">
-              TROCAS DE EQUIPAMENTOS
+              EQUIPAMENTOS
             </span>
-            <ArrowRightLeft className="w-5 h-5 text-blue-400" />
+            <Laptop className="w-5 h-5 text-blue-400" />
           </div>
+
           <div>
-            <div className="text-6xl font-black text-white tracking-tight">
-              {activeExchangesCount}
+            <div className="flex items-baseline justify-between mb-2">
+              <div className="text-5xl font-black text-white tracking-tight">
+                248
+              </div>
+              <span className="text-[10px] bg-blue-500/20 text-blue-300 border border-blue-500/30 px-2 py-0.5 rounded-full font-mono font-bold">
+                TOTAL GESTÃO
+              </span>
             </div>
-            <p className="text-xs font-semibold text-blue-400 mt-2 flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-blue-400 animate-ping" />
-              {inTransitCount} a caminho • {preparingCount} em preparação
-            </p>
+
+            {/* Sub-indicadores: No Cliente, Em Estoque, Em Manutenção */}
+            <div className="grid grid-cols-3 gap-2 mt-2 text-center">
+              <div className="bg-slate-950/70 border border-slate-800/80 rounded-xl p-2">
+                <span className="text-[9px] font-bold text-slate-400 block uppercase">No Cliente</span>
+                <span className="text-base font-black text-emerald-400">182</span>
+              </div>
+              <div className="bg-slate-950/70 border border-slate-800/80 rounded-xl p-2">
+                <span className="text-[9px] font-bold text-slate-400 block uppercase">Em Estoque</span>
+                <span className="text-base font-black text-blue-400">54</span>
+              </div>
+              <div className="bg-slate-950/70 border border-amber-500/30 bg-amber-500/10 rounded-xl p-2">
+                <span className="text-[9px] font-bold text-amber-300 block uppercase">Manutenção</span>
+                <span className="text-base font-black text-amber-400">12</span>
+              </div>
+            </div>
           </div>
-          <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-            <div className="bg-blue-500 h-full rounded-full transition-all duration-1000" style={{ width: '75%' }} />
+
+          <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden flex">
+            <div className="bg-emerald-500 h-full" style={{ width: '73%' }} title="No Cliente: 73%" />
+            <div className="bg-blue-500 h-full" style={{ width: '22%' }} title="Em Estoque: 22%" />
+            <div className="bg-amber-500 h-full" style={{ width: '5%' }} title="Em Manutenção: 5%" />
           </div>
         </div>
 
