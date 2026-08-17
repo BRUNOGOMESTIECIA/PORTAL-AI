@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Tv, Maximize2, Minimize2, ShieldCheck, Star, AlertTriangle, Activity, MessageCircle, Copy, Check, Package, Trophy, User } from 'lucide-react';
+import { Tv, Maximize2, Minimize2, ShieldCheck, Star, AlertTriangle, Activity, MessageCircle, Copy, Check, Package, Trophy, User, Sun, Moon, Palette } from 'lucide-react';
 import { toast } from 'sonner';
 import { logAuditEvent, formatTicketProtocol } from '../../../lib/audit-logger';
 import { useTickets } from '../../../hooks/use-tickets';
 import { useChats } from '../../../hooks/use-chats';
+import { useTheme } from '../../../components/theme-provider';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { MOCK_TICKETS, MOCK_CHATS } from '../../../mocks/data';
@@ -23,6 +24,7 @@ interface TopAgent {
 export default function TvNocStandalonePage() {
   const { tickets } = useTickets();
   const { chats } = useChats();
+  const { theme, setTheme } = useTheme();
   const [operators, setOperators] = useState<any[]>([]);
 
   useEffect(() => {
@@ -252,8 +254,39 @@ export default function TvNocStandalonePage() {
           </div>
         </div>
 
-        {/* Relógio em Destaque & Ações */}
+        {/* Relógio em Destaque, Seletor de Tema & Ações */}
         <div className="flex items-center gap-3">
+          {/* Seletor de 3 Temas */}
+          <div className="flex items-center bg-slate-800/90 border border-slate-700 rounded-xl p-1 shadow-sm">
+            <button
+              onClick={() => setTheme('light')}
+              title="Tema Claro"
+              className={`p-1.5 rounded-lg text-xs font-bold transition-all ${
+                theme === 'light' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Sun className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setTheme('dark')}
+              title="Tema Escuro"
+              className={`p-1.5 rounded-lg text-xs font-bold transition-all ${
+                theme === 'dark' ? 'bg-slate-700 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Moon className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setTheme('original')}
+              title="Tema Original"
+              className={`p-1.5 rounded-lg text-xs font-bold transition-all ${
+                theme === 'original' ? 'bg-slate-700 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Palette className="w-4 h-4" />
+            </button>
+          </div>
+
           <a
             href="/tv-suprimentos"
             className="flex items-center gap-2 px-3 py-1.5 bg-amber-950/60 hover:bg-amber-900/80 text-amber-300 border border-amber-800/60 text-xs font-bold rounded-xl transition-all"

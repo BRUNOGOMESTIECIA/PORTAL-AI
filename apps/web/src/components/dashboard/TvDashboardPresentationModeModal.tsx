@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Tv, X, Maximize2, Minimize2, ShieldCheck, Star, AlertTriangle, Activity, MessageCircle } from 'lucide-react';
+import { Tv, X, Maximize2, Minimize2, ShieldCheck, Star, AlertTriangle, Activity, MessageCircle, Sun, Moon, Palette } from 'lucide-react';
 import { useEscapeModal } from '../../hooks/use-escape-modal';
 import { toast } from 'sonner';
 import { logAuditEvent, formatTicketProtocol } from '../../lib/audit-logger';
 import { useTickets } from '../../hooks/use-tickets';
 import { useChats } from '../../hooks/use-chats';
+import { useTheme } from '../theme-provider';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -17,6 +18,7 @@ export function TvDashboardPresentationModeModal({ isOpen, onClose }: TvDashboar
   useEscapeModal(isOpen, onClose);
   const { tickets } = useTickets();
   const { chats } = useChats();
+  const { theme, setTheme } = useTheme();
 
   const [timeString, setTimeString] = useState('');
   const [refreshCountdown, setRefreshCountdown] = useState(30);
@@ -123,8 +125,39 @@ export function TvDashboardPresentationModeModal({ isOpen, onClose }: TvDashboar
           </div>
         </div>
 
-        {/* Relógio em Destaque & Ações */}
-        <div className="flex items-center gap-5">
+        {/* Relógio em Destaque, Seletor de Tema & Ações */}
+        <div className="flex items-center gap-3">
+          {/* Seletor de 3 Temas */}
+          <div className="flex items-center bg-slate-800/90 border border-slate-700 rounded-xl p-1 shadow-sm">
+            <button
+              onClick={() => setTheme('light')}
+              title="Tema Claro"
+              className={`p-1.5 rounded-lg text-xs font-bold transition-all ${
+                theme === 'light' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Sun className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setTheme('dark')}
+              title="Tema Escuro"
+              className={`p-1.5 rounded-lg text-xs font-bold transition-all ${
+                theme === 'dark' ? 'bg-slate-700 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Moon className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setTheme('original')}
+              title="Tema Original"
+              className={`p-1.5 rounded-lg text-xs font-bold transition-all ${
+                theme === 'original' ? 'bg-slate-700 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Palette className="w-4 h-4" />
+            </button>
+          </div>
+
           <div className="text-right hidden md:block">
             <span className="text-2xl font-black font-mono text-emerald-400 tracking-widest">
               {timeString}
