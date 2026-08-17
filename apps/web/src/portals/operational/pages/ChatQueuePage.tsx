@@ -168,7 +168,22 @@ export default function ChatQueuePage() {
   }, []);
 
 
-  const [selectedId, setSelectedId] = useState<string | null>('ch_andre');
+  const [selectedId, setSelectedId] = useState<string | null>(() => {
+    const saved = localStorage.getItem('portal_active_chat');
+    return saved || 'ch_andre';
+  });
+
+  // Garante seleção de um chat válido se ch_andre não existir
+  useEffect(() => {
+    if (chats.length > 0) {
+      const exists = chats.some(c => c.id === selectedId);
+      if (!exists && !selectedId) {
+        const firstAvailable = chats.find(c => c.status === 'active' || c.status === 'waiting') || chats[0];
+        if (firstAvailable) setSelectedId(firstAvailable.id);
+      }
+    }
+  }, [chats, selectedId]);
+
   const selected = chats.find(c => c.id === selectedId) || null;
   const [input, setInput] = useState('');
   const [replyTo, setReplyTo] = useState<{ id: string; senderName: string; body: string } | null>(null);
@@ -399,12 +414,15 @@ export default function ChatQueuePage() {
               if (targetChatId) {
                 const chatInMock = chats.find(c => c.id === targetChatId);
                 if (chatInMock) {
-                  chatInMock.messages.push({
+                  const newMsg: MockChatMessage = {
                     id: `m_user_sync_${Date.now()}`,
                     body: data.body,
                     senderName: chatInMock.clientName,
                     senderType: 'user',
                     createdAt: new Date().toISOString()
+                  };
+                  updateChat(targetChatId, {
+                    messages: [...chatInMock.messages, newMsg]
                   });
                   setForceRender(prev => prev + 1);
                 }
@@ -424,12 +442,15 @@ export default function ChatQueuePage() {
             if (targetChatId) {
               const chatInMock = chats.find(c => c.id === targetChatId);
               if (chatInMock) {
-                chatInMock.messages.push({
+                const newMsg: MockChatMessage = {
                   id: `m_user_sync_${Date.now()}`,
                   body: event.data.body,
                   senderName: chatInMock.clientName,
                   senderType: 'user',
                   createdAt: new Date().toISOString()
+                };
+                updateChat(targetChatId, {
+                  messages: [...chatInMock.messages, newMsg]
                 });
                 setForceRender(prev => prev + 1);
               }
@@ -774,10 +795,18 @@ export default function ChatQueuePage() {
   };
 
   const currentChats = getChatsForTab()
-    .filter(c => 
-      c.clientName.toLowerCase().includes(search.toLowerCase()) || 
-      (c.ticketId && c.ticketId.includes(search))
-    )
+    .filter(c => {
+      const searchLower = search.toLowerCase().trim();
+      if (!searchLower) return true;
+      const cleanSearchDigits = searchLower.replace(/\D/g, '');
+      const clientMatch = (c.clientName || '').toLowerCase().includes(searchLower);
+      const emailMatch = (c.clientEmail || '').toLowerCase().includes(searchLower);
+      const ticketIdStr = String(c.ticketId || c.id || '').toLowerCase();
+      const protoStr = formatTicketProtocol(c.ticketId || c.id).toLowerCase();
+      const ticketMatch = ticketIdStr.includes(searchLower) || protoStr.includes(searchLower) || (cleanSearchDigits.length >= 3 && ticketIdStr.includes(cleanSearchDigits));
+
+      return clientMatch || emailMatch || ticketMatch;
+    })
     .sort((a, b) => {
       const aLast = a.messages[a.messages.length - 1];
       const bLast = b.messages[b.messages.length - 1];
@@ -884,15 +913,31 @@ export default function ChatQueuePage() {
                       </span>
                       <div className={`w-2 h-2 rounded-full ${chat.status === 'active' ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse animate-bounce'}`} />
                     </div>
-                    {chat.status === 'waiting' ? (
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded text-amber-700 bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400 animate-pulse flex items-center gap-1">
-                        <span className="w-1 h-1 rounded-full bg-amber-500 animate-ping inline-block" /> Baixa
-                      </span>
-                    ) : (
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded text-rose-700 bg-rose-100 dark:bg-rose-900/30 dark:text-rose-400">
-                        Alta
-                      </span>
-                    )}
+                    {(() => {
+                      const chatPri = (chat as any).priority || chatPriorities[chat.id] || (chat.status === 'waiting' ? 'normal' : 'alta');
+                      const isHigh = chatPri === 'high' || chatPri === 'critical' || chatPri === 'alta' || chatPri === 'critica';
+                      const isMedium = chatPri === 'medium' || chatPri === 'media' || chatPri === 'normal';
+                      
+                      if (isHigh) {
+                        return (
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded text-rose-700 bg-rose-100 dark:bg-rose-900/30 dark:text-rose-400">
+                            Alta
+                          </span>
+                        );
+                      }
+                      if (isMedium) {
+                        return (
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded text-amber-700 bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400">
+                            Média
+                          </span>
+                        );
+                      }
+                      return (
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded text-slate-600 bg-slate-100 dark:bg-slate-800 dark:text-slate-400">
+                          Baixa
+                        </span>
+                      );
+                    })()}
 
                   </div>
                 </div>

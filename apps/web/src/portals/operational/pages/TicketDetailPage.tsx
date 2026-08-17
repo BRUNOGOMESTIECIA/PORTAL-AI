@@ -207,6 +207,48 @@ export default function TicketDetailPage() {
             {slaBreached && <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-red-100 text-red-700">SLA Vencido</span>}
           </div>
           <div className="flex gap-2 items-center">
+            {/* Seletor de Prioridade */}
+            <select
+              value={ticket.priority || 'medium'}
+              disabled={!hasPermission('tickets.update')}
+              onChange={(e) => {
+                const newPriority = e.target.value as TicketPriority;
+                if (newPriority === ticket.priority) return;
+
+                const priLabels: Record<string, string> = {
+                  low: 'Baixa',
+                  medium: 'Média',
+                  high: 'Alta',
+                  critical: 'Crítica'
+                };
+
+                const newComment = {
+                  id: `c${Date.now()}`,
+                  authorName: activeAgentName,
+                  authorType: 'staff' as const,
+                  body: `Prioridade alterada para ${priLabels[newPriority] || newPriority} por ${activeAgentName}.`,
+                  isInternal: true,
+                  createdAt: new Date().toISOString()
+                };
+
+                updateTicket(ticket.id, {
+                  priority: newPriority,
+                  comments: [...ticket.comments, newComment],
+                  updatedAt: new Date().toISOString()
+                });
+
+                toast.success(`Prioridade alterada para ${priLabels[newPriority]}!`);
+              }}
+              className="text-sm font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg px-3 py-1.5 outline-none focus:border-blue-400 text-slate-700 dark:text-slate-200 cursor-pointer shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Alterar prioridade do chamado"
+            >
+              <option value="low">⚪ Baixa</option>
+              <option value="medium">🟡 Média</option>
+              <option value="high">🟠 Alta</option>
+              <option value="critical">🔴 Crítica</option>
+            </select>
+
+            {/* Seletor de Status */}
             <select 
               value={['resolved', 'closed'].includes(ticket.status) ? 'resolved' : ticket.status} 
               disabled={!hasPermission('tickets.update')}
@@ -300,10 +342,10 @@ export default function TicketDetailPage() {
               className="text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-md px-2 py-1 outline-none focus:border-blue-400 hover:bg-slate-100 cursor-pointer w-full max-w-[160px]"
             >
               <option value="">Triagem / Sem Mesa</option>
-              {['N1', 'N2', 'N3', 'Infraestrutura', 'Segurança', 'SOC', 'Banco de Dados', 'Cloud / DevOps', 'Sistemas ERP'].map(t => (
+              {['Suporte N1', 'Suporte N2', 'Suporte N3', 'N1', 'N2', 'N3', 'Bug Engenheiros', 'Infraestrutura', 'Segurança', 'SOC', 'Banco de Dados', 'Cloud / DevOps', 'Sistemas ERP'].map(t => (
                 <option key={t} value={t}>{t}</option>
               ))}
-              {ticket.team && !['N1', 'N2', 'N3', 'Infraestrutura', 'Segurança', 'SOC', 'Banco de Dados', 'Cloud / DevOps', 'Sistemas ERP'].includes(ticket.team) && (
+              {ticket.team && !['Suporte N1', 'Suporte N2', 'Suporte N3', 'N1', 'N2', 'N3', 'Bug Engenheiros', 'Infraestrutura', 'Segurança', 'SOC', 'Banco de Dados', 'Cloud / DevOps', 'Sistemas ERP'].includes(ticket.team) && (
                 <option value={ticket.team}>{ticket.team}</option>
               )}
             </select>
@@ -678,19 +720,6 @@ export default function TicketDetailPage() {
                       comments: [...ticket.comments, newComment],
                       updatedAt: new Date().toISOString()
                     });
-
-                    if (isClosing) {
-                      // Cascata: ao resolver o Ticket Mãe, resolve automaticamente os tickets filhos vinculados
-                      tickets.filter((t: any) => t.parentTicketId === ticket.id || (ticket as any).childTicketIds?.includes(t.id)).forEach((child: any) => {
-                        updateTicket(child.id, {
-                          status: 'resolved',
-                          assigneeName: child.assigneeName || activeAgentName,
-                          resolvedByName: activeAgentName,
-                          closedByName: activeAgentName,
-                          updatedAt: new Date().toISOString()
-                        });
-                      });
-                    }
                     
                     toast.success('Status do ticket alterado com sucesso!');
                     setStatusChangeRequest(null);

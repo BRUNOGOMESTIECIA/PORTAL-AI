@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MOCK_DASHBOARD_STATS, MOCK_TICKETS } from '../../../mocks/data';
+import { MOCK_DASHBOARD_STATS, MOCK_TICKETS, MOCK_CLIENTS } from '../../../mocks/data';
 import { Download, Filter, Calendar, Users, Globe, Building2, Activity, Folder, AlertTriangle, Star } from 'lucide-react';
 
 import {
@@ -39,7 +39,7 @@ export default function ReportsPage() {
   const resolved = tickets.filter((t) => ['resolved', 'closed'].includes(t.status)).length;
 
 
-  // Filtros simulados com Período Personalizado
+  // Filtros com Período e Opções Dinâmicas
   const [period, setPeriod] = useState('Últimos 30 dias');
   const [customStartDate, setCustomStartDate] = useState('2026-01-01');
   const [customEndDate, setCustomEndDate] = useState(new Date().toISOString().slice(0, 10));
@@ -56,16 +56,102 @@ export default function ReportsPage() {
     ? `${customStartDate} até ${customEndDate}`
     : period;
 
-  // Filtragem dinâmica de tickets
-  const filteredTickets = tickets.filter((t) => {
-    if (period === 'Personalizado') {
-      const ticketDate = new Date(t.createdAt).getTime();
-      const start = new Date(customStartDate).getTime();
-      const end = new Date(customEndDate + 'T23:59:59').getTime();
-      if (ticketDate < start || ticketDate > end) return false;
-    }
-    return true;
-  });
+  // Extração Dinâmica de Clientes, Equipes e Categorias
+  const availableClients = React.useMemo(() => {
+    const set = new Set<string>();
+    MOCK_CLIENTS.forEach(c => { if (c.company) set.add(c.company); });
+    tickets.forEach(t => {
+      const comp = MOCK_CLIENTS.find(c => c.name === t.requesterName || c.email === t.requesterEmail)?.company;
+      if (comp) set.add(comp);
+      else if (t.requesterName) set.add(t.requesterName);
+    });
+    return Array.from(set).sort();
+  }, [tickets]);
+
+  const availableTeams = React.useMemo(() => {
+    const set = new Set<string>();
+    ['Suporte N1', 'Suporte N2', 'Infraestrutura', 'Bug Engenheiros', 'Segurança', 'SOC', 'Banco de Dados', 'Cloud / DevOps'].forEach(t => set.add(t));
+    tickets.forEach(t => { if (t.team) set.add(t.team); });
+    return Array.from(set).sort();
+  }, [tickets]);
+
+  const availableCategories = React.useMemo(() => {
+    const set = new Set<string>();
+    ['Hardware', 'Software', 'Acesso e Segurança', 'Redes', 'E-mail e Comunicação', 'Impressoras', 'Outros'].forEach(c => set.add(c));
+    tickets.forEach(t => { if (t.category) set.add(t.category); });
+    return Array.from(set).sort();
+  }, [tickets]);
+
+  // Filtragem dinâmica completa de tickets
+  const filteredTickets = React.useMemo(() => {
+    return tickets.filter((t) => {
+      const ticketTime = new Date(t.createdAt).getTime();
+      const now = Date.now();
+
+      // 1. Filtro de Período
+      if (period === 'Hoje') {
+        const startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
+        if (ticketTime < startOfDay.getTime()) return false;
+      } else if (period === 'Últimos 7 dias') {
+        const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
+        if (ticketTime < sevenDaysAgo) return false;
+      } else if (period === 'Últimos 30 dias') {
+        const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000;
+        if (ticketTime < thirtyDaysAgo) return false;
+      } else if (period === 'Este Ano') {
+        const startOfYear = new Date(new Date().getFullYear(), 0, 1).getTime();
+        if (ticketTime < startOfYear) return false;
+      } else if (period === 'Personalizado') {
+        const start = new Date(customStartDate).getTime();
+        const end = new Date(customEndDate + 'T23:59:59').getTime();
+        if (ticketTime < start || ticketTime > end) return false;
+      }
+
+      // 2. Filtro de Cliente / Empresa
+      if (client !== 'Todos os Clientes') {
+        const ticketClient = MOCK_CLIENTS.find(c => c.name === t.requesterName || c.email === t.requesterEmail)?.company || t.requesterName;
+        if (ticketClient !== client) return false;
+      }
+
+      // 3. Filtro de Equipe / Mesa
+      if (team !== 'Todas as Equipes') {
+        const tTeam = t.team || '';
+        const match = tTeam.toLowerCase().includes(team.toLowerCase()) || team.toLowerCase().includes(tTeam.toLowerCase());
+        if (!match) return false;
+      }
+
+      // 4. Filtro de Status
+      if (status !== 'Todos os Status') {
+        if (status === 'Abertos' && !['new', 'open'].includes(t.status)) return false;
+        if (status === 'Em Andamento' && !['in_progress', 'pending'].includes(t.status)) return false;
+        if (status === 'Resolvidos' && !['resolved', 'closed'].includes(t.status)) return false;
+      }
+
+      // 5. Filtro de Categoria
+      if (category !== 'Todas as Categorias') {
+        if ((t.category || 'Outros') !== category) return false;
+      }
+
+      // 6. Filtro de Origem / Canal
+      if (source !== 'Todos os Canais') {
+        const tSource = t.source || 'portal';
+        if (source === 'Portal' && tSource !== 'portal') return false;
+        if (source === 'E-mail' && tSource !== 'email') return false;
+        if (source === 'Chat' && tSource !== 'chat') return false;
+      }
+
+      // 7. Filtro de Prioridade
+      if (priority !== 'Todas as Prioridades') {
+        if (priority === 'Crítico' && t.priority !== 'critical') return false;
+        if (priority === 'Alto' && t.priority !== 'high') return false;
+        if (priority === 'Médio' && t.priority !== 'medium') return false;
+        if (priority === 'Baixo' && t.priority !== 'low') return false;
+      }
+
+      return true;
+    });
+  }, [tickets, period, customStartDate, customEndDate, client, team, status, category, source, priority]);
 
   // Função auxiliar para verificar se o SLA do chamado está estourado
   const isTicketOverdue = (t: any) => {
@@ -223,12 +309,12 @@ export default function ReportsPage() {
             <Building2 className="w-4 h-4 text-slate-400 mr-2" />
             <select 
               value={client} onChange={(e) => setClient(e.target.value)}
-              className="bg-transparent text-sm font-medium text-slate-700 dark:text-slate-300 outline-none cursor-pointer"
+              className="bg-transparent text-sm font-medium text-slate-700 dark:text-slate-300 outline-none cursor-pointer max-w-[150px]"
             >
               <option>Todos os Clientes</option>
-              <option>Acme Corp</option>
-              <option>Stark Ind.</option>
-              <option>Wayne Ent.</option>
+              {availableClients.map(c => (
+                <option key={c} value={c}>{c}</option>
+              ))}
             </select>
           </div>
           
@@ -236,12 +322,12 @@ export default function ReportsPage() {
             <Users className="w-4 h-4 text-slate-400 mr-2" />
             <select 
               value={team} onChange={(e) => setTeam(e.target.value)}
-              className="bg-transparent text-sm font-medium text-slate-700 dark:text-slate-300 outline-none cursor-pointer"
+              className="bg-transparent text-sm font-medium text-slate-700 dark:text-slate-300 outline-none cursor-pointer max-w-[150px]"
             >
               <option>Todas as Equipes</option>
-              <option>Suporte N1</option>
-              <option>Suporte N2</option>
-              <option>Infraestrutura</option>
+              {availableTeams.map(t => (
+                <option key={t} value={t}>{t}</option>
+              ))}
             </select>
           </div>
 
@@ -262,13 +348,12 @@ export default function ReportsPage() {
             <Folder className="w-4 h-4 text-slate-400 mr-2" />
             <select 
               value={category} onChange={(e) => setCategory(e.target.value)}
-              className="bg-transparent text-sm font-medium text-slate-700 dark:text-slate-300 outline-none cursor-pointer"
+              className="bg-transparent text-sm font-medium text-slate-700 dark:text-slate-300 outline-none cursor-pointer max-w-[150px]"
             >
               <option>Todas as Categorias</option>
-              <option>Hardware</option>
-              <option>Software</option>
-              <option>Acesso e Segurança</option>
-              <option>Redes</option>
+              {availableCategories.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
             </select>
           </div>
 

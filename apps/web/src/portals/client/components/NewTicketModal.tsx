@@ -8,10 +8,17 @@ import { useEscapeModal } from '../../../hooks/use-escape-modal';
 import { classifyTicketOrChatWithAi } from '../../../lib/ai-ticket-classifier';
 import { useTickets } from '../../../hooks/use-tickets';
 import { useBusinessHours, calculateSlaDueDate } from '../../../lib/business-hours-sla';
-import { MOCK_CATALOG_ITEMS, MockTicket } from '../../../mocks/data';
+import { MOCK_CATALOG_ITEMS, MockTicket, TicketPriority } from '../../../mocks/data';
 import { useAuth } from '../../../hooks/use-mock-auth';
 
 const TICKET_TYPES = ['Incidente', 'Solicitação', 'Dúvida'];
+
+const PRIORITIES: { value: TicketPriority; label: string; color: string; dot: string }[] = [
+  { value: 'low',      label: 'Baixa',   color: 'text-slate-500',  dot: 'bg-slate-400' },
+  { value: 'medium',   label: 'Média',   color: 'text-amber-600',  dot: 'bg-amber-400' },
+  { value: 'high',     label: 'Alta',    color: 'text-orange-600', dot: 'bg-orange-500' },
+  { value: 'critical', label: 'Crítica', color: 'text-red-600',    dot: 'bg-red-500' },
+];
 
 export const newTicketSchema = z.object({
   title: z.string().min(5, 'O título deve ter pelo menos 5 caracteres.'),
@@ -25,6 +32,7 @@ export function NewTicketModal({ initialTitle = '', initialType, initialCategory
   useEscapeModal(true, onClose);
   const [submitted, setSubmitted] = useState(false);
   const [attachments, setAttachments] = useState<File[]>([]);
+  const [priority, setPriority] = useState<TicketPriority>('medium');
   
   const { register, handleSubmit, watch, setValue, formState: { errors, isValid } } = useForm<NewTicketForm>({
     resolver: zodResolver(newTicketSchema),
@@ -50,25 +58,25 @@ export function NewTicketModal({ initialTitle = '', initialType, initialCategory
     // 1. Achar o item de catálogo correspondente se aplicável
     const catalogItem = MOCK_CATALOG_ITEMS.find(item => item.name === initialTitle || ((item as any).type === data.type && item.category === initialCategory));
     
-    // 2. Determinar SLAs
-    let slaAmountMs = 4 * 60 * 60 * 1000; // default 4 hours
-    if (catalogItem) {
-      if (catalogItem.slaType === 'days') {
-        slaAmountMs = catalogItem.slaAmount * 8 * 60 * 60 * 1000; // assumindo 8h úteis por dia
-      } else {
-        slaAmountMs = catalogItem.slaAmount * 60 * 60 * 1000;
-      }
+    // 2. Determinar SLAs baseados na prioridade selecionada
+    let slaAmountMs = 12 * 60 * 60 * 1000; // default 12h para média
+    if (priority === 'critical') {
+      slaAmountMs = 1 * 60 * 60 * 1000; // 1 hora para crítico
+    } else if (priority === 'high') {
+      slaAmountMs = 4 * 60 * 60 * 1000; // 4 horas para alta
+    } else if (priority === 'low') {
+      slaAmountMs = 24 * 60 * 60 * 1000; // 24 horas para baixa
     }
 
     const now = new Date();
     // Resolução (baseado no SLA)
     const resolutionDue = calculateSlaDueDate(now, slaAmountMs, businessHoursConfig);
     
-    // Primeira Resposta (vamos colocar 20% do tempo de SLA de resolução)
-    const firstResponseDue = calculateSlaDueDate(now, slaAmountMs * 0.2, businessHoursConfig);
+    // Primeira Resposta (25% do tempo de resolução ou máx 15min para crítico)
+    const firstRespMs = priority === 'critical' ? 15 * 60 * 1000 : slaAmountMs * 0.25;
+    const firstResponseDue = calculateSlaDueDate(now, firstRespMs, businessHoursConfig);
 
     const classification = classifyTicketOrChatWithAi(data.title + ' ' + data.description);
-    const resolvedPriority = classification.priority === ('urgent' as any) ? 'critical' : classification.priority;
 
     const newTicket: MockTicket = {
       id: 'TCK-' + Math.floor(10000 + Math.random() * 90000),
@@ -76,7 +84,7 @@ export function NewTicketModal({ initialTitle = '', initialType, initialCategory
       title: data.title,
       description: data.description,
       status: 'open',
-      priority: resolvedPriority as any,
+      priority: priority,
       type: data.type,
       category: initialCategory || classification.category,
 
@@ -162,6 +170,31 @@ export function NewTicketModal({ initialTitle = '', initialType, initialCategory
                 </select>
                 <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-slate-500 group-hover:text-blue-500 transition-colors pointer-events-none" />
               </div>
+            </div>
+          </div>
+
+          {/* ── PRIORIDADE ── */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
+              PRIORIDADE <span className="text-red-500">*</span>
+            </label>
+            <div className="grid grid-cols-4 gap-2">
+              {PRIORITIES.map(p => (
+                <button
+                  key={p.value}
+                  type="button"
+                  onClick={() => setPriority(p.value)}
+                  className={`relative flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl border-2 text-xs font-semibold transition-all duration-150 cursor-pointer
+                    ${priority === p.value
+                      ? `border-current ${p.color} bg-current/5 scale-[1.02] shadow-sm`
+                      : 'border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600 bg-white dark:bg-slate-800'
+                    }`}
+                >
+                  <div className={`w-2.5 h-2.5 rounded-full ${p.dot} ${priority === p.value ? 'ring-4 ring-current/20' : ''}`} />
+                  {p.label}
+                  {priority === p.value && <div className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-current" />}
+                </button>
+              ))}
             </div>
           </div>
 

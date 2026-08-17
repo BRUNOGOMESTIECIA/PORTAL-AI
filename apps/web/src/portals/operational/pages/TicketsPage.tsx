@@ -143,7 +143,7 @@ export default function TicketsPage() {
 
       return matchStatusTab && matchSearch && matchCompany && matchTeam && matchDepartment && matchCostCenter && matchRequester && matchAssignee && matchPeriod && matchUrlPriority;
     });
-  }, [statusFilter, advancedFilters, urlPriority]);
+  }, [tickets, statusFilter, advancedFilters, urlPriority]);
 
   // ── Agrupamento por Mesa ──────────────────────────────────────────────────────
   const groupedByTeam = useMemo(() => {
