@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Tv, Maximize2, Minimize2, ShieldCheck, Star, AlertTriangle, Activity, MessageCircle, Copy, Check, Package } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Tv, Maximize2, Minimize2, ShieldCheck, Star, AlertTriangle, Activity, MessageCircle, Copy, Check, Package, Trophy, User } from 'lucide-react';
 import { toast } from 'sonner';
 import { logAuditEvent, formatTicketProtocol } from '../../../lib/audit-logger';
 import { useTickets } from '../../../hooks/use-tickets';
@@ -9,6 +9,64 @@ import { ptBR } from 'date-fns/locale';
 import { MOCK_TICKETS, MOCK_CHATS } from '../../../mocks/data';
 import { auth } from '../../../lib/firebase';
 import { signInAnonymously } from 'firebase/auth';
+
+interface TopAgent {
+  id: string;
+  rank: number;
+  name: string;
+  avatarUrl: string;
+  csat: number;
+  resolvedTickets: number;
+  badge: string;
+}
+
+const DEFAULT_TOP_AGENTS: TopAgent[] = [
+  {
+    id: 'ag1',
+    rank: 1,
+    name: 'Ana Souza',
+    avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
+    csat: 4.98,
+    resolvedTickets: 142,
+    badge: '🏆 #1 TOP CSAT'
+  },
+  {
+    id: 'ag2',
+    rank: 2,
+    name: 'Carlos Eduardo',
+    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+    csat: 4.95,
+    resolvedTickets: 128,
+    badge: '⭐ EXCELÊNCIA'
+  },
+  {
+    id: 'ag3',
+    rank: 3,
+    name: 'Mariana Lima',
+    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    csat: 4.92,
+    resolvedTickets: 115,
+    badge: '⚡ RÁPIDA SOLUÇÃO'
+  },
+  {
+    id: 'ag4',
+    rank: 4,
+    name: 'Rafael Santos',
+    avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
+    csat: 4.89,
+    resolvedTickets: 98,
+    badge: '🔥 DESTAQUE NOC'
+  },
+  {
+    id: 'ag5',
+    rank: 5,
+    name: 'Fernanda Oliveira',
+    avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
+    csat: 4.87,
+    resolvedTickets: 91,
+    badge: '🎯 100% SLA'
+  }
+];
 
 export default function TvNocStandalonePage() {
   const { tickets } = useTickets();
@@ -82,11 +140,52 @@ export default function TvNocStandalonePage() {
   const slaResMetCount = tickets.filter((t) => !isTicketOverdue(t)).length;
   const realSlaPct = tickets.length > 0 ? Math.round((slaResMetCount / tickets.length) * 100) : 100;
 
-  // CSAT real
+  // CSAT real e cálculo do Top 5 Atendentes
   const ratedTickets = tickets.filter((t: any) => t.csatRating && t.csatRating > 0);
   const csatScore = ratedTickets.length > 0
     ? (ratedTickets.reduce((acc: number, t: any) => acc + (t.csatRating || 5), 0) / ratedTickets.length).toFixed(2)
     : '5.00';
+
+  // Ranking dinâmico dos 5 melhores atendentes com foto e nota
+  const topAgents = useMemo(() => {
+    const agentMap: Record<string, { name: string; ratings: number[]; count: number }> = {};
+
+    tickets.forEach((t: any) => {
+      const name = t.assignedToName || t.operatorName || (t.assignedTo && typeof t.assignedTo === 'string' ? t.assignedTo : null);
+      if (name) {
+        if (!agentMap[name]) {
+          agentMap[name] = { name, ratings: [], count: 0 };
+        }
+        agentMap[name].count += 1;
+        if (t.csatRating && t.csatRating > 0) {
+          agentMap[name].ratings.push(t.csatRating);
+        }
+      }
+    });
+
+    const realRanked = Object.values(agentMap)
+      .map((op, idx) => {
+        const avg = op.ratings.length > 0
+          ? op.ratings.reduce((a, b) => a + b, 0) / op.ratings.length
+          : 5.0;
+        return {
+          id: `op-${idx}`,
+          rank: idx + 1,
+          name: op.name,
+          avatarUrl: DEFAULT_TOP_AGENTS[idx % DEFAULT_TOP_AGENTS.length].avatarUrl,
+          csat: avg,
+          resolvedTickets: op.count,
+          badge: 'TOP ATENDENTE'
+        };
+      })
+      .sort((a, b) => b.csat - a.csat || b.resolvedTickets - a.resolvedTickets);
+
+    if (realRanked.length >= 3) {
+      return realRanked.slice(0, 5).map((ag, i) => ({ ...ag, rank: i + 1 }));
+    }
+
+    return DEFAULT_TOP_AGENTS;
+  }, [tickets]);
 
   // Fila de Chat
   const waitingChatsCount = (chats as any[]).filter((c: any) => c.status === 'waiting').length;
@@ -205,23 +304,73 @@ export default function TvNocStandalonePage() {
           </div>
         </div>
 
-        {/* KPI 3: Satisfação CSAT Real */}
-        <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-5 shadow-2xl flex flex-col justify-between">
-          <div className="flex items-center justify-between text-xs font-bold text-slate-400 uppercase tracking-wider">
-            <span>Média de CSAT</span>
-            <Star className="w-5 h-5 text-amber-400 fill-amber-400" />
+        {/* KPI 3: TOP 5 ATENDENTES & AVALIAÇÕES (CSAT) */}
+        <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-4 shadow-2xl flex flex-col justify-between backdrop-blur-md relative overflow-hidden">
+          <div className="flex items-center justify-between text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
+            <span className="flex items-center gap-1.5 text-amber-300">
+              <Trophy className="w-4 h-4 text-amber-400" />
+              TOP 5 ATENDENTES
+            </span>
+            <span className="text-[10px] font-black font-mono bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-full">
+              {csatScore} ⭐
+            </span>
           </div>
-          <div className="my-4">
-            <span className="text-6xl font-black text-amber-300 tracking-tight">{csatScore}</span>
-            <div className="flex items-center gap-1 mt-1 text-amber-400">
-              {[1, 2, 3, 4, 5].map((s) => (
-                <Star key={s} className="w-4 h-4 fill-amber-400" />
-              ))}
-            </div>
+
+          {/* Lista do Top 5 Atendentes com Foto, Nome, Nota e Atendimentos */}
+          <div className="space-y-1 my-1">
+            {topAgents.slice(0, 5).map((agent) => (
+              <div
+                key={agent.id}
+                className="flex items-center justify-between bg-slate-950/70 border border-slate-800/80 rounded-xl px-2 py-1 hover:border-amber-500/30 transition-colors"
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  {/* Rank Badge (#1 Dourado) */}
+                  <span className={`text-[9px] font-black font-mono px-1.5 py-0.5 rounded ${
+                    agent.rank === 1
+                      ? 'bg-amber-500/30 text-amber-300 border border-amber-500/50'
+                      : 'bg-slate-800 text-slate-400'
+                  }`}>
+                    #{agent.rank}
+                  </span>
+
+                  {/* Foto do Atendente */}
+                  <div className="relative flex-shrink-0">
+                    <img
+                      src={agent.avatarUrl}
+                      alt={agent.name}
+                      className="w-6 h-6 rounded-full object-cover border border-slate-700 shadow-sm"
+                    />
+                    <span className="absolute bottom-0 right-0 w-1.5 h-1.5 rounded-full bg-emerald-400 border border-slate-950" />
+                  </div>
+
+                  {/* Nome do Atendente */}
+                  <div className="min-w-0">
+                    <span className="text-[11px] font-bold text-slate-100 block truncate" title={agent.name}>
+                      {agent.name}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Avaliação CSAT & Chamados */}
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  <span className="text-[9px] text-slate-400 font-medium">
+                    {agent.resolvedTickets} res.
+                  </span>
+                  <div className="flex items-center gap-0.5 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded-md">
+                    <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
+                    <span className="text-[10px] font-black font-mono text-amber-300">
+                      {agent.csat.toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
-          <span className="text-xs text-amber-400 font-semibold">
-            {ratedTickets.length > 0 ? `${ratedTickets.length} avaliações recebidas` : '98.4% de satisfação'}
-          </span>
+
+          <div className="flex items-center justify-between text-[9px] text-amber-400/90 font-medium border-t border-slate-800/80 pt-1 mt-0.5">
+            <span>Média da Equipe: {csatScore} / 5.0</span>
+            <span>{ratedTickets.length > 0 ? `${ratedTickets.length} avaliações` : '98.4% CSAT'}</span>
+          </div>
         </div>
 
         {/* KPI 4: Fila de Chat ao Vivo */}
