@@ -657,6 +657,19 @@ export default function TicketDetailPage() {
                       comments: [...ticket.comments, newComment],
                       updatedAt: new Date().toISOString()
                     });
+
+                    if (isClosing) {
+                      // Cascata: ao resolver o Ticket Mãe, resolve automaticamente os tickets filhos vinculados
+                      tickets.filter((t: any) => t.parentTicketId === ticket.id || (ticket as any).childTicketIds?.includes(t.id)).forEach((child: any) => {
+                        updateTicket(child.id, {
+                          status: 'resolved',
+                          assigneeName: child.assigneeName || activeAgentName,
+                          resolvedByName: activeAgentName,
+                          closedByName: activeAgentName,
+                          updatedAt: new Date().toISOString()
+                        });
+                      });
+                    }
                     
                     toast.success('Status do ticket alterado com sucesso!');
                     setStatusChangeRequest(null);

@@ -72,22 +72,20 @@ export default function TicketsPage() {
       const searchLower = advancedFilters.search.toLowerCase().trim();
       const cleanSearchDigits = searchLower.replace(/\D/g, '');
 
-      // Se houver busca digitada pelo usuário, abrimos para buscar em todos os status (não oculta resolvidos)
-      const matchStatusTab = searchLower
+      // Respeita estritamente a aba de status selecionada pelo usuário (mesmo com busca ativada)
+      const matchStatusTab = statusFilter === 'all'
         ? true
-        : statusFilter === 'all'
-          ? true
-          : statusFilter === 'active'
+        : statusFilter === 'active'
+          ? ['new', 'open', 'in_progress', 'pending'].includes(t.status)
+          : statusFilter === 'unresolved'
             ? ['new', 'open', 'in_progress', 'pending'].includes(t.status)
-            : statusFilter === 'unresolved'
-              ? ['new', 'open', 'in_progress', 'pending'].includes(t.status)
-              : statusFilter === 'new'
-                ? t.status === 'new'
-                : statusFilter === 'in_progress'
-                  ? ['in_progress', 'open', 'pending'].includes(t.status)
-                  : statusFilter === 'resolved'
-                    ? ['resolved', 'closed'].includes(t.status)
-                    : t.status === statusFilter;
+            : statusFilter === 'new'
+              ? t.status === 'new'
+              : statusFilter === 'in_progress'
+                ? ['in_progress', 'open', 'pending'].includes(t.status)
+                : statusFilter === 'resolved'
+                  ? ['resolved', 'closed'].includes(t.status)
+                  : t.status === statusFilter;
 
       const formattedProtocol = formatTicketProtocol(t.number || t.id).toLowerCase();
       const ticketNumStr = String(t.number || t.id || '').toLowerCase();
