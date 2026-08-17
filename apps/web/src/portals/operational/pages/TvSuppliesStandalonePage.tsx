@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Package, RefreshCw, AlertTriangle, CheckCircle2, Truck, 
   Maximize2, Minimize2, Tv, Copy, Check, ArrowRightLeft, 
-  Box, Printer, Laptop, ShieldCheck, Clock, Layers, Smartphone, Building2
+  Box, Printer, Laptop, ShieldCheck, Clock, Layers, Smartphone, Building2, Wrench, FileText
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { logAuditEvent, formatTicketProtocol } from '../../../lib/audit-logger';
@@ -43,6 +43,45 @@ interface ClientEquipmentSummary {
   mobilesCount: number;
   printersCount: number;
 }
+
+interface ServiceOrderSummary {
+  osNumber: string;
+  ticketNumber: string;
+  statusLabel: string;
+  statusStyle: string;
+  client: string;
+}
+
+const DEMO_OS_LIST: ServiceOrderSummary[] = [
+  {
+    osNumber: 'OS-2026-9041',
+    ticketNumber: '#20268841',
+    statusLabel: '🚚 Em Rota de Entrega',
+    statusStyle: 'bg-purple-500/20 text-purple-300 border-purple-500/40 animate-pulse font-black',
+    client: 'Cliente ABC Tecnologia'
+  },
+  {
+    osNumber: 'OS-2026-9042',
+    ticketNumber: '#20268842',
+    statusLabel: '📦 Em Separação',
+    statusStyle: 'bg-blue-500/20 text-blue-300 border-blue-500/40 font-black',
+    client: 'Indústria Metalúrgica SP'
+  },
+  {
+    osNumber: 'OS-2026-9043',
+    ticketNumber: '#20268843',
+    statusLabel: '✅ Entregue no Cliente',
+    statusStyle: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 font-black',
+    client: 'Grupo Varejo Brasil'
+  },
+  {
+    osNumber: 'OS-2026-9044',
+    ticketNumber: '#20268844',
+    statusLabel: '🛠️ Em Manutenção / Lab',
+    statusStyle: 'bg-amber-500/20 text-amber-300 border-amber-500/40 font-black',
+    client: 'Hospital Santa Clara'
+  }
+];
 
 const TOP_5_CLIENTS_EQUIPMENT: ClientEquipmentSummary[] = [
   {
@@ -158,9 +197,20 @@ export default function TvSuppliesStandalonePage() {
   const { tickets } = useTickets();
 
   const [timeString, setTimeString] = useState('');
+  const [currentOsIndex, setCurrentOsIndex] = useState(0);
   const [refreshCountdown, setRefreshCountdown] = useState(30);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  // Rotação dinâmica das Ordens de Serviço a cada 5 segundos na Smart TV
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentOsIndex((prev) => (prev + 1) % DEMO_OS_LIST.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const activeOsItem = DEMO_OS_LIST[currentOsIndex];
 
   // Conexão anônima segura Firebase
   useEffect(() => {
@@ -237,6 +287,56 @@ export default function TvSuppliesStandalonePage() {
 
   // SLA Logístico de Entrega (Meta 24h/48h)
   const logisticsSlaPct = 94;
+
+  // Stream ordenado dinamicamente por PRIORIDADE (Urgent > High > Medium > Low)
+  const sortedExchanges = useMemo(() => {
+    const priorityWeight: Record<string, number> = {
+      urgent: 4,
+      critical: 4,
+      high: 3,
+      medium: 2,
+      low: 1,
+    };
+
+    // Converte chamados de hardware/trocas do sistema real se existirem
+    const realEquipmentStreamItems: EquipmentExchange[] = hardwareTickets.map((t) => ({
+      id: t.id,
+      protocol: formatTicketProtocol(t.number || t.id),
+      requester: t.requesterName || t.requesterEmail?.split('@')[0] || 'Cliente',
+      department: t.category || 'Ativos TI',
+      oldEquipment: t.description ? t.description.slice(0, 45) + '...' : 'Equipamento anterior',
+      newEquipment: t.title,
+      reason: t.description || 'Solicitação de suprimento / troca',
+      status: t.status === 'in_progress' ? 'preparing' : (t.status === 'resolved' || t.status === 'closed' ? 'completed' : 'pending'),
+      priority: (t.priority as any) || 'high',
+      createdAt: t.createdAt
+    }));
+
+    const combinedList = [...realEquipmentStreamItems, ...DEFAULT_EXCHANGES];
+
+    // Remove duplicatas por protocolo
+    const uniqueMap = new Map<string, EquipmentExchange>();
+    combinedList.forEach(item => uniqueMap.set(item.protocol || item.id, item));
+    const uniqueList = Array.from(uniqueMap.values());
+
+    return uniqueList.sort((a, b) => {
+      const weightA = priorityWeight[a.priority] || 1;
+      const weightB = priorityWeight[b.priority] || 1;
+
+      // 1. Maior prioridade primeiro (Urgente > Alta > Média > Baixa)
+      if (weightA !== weightB) {
+        return weightB - weightA;
+      }
+
+      // 2. Não-concluídos vêm antes de concluídos
+      const isCompletedA = a.status === 'completed' ? 1 : 0;
+      const isCompletedB = b.status === 'completed' ? 1 : 0;
+      if (isCompletedA !== isCompletedB) return isCompletedA - isCompletedB;
+
+      // 3. Mais recente primeiro
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    }).slice(0, 4);
+  }, [hardwareTickets]);
 
   return (
     <div className="fixed inset-0 w-screen h-screen bg-[#050811] text-slate-100 flex flex-col justify-between p-6 overflow-hidden select-none">
@@ -372,32 +472,51 @@ export default function TvSuppliesStandalonePage() {
           </div>
         </div>
 
-        {/* CARD 3: Nível de Estoque Crítico */}
+        {/* CARD 3: Status do Serviço, Número de O.S. e Número de Ticket (Dinâmico com Estágios) */}
         <div className="bg-slate-900/80 border border-slate-800/90 rounded-3xl p-6 shadow-xl flex flex-col justify-between h-72 backdrop-blur-md relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/5 rounded-full blur-2xl" />
+          <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-2xl" />
           <div className="flex items-center justify-between text-slate-400">
             <span className="text-xs font-black uppercase tracking-wider text-slate-300">
-              ESTOQUE CRÍTICO / REPOSIÇÃO
+              STATUS DO SERVIÇO, O.S. & TICKET
             </span>
-            <AlertTriangle className="w-5 h-5 text-red-400" />
+            <Wrench className="w-5 h-5 text-amber-400 animate-spin" style={{ animationDuration: '10s' }} />
           </div>
+
           <div>
-            <div className="text-6xl font-black text-red-400 tracking-tight flex items-baseline gap-2">
-              {criticalStockItems}
-              <span className="text-sm font-bold text-slate-400 uppercase">Itens</span>
+            <div className="flex items-baseline justify-between mb-1.5">
+              <div className="text-4xl font-black text-amber-400 tracking-tight">
+                8 <span className="text-xs font-bold text-slate-400 uppercase">O.S. Ativas</span>
+              </div>
+              <span className="text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-full font-mono font-bold">
+                MESA DE SERVIÇOS
+              </span>
             </div>
-            <p className="text-xs font-semibold text-slate-300 mt-2 flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-              {lowStockItems} itens próximos do limite mínimo
-            </p>
+
+            {/* Caixa Dinâmica com Transição de O.S., Ticket e Status (Em Separação, Em Rota, Entregue, Manutenção) */}
+            <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-2.5 space-y-1.5 transition-all duration-500">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-slate-400 font-medium">📋 Nº Ordem de Serviço (O.S.):</span>
+                <span className="font-mono font-black text-amber-400">{activeOsItem.osNumber}</span>
+              </div>
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-slate-400 font-medium">🎫 Nº do Ticket Vinculado:</span>
+                <span className="font-mono font-bold text-blue-400">{activeOsItem.ticketNumber}</span>
+              </div>
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-slate-400 font-medium">⚡ Status do Serviço:</span>
+                <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${activeOsItem.statusStyle}`}>
+                  {activeOsItem.statusLabel}
+                </span>
+              </div>
+            </div>
           </div>
-          <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-            <div
-              className={`h-full rounded-full transition-all duration-1000 ${
-                criticalStockItems > 0 ? 'bg-red-500' : 'bg-emerald-500'
-              }`}
-              style={{ width: `${healthyStockPct}%` }}
-            />
+
+          {/* Barra Proporcional de Estágios de Atendimento */}
+          <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden flex">
+            <div className="bg-blue-500 h-full" style={{ width: '25%' }} title="Em Separação: 2" />
+            <div className="bg-purple-500 h-full" style={{ width: '37.5%' }} title="Em Rota de Entrega: 3" />
+            <div className="bg-amber-500 h-full" style={{ width: '25%' }} title="Em Manutenção / Lab: 2" />
+            <div className="bg-emerald-500 h-full" style={{ width: '12.5%' }} title="Entregue no Cliente: 1" />
           </div>
         </div>
 
@@ -488,28 +607,39 @@ export default function TvSuppliesStandalonePage() {
           </div>
         </div>
 
-        {/* ── FEED DE TROCAS & REQUISIÇÕES AO VIVO ── */}
+        {/* ── FEED DE TROCAS & REQUISIÇÕES AO VIVO (ORDENADO POR PRIORIDADE) ── */}
         <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-3 shadow-2xl backdrop-blur-md">
           <div className="flex items-center justify-between mb-2 px-1">
             <div className="flex items-center gap-2">
               <RefreshCw className="w-3.5 h-3.5 text-amber-400 animate-spin" style={{ animationDuration: '6s' }} />
-              <h2 className="text-[11px] font-black tracking-wider uppercase text-slate-200">
-                FEED DE TROCAS & PEDIDOS DE EQUIPAMENTOS EM ANDAMENTO (STREAM NOC)
+              <h2 className="text-[11px] font-black tracking-wider uppercase text-slate-200 flex items-center gap-2">
+                FEED DE TROCAS & PEDIDOS DE EQUIPAMENTOS (ORDENADO POR PRIORIDADE)
+                <span className="text-[9px] bg-red-500/20 text-red-300 border border-red-500/30 px-1.5 py-0.5 rounded font-mono">
+                  DYN-PRIORITY STREAM
+                </span>
               </h2>
             </div>
             <span className="text-[10px] font-semibold text-slate-400">
-              {DEFAULT_EXCHANGES.length} Registros Ativos
+              {sortedExchanges.length} Registros Prioritários
             </span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-2.5">
-            {DEFAULT_EXCHANGES.map((exc) => {
+            {sortedExchanges.map((exc) => {
               const statusConfig = {
                 pending: { label: 'PENDENTE', color: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
                 preparing: { label: 'PREPARANDO', color: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
                 in_transit: { label: 'A CAMINHO', color: 'bg-purple-500/20 text-purple-300 border-purple-500/30' },
                 completed: { label: 'ENTREGUE', color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' }
-              }[exc.status];
+              }[exc.status] || { label: 'EM ANDAMENTO', color: 'bg-blue-500/20 text-blue-300 border-blue-500/30' };
+
+              const priorityBadge = {
+                urgent: { label: '🔥 URGENTE', color: 'bg-red-500/20 text-red-400 border-red-500/40 animate-pulse font-black' },
+                critical: { label: '🔥 CRÍTICO', color: 'bg-red-500/20 text-red-400 border-red-500/40 animate-pulse font-black' },
+                high: { label: '⚡ ALTA', color: 'bg-orange-500/20 text-orange-300 border-orange-500/40 font-bold' },
+                medium: { label: 'MÉDIA', color: 'bg-blue-500/20 text-blue-300 border-blue-500/40 font-medium' },
+                low: { label: 'BAIXA', color: 'bg-slate-800 text-slate-400 border-slate-700' }
+              }[exc.priority] || { label: 'ALTA', color: 'bg-orange-500/20 text-orange-300 border-orange-500/40' };
 
               return (
                 <div
@@ -521,9 +651,14 @@ export default function TvSuppliesStandalonePage() {
                       <span className="text-[11px] font-mono font-black text-amber-400">
                         {exc.protocol}
                       </span>
-                      <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border ${statusConfig.color}`}>
-                        {statusConfig.label}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded border ${priorityBadge.color}`}>
+                          {priorityBadge.label}
+                        </span>
+                        <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border ${statusConfig.color}`}>
+                          {statusConfig.label}
+                        </span>
+                      </div>
                     </div>
                     <h3 className="text-[11px] font-bold text-slate-100 truncate" title={exc.newEquipment}>
                       {exc.newEquipment}
