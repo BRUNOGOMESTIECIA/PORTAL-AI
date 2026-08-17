@@ -121,7 +121,7 @@ function getDynamicSlaWaitMessage(session: MockChatSession | null): string {
 export default function ChatQueuePage() {
   const { hasPermission, user } = useAuth();
   const { chats, updateChat } = useChats();
-  const { updateTicket } = useTickets();
+  const { tickets, updateTicket } = useTickets();
   const [searchParams] = useSearchParams();
   
   const [realStaff, setRealStaff] = useState<any[]>(MOCK_STAFF);
@@ -454,7 +454,7 @@ export default function ChatQueuePage() {
           const fallbackTicket = chat.id.replace(/\D/g, '').slice(-5) || '1048';
           updateChat(chat.id, { messages: [...chat.messages, {
             id: `welcome_${Date.now()}_${Math.random()}`,
-            body: `Seu atendimento foi iniciado e logo um de nossos analistas irá falar com você. O protocolo é #${chat.ticketId || fallbackTicket}.`,
+            body: `Seu atendimento foi iniciado e logo um de nossos analistas irá falar com você. O protocolo é ${formatTicketProtocol(chat.ticketId || fallbackTicket)}.`,
             senderName: 'Sistema',
             senderType: 'system',
             createdAt: new Date().toISOString()
@@ -538,18 +538,28 @@ export default function ChatQueuePage() {
 
           await updateChat(chatInMock.id, updates);
 
-          // Se encerrou o chat e há ticket vinculado, atualiza o ticket no Firestore creditando a resolução ao atendente
+          // Se encerrou o chat e há ticket vinculado, preserva o status do chamado (ex: 'open' se não resolvido) e atualiza o responsável
           const targetTicketId = ticketId || chatInMock.ticketId;
           if ((newStatus === 'closed' || newStatus === 'finished') && targetTicketId) {
             try {
-              updateTicket(targetTicketId, {
-                status: 'resolved',
-                assigneeName: finalAgentName,
-                assignedTo: finalAgentName,
-                resolvedByName: finalAgentName,
-                closedByName: finalAgentName,
-                updatedAt: new Date().toISOString()
-              });
+              const existing = tickets.find(t => t.id === targetTicketId || String(t.number) === String(targetTicketId));
+              if (existing && ['resolved', 'closed'].includes(existing.status)) {
+                updateTicket(targetTicketId, {
+                  status: 'resolved',
+                  assigneeName: finalAgentName,
+                  assignedTo: finalAgentName,
+                  resolvedByName: finalAgentName,
+                  closedByName: finalAgentName,
+                  updatedAt: new Date().toISOString()
+                });
+              } else if (existing) {
+                // Preserva o chamado como Não Resolvido / Em Andamento
+                updateTicket(targetTicketId, {
+                  assigneeName: finalAgentName,
+                  assignedTo: finalAgentName,
+                  updatedAt: new Date().toISOString()
+                });
+              }
             } catch (e) {
               console.info('[ChatQueue] Erro ao sincronizar chamado vinculado:', e);
             }
@@ -858,7 +868,7 @@ export default function ChatQueuePage() {
                       <span className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate block">{chat.clientName}</span>
                       {chat.status === 'closed' ? (
                         <div className="text-[10.5px] text-slate-500 dark:text-slate-400 mt-0.5 space-y-0.5">
-                          <p className="truncate">Ticket: <span className="font-medium text-slate-700 dark:text-slate-300">#{chat.ticketId || (chat.id.replace(/\D/g, '').slice(-5) || '1048')}</span></p>
+                          <p className="truncate">Ticket: <span className="font-medium text-slate-700 dark:text-slate-300">{formatTicketProtocol(chat.ticketId || chat.id)}</span></p>
                           <p className="truncate">Empresa: <span className="font-medium text-slate-700 dark:text-slate-300">{getCompanyByEmail(chat.clientEmail)}</span></p>
                           <p className="truncate">Colab: <span className="font-medium text-slate-700 dark:text-slate-300">{chat.agentName || 'Sistema'}</span></p>
                         </div>
@@ -945,7 +955,7 @@ export default function ChatQueuePage() {
                 </div>
                 <div>
                   <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center">
-                    Ticket #{selected.ticketId || (selected.id.replace(/\D/g, '').slice(-5) || '1048')}
+                    Ticket {formatTicketProtocol(selected.ticketId || selected.id)}
                     <span className={`ml-2 px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
                       (chatPriorities[selected.id] || 'alta') === 'critica' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' :
                       (chatPriorities[selected.id] || 'alta') === 'alta' ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400' :

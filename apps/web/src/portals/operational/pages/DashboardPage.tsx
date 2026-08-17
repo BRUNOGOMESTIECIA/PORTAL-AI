@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Ticket, MessageCircle, TrendingUp, AlertTriangle, Clock, CheckCircle2, ChevronRight, Star, Tv } from 'lucide-react';
+import { Ticket, MessageCircle, TrendingUp, AlertTriangle, Clock, CheckCircle2, ChevronRight, Star, Tv, Sun, Moon, Palette } from 'lucide-react';
 import { MOCK_DASHBOARD_STATS, MOCK_STAFF, MOCK_TICKETS } from '../../../mocks/data';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -9,6 +9,7 @@ import { useChats } from '../../../hooks/use-chats';
 import { useOperatorStatus } from '../../../hooks/use-operator-status';
 import { formatTicketProtocol } from '../../../lib/audit-logger';
 import { TvDashboardPresentationModeModal } from '../../../components/dashboard/TvDashboardPresentationModeModal';
+import { useTheme } from '../../../components/theme-provider';
 
 function StatCard({ label, value, sub, icon: Icon, color }: { label: string; value: string | number; sub?: string; icon: React.ComponentType<{ className?: string }>; color: string }) {
   return (
@@ -49,6 +50,7 @@ export default function DashboardPage() {
   const { tickets, seedMockData: seedTickets } = useTickets();
   const { chats, seedMockData: seedChats } = useChats();
   const { status: myPresenceStatus } = useOperatorStatus();
+  const { theme, setTheme } = useTheme();
   const [showTvModal, setShowTvModal] = useState(false);
   
   const [operators, setOperators] = useState<any[]>([]);
@@ -139,22 +141,64 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">Dashboard</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Visão geral em tempo real da operação</p>
         </div>
 
-        {/* Modo Apresentação / TV NOC (Item 095) */}
-        <button
-          type="button"
-          onClick={() => setShowTvModal(true)}
-          className="flex items-center gap-2 bg-[#090d16] hover:bg-slate-800 text-white text-xs font-black px-4 py-2 rounded-xl transition-all shadow-lg border border-slate-700 cursor-pointer"
-          title="Abrir Dashboard em Modo Apresentação TV NOC em Tela Cheia"
-        >
-          <Tv className="w-4 h-4 text-red-500 animate-pulse" />
-          <span>Modo Apresentação / TV NOC</span>
-        </button>
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Seletor de 3 Opções de Tema (Claro / Escuro / Original) */}
+          <div className="flex items-center bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-1 shadow-sm">
+            <button
+              onClick={() => setTheme('light')}
+              title="Tema Claro"
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                theme === 'light'
+                  ? 'bg-white text-blue-600 shadow-sm dark:bg-slate-700 dark:text-white'
+                  : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+              }`}
+            >
+              <Sun className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Claro</span>
+            </button>
+            <button
+              onClick={() => setTheme('dark')}
+              title="Tema Escuro"
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                theme === 'dark'
+                  ? 'bg-white text-blue-600 shadow-sm dark:bg-slate-700 dark:text-white'
+                  : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+              }`}
+            >
+              <Moon className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Escuro</span>
+            </button>
+            <button
+              onClick={() => setTheme('original')}
+              title="Tema Original"
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                theme === 'original'
+                  ? 'bg-white text-blue-600 shadow-sm dark:bg-slate-700 dark:text-white'
+                  : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+              }`}
+            >
+              <Palette className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Original</span>
+            </button>
+          </div>
+
+          {/* Modo Apresentação / TV NOC (Item 095) */}
+          <button
+            type="button"
+            onClick={() => setShowTvModal(true)}
+            className="flex items-center gap-2 bg-[#090d16] hover:bg-slate-800 text-white text-xs font-black px-4 py-2 rounded-xl transition-all shadow-lg border border-slate-700 cursor-pointer"
+            title="Abrir Dashboard em Modo Apresentação TV NOC em Tela Cheia"
+          >
+            <Tv className="w-4 h-4 text-red-500 animate-pulse" />
+            <span>Modo Apresentação / TV NOC</span>
+          </button>
+        </div>
       </div>
 
       <TvDashboardPresentationModeModal

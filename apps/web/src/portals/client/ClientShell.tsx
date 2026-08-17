@@ -1,6 +1,6 @@
 import React from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { HeadphonesIcon, Ticket, BookOpen, LogOut, LayoutGrid, Bell, Sun, Moon, Star, X, CheckCircle2, Layers } from 'lucide-react';
+import { HeadphonesIcon, Ticket, BookOpen, LogOut, LayoutGrid, Bell, Sun, Moon, Palette, Star, X, CheckCircle2, Layers } from 'lucide-react';
 import { useAuth } from '../../hooks/use-mock-auth';
 import { ChatWidget } from './components/ChatWidget';
 import { MockClient, MOCK_NOTIFICATIONS, MockNotification } from '../../mocks/data';
@@ -14,6 +14,7 @@ import { PageTransitionWrapper } from '../../components/shared/PageTransitionWra
 import { BugReporterCricketWidget } from '../../components/shared/BugReporterCricketWidget';
 
 import { useChats } from '../../hooks/use-chats';
+import { useTheme } from '../../components/theme-provider';
 import { toast } from 'sonner';
 
 /**
@@ -28,6 +29,7 @@ export default function ClientShell() {
   const { user, logout } = useAuth();
   const { tickets, updateTicket } = useTickets();
   const { chats, updateChat } = useChats();
+  const { theme, setTheme } = useTheme();
   const location = useLocation();
   const client = user as MockClient;
 
@@ -290,14 +292,36 @@ export default function ClientShell() {
 
           {/* User menu & Notifications */}
           <div className="flex items-center gap-3">
-            {/* Theme Toggle */}
-            <button
-              onClick={() => setIsDark(!isDark)}
-              className="p-2 text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200 rounded-full transition-colors"
-              title="Alternar tema"
-            >
-              {isDark ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
-            </button>
+            {/* Theme Switcher 3 Opções (Claro / Escuro / Original) */}
+            <div className="flex items-center bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-0.5 shadow-sm">
+              <button
+                onClick={() => setTheme('light')}
+                title="Tema Claro"
+                className={`p-1.5 rounded-md text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors ${
+                  theme === 'light' ? 'bg-white text-blue-600 dark:bg-slate-700 dark:text-white shadow-sm' : ''
+                }`}
+              >
+                <Sun className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => setTheme('dark')}
+                title="Tema Escuro"
+                className={`p-1.5 rounded-md text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors ${
+                  theme === 'dark' ? 'bg-white text-blue-600 dark:bg-slate-700 dark:text-white shadow-sm' : ''
+                }`}
+              >
+                <Moon className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => setTheme('original')}
+                title="Tema Original"
+                className={`p-1.5 rounded-md text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors ${
+                  theme === 'original' ? 'bg-white text-blue-600 dark:bg-slate-700 dark:text-white shadow-sm' : ''
+                }`}
+              >
+                <Palette className="h-4 w-4" />
+              </button>
+            </div>
 
             {/* Notification Bell */}
             <div className="relative">

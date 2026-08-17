@@ -127,10 +127,12 @@ export function formatTicketProtocol(seed: any): string {
     const year = new Date().getFullYear();
     return `#${year}1042`;
   }
-  const str = String(seed).trim().replace(/-/g, '');
-  if (str.startsWith('#')) return str;
+  const cleanStr = String(seed).trim().replace(/^[#\s]+/, '').replace(/-/g, '');
   const year = new Date().getFullYear();
-  const numOnly = str.replace(/\D/g, '');
+  if (cleanStr.startsWith(String(year)) && cleanStr.length >= 8) {
+    return `#${cleanStr}`;
+  }
+  const numOnly = cleanStr.replace(/\D/g, '');
   const num = numOnly ? numOnly.slice(-4).padStart(4, '0') : '1042';
   return `#${year}${num}`;
 }

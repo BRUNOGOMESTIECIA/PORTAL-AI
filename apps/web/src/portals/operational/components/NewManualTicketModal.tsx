@@ -216,7 +216,7 @@ export function NewManualTicketModal({ onClose, initialData, onSuccess, isFromCh
   const [submitted, setSubmitted] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [formDataToSubmit, setFormDataToSubmit] = useState<FormData | null>(null);
-  const [intendedStatus, setIntendedStatus] = useState<'resolved' | 'new' | 'pending'>('new');
+  const [intendedStatus, setIntendedStatus] = useState<'resolved' | 'new' | 'open' | 'in_progress' | 'pending'>('open');
   const [createdProtocol, setCreatedProtocol] = useState<string>(() => {
     if (initialData?.ticketId) return formatTicketProtocol(initialData.ticketId);
     return formatTicketProtocol(1043);
@@ -233,7 +233,7 @@ export function NewManualTicketModal({ onClose, initialData, onSuccess, isFromCh
     }
   }, [initialData?.ticketId]);
   const [attachments, setAttachments] = useState<File[]>([]);
-  const { chats } = useChats();
+  const { chats, updateChat } = useChats();
   const { createTicket } = useTickets();
   const { queues } = useDynamicQueues();
   const [isCustomTeam, setIsCustomTeam] = useState(false);
@@ -354,7 +354,7 @@ export function NewManualTicketModal({ onClose, initialData, onSuccess, isFromCh
   });
 
   const submitAsUnresolved = handleSubmit((data) => {
-    setIntendedStatus('new');
+    setIntendedStatus('open'); // Abre explicitamente como Não Resolvido (Aberto / Em Fila)
     setFormDataToSubmit(data);
     setIsInfraTicket(false);
     setShowConfirmModal(true);
@@ -408,7 +408,7 @@ export function NewManualTicketModal({ onClose, initialData, onSuccess, isFromCh
         source: 'chat',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        closedAt: new Date().toISOString(),
+        closedAt: isClosing ? new Date().toISOString() : null,
         tags: [],
         comments: formDataToSubmit.internalNote ? [{
           id: `c_${Date.now()}`,
@@ -436,6 +436,15 @@ export function NewManualTicketModal({ onClose, initialData, onSuccess, isFromCh
           parentTicketId: newTicket.id
         };
         createTicket(infraTicket);
+      }
+
+      // Sincroniza o chat ativo se o chamado foi finalizado/aberto pela tela de chat
+      const activeChatId = typeof window !== 'undefined' ? localStorage.getItem('portal_active_chat') : null;
+      if (activeChatId) {
+        updateChat(activeChatId, {
+          status: 'closed',
+          ticketId: createdProtocol
+        });
       }
     }
     
