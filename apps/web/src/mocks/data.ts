@@ -493,6 +493,8 @@ export const MOCK_CHAT_SESSIONS: MockChatSession[] = [
   },
 ];
 
+export const MOCK_CHATS: MockChatSession[] = MOCK_CHAT_SESSIONS;
+
 // ─── Knowledge Base ───────────────────────────────────────────────────────────
 export interface MockKbArticle {
   id: string; title: string; slug: string;

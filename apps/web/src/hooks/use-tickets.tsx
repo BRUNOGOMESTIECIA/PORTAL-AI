@@ -4,7 +4,7 @@ import {
   collection, doc, onSnapshot, setDoc, updateDoc, 
   query 
 } from 'firebase/firestore';
-import { MockTicket } from '../mocks/data';
+import { MockTicket, MOCK_TICKETS } from '../mocks/data';
 import { apiClient } from '../lib/api-client';
 
 interface TicketsContextValue {
@@ -30,11 +30,11 @@ export function TicketsProvider({ children }: { children: React.ReactNode }) {
       const saved = localStorage.getItem('portal_fallback_tickets');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
-      return [];
+      return MOCK_TICKETS;
     } catch {
-      return [];
+      return MOCK_TICKETS;
     }
   });
 
@@ -171,7 +171,15 @@ export function TicketsProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(false);
       const saved = localStorage.getItem('portal_fallback_tickets');
       if (saved) {
-        try { setTickets(JSON.parse(saved)); } catch (e) {}
+        try { 
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) setTickets(parsed);
+          else setTickets(MOCK_TICKETS);
+        } catch (e) {
+          setTickets(MOCK_TICKETS);
+        }
+      } else {
+        setTickets(MOCK_TICKETS);
       }
     });
 

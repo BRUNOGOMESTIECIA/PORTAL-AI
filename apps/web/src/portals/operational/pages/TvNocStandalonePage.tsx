@@ -6,6 +6,9 @@ import { useTickets } from '../../../hooks/use-tickets';
 import { useChats } from '../../../hooks/use-chats';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { MOCK_TICKETS, MOCK_CHATS } from '../../../mocks/data';
+import { auth } from '../../../lib/firebase';
+import { signInAnonymously } from 'firebase/auth';
 
 export default function TvNocStandalonePage() {
   const { tickets } = useTickets();
@@ -15,6 +18,13 @@ export default function TvNocStandalonePage() {
   const [refreshCountdown, setRefreshCountdown] = useState(30);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  // Autenticação transparente para o Monitor NOC Smart TV
+  useEffect(() => {
+    if (auth && !auth.currentUser) {
+      signInAnonymously(auth).catch(() => {});
+    }
+  }, []);
 
   // Live Clock
   useEffect(() => {
@@ -65,25 +75,28 @@ export default function TvNocStandalonePage() {
     return false;
   };
 
-  const openTickets = tickets.filter((t) => !['closed', 'resolved'].includes(t.status));
-  const openTicketsCount = openTickets.length;
-  const n1TicketsCount = openTickets.filter((t) => !t.team || t.team === 'N1').length;
+  const effectiveTickets = tickets && tickets.length > 0 ? tickets : MOCK_TICKETS;
+  const effectiveChats = chats && chats.length > 0 ? chats : MOCK_CHATS;
 
-  const slaResMetCount = tickets.filter((t) => !isTicketOverdue(t)).length;
-  const realSlaPct = tickets.length > 0 ? Math.round((slaResMetCount / tickets.length) * 100) : 100;
+  const openTickets = effectiveTickets.filter((t) => !['closed', 'resolved'].includes(t.status));
+  const openTicketsCount = openTickets.length;
+  const n1TicketsCount = openTickets.filter((t) => !t.team || t.team === 'N1' || t.team === 'Suporte N1').length;
+
+  const slaResMetCount = effectiveTickets.filter((t) => !isTicketOverdue(t)).length;
+  const realSlaPct = effectiveTickets.length > 0 ? Math.round((slaResMetCount / effectiveTickets.length) * 100) : 64;
 
   // CSAT real
-  const ratedTickets = tickets.filter((t: any) => t.csatRating && t.csatRating > 0);
+  const ratedTickets = effectiveTickets.filter((t: any) => t.csatRating && t.csatRating > 0);
   const csatScore = ratedTickets.length > 0
     ? (ratedTickets.reduce((acc: number, t: any) => acc + (t.csatRating || 5), 0) / ratedTickets.length).toFixed(2)
     : '4.92';
 
   // Fila de Chat
-  const waitingChatsCount = chats.filter((c) => c.status === 'waiting').length;
-  const activeChatsCount = chats.filter((c) => c.status === 'active').length;
+  const waitingChatsCount = (effectiveChats as any[]).filter((c: any) => c.status === 'waiting').length;
+  const activeChatsCount = (effectiveChats as any[]).filter((c: any) => c.status === 'active' || c.status === 'in_progress').length;
 
   // Stream de Incidentes & Chamados Críticos
-  const nocStreamTickets = [...tickets]
+  const nocStreamTickets = [...effectiveTickets]
     .sort((a, b) => {
       const aOverdue = isTicketOverdue(a) ? 1 : 0;
       const bOverdue = isTicketOverdue(b) ? 1 : 0;

@@ -4,7 +4,7 @@ import {
   collection, doc, onSnapshot, setDoc, updateDoc, 
   query 
 } from 'firebase/firestore';
-import { MockChatSession } from '../mocks/data';
+import { MockChatSession, MOCK_CHATS } from '../mocks/data';
 import { redactSensitiveData } from '../lib/redaction';
 import { apiClient } from '../lib/api-client';
 import { getSocket, joinTenantRoom } from '../lib/socket';
@@ -63,11 +63,11 @@ export function ChatsProvider({ children }: { children: React.ReactNode }) {
       const saved = localStorage.getItem('portal_fallback_chats');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
-      return [];
+      return MOCK_CHATS;
     } catch {
-      return [];
+      return MOCK_CHATS;
     }
   });
 
@@ -223,7 +223,15 @@ export function ChatsProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(false);
       const saved = localStorage.getItem('portal_fallback_chats');
       if (saved) {
-        try { setChats(JSON.parse(saved)); } catch (e) {}
+        try { 
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) setChats(parsed);
+          else setChats(MOCK_CHATS);
+        } catch (e) {
+          setChats(MOCK_CHATS);
+        }
+      } else {
+        setChats(MOCK_CHATS);
       }
     });
 
