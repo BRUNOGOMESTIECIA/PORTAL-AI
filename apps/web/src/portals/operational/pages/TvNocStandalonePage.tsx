@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Tv, Maximize2, Minimize2, ShieldCheck, Star, AlertTriangle, Activity, MessageCircle, Copy, Check } from 'lucide-react';
+import { Tv, Maximize2, Minimize2, ShieldCheck, Star, AlertTriangle, Activity, MessageCircle, Copy, Check, Package } from 'lucide-react';
 import { toast } from 'sonner';
 import { logAuditEvent, formatTicketProtocol } from '../../../lib/audit-logger';
 import { useTickets } from '../../../hooks/use-tickets';
@@ -127,7 +127,16 @@ export default function TvNocStandalonePage() {
         </div>
 
         {/* Relógio em Destaque & Ações */}
-        <div className="flex items-center gap-5">
+        <div className="flex items-center gap-3">
+          <a
+            href="/tv-suprimentos"
+            className="flex items-center gap-2 px-3 py-1.5 bg-amber-950/60 hover:bg-amber-900/80 text-amber-300 border border-amber-800/60 text-xs font-bold rounded-xl transition-all"
+            title="Ir para o Dashboard de Suprimentos e Equipamentos"
+          >
+            <Package className="w-3.5 h-3.5 text-amber-400" />
+            <span>Ver Suprimentos & Trocas</span>
+          </a>
+
           <button
             type="button"
             onClick={copyTvLink}

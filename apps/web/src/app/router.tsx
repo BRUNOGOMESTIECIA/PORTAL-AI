@@ -59,6 +59,7 @@ const AdminSettingsPage = safeLazy(() => import('../portals/operational/pages/ad
 const AutomationBuilderPage = safeLazy(() => import('../portals/operational/pages/admin/AutomationBuilderPage'));
 const AiUsageDashboardPage = safeLazy(() => import('../portals/operational/pages/admin/AiUsageDashboardPage'));
 const TvNocStandalonePage = safeLazy(() => import('../portals/operational/pages/TvNocStandalonePage'));
+const TvSuppliesStandalonePage = safeLazy(() => import('../portals/operational/pages/TvSuppliesStandalonePage'));
 
 
 
@@ -98,6 +99,11 @@ export function AppRouter() {
           <Route path="/tv" element={<TvNocStandalonePage />} />
           <Route path="/tv-noc" element={<TvNocStandalonePage />} />
           <Route path="/operacional/tv" element={<TvNocStandalonePage />} />
+
+          {/* Link direto para Smart TV Mesa de Suprimentos & Equipamentos */}
+          <Route path="/tv-suprimentos" element={<TvSuppliesStandalonePage />} />
+          <Route path="/tv-equipamentos" element={<TvSuppliesStandalonePage />} />
+          <Route path="/operacional/tv-suprimentos" element={<TvSuppliesStandalonePage />} />
 
           {/* Client login — detecta empresa e redireciona ao portal */}
           <Route path="/cliente" element={<ClientLoginPage />} />

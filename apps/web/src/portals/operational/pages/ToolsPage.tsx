@@ -210,6 +210,28 @@ const TOOLS = [
     border: 'hover:border-emerald-400',
     badge: 'Estoque & Logística',
   },
+  {
+    id: 'tv_suprimentos',
+    name: 'Smart TV: Mesa de Suprimentos & Trocas',
+    description: 'Dashboard em alta visibilidade para Smart TV monitorando trocas de equipamentos, pedidos de peças e estoque.',
+    icon: Package,
+    color: 'text-amber-500',
+    bg: 'bg-amber-100 dark:bg-amber-500/10',
+    border: 'hover:border-amber-400 border-amber-300 dark:border-amber-700/50 shadow-amber-500/5',
+    badge: 'Smart TV NOC',
+    route: '/tv-suprimentos',
+  },
+  {
+    id: 'tv_noc',
+    name: 'Smart TV: Monitor NOC Chamados & SLA',
+    description: 'Dashboard para monitores e videowall de operação em tempo real com SLA, CSAT e fila de atendimento.',
+    icon: Tv,
+    color: 'text-blue-500',
+    bg: 'bg-blue-100 dark:bg-blue-500/10',
+    border: 'hover:border-blue-400 border-blue-300 dark:border-blue-700/50 shadow-blue-500/5',
+    badge: 'Smart TV NOC',
+    route: '/tv',
+  },
 ];
 
 
