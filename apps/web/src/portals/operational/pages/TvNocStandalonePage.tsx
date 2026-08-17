@@ -146,15 +146,35 @@ export default function TvNocStandalonePage() {
   const waitingChatsCount = (chats as any[]).filter((c: any) => c.status === 'waiting').length;
   const activeChatsCount = (chats as any[]).filter((c: any) => c.status === 'active' || c.status === 'in_progress').length;
 
-  // Stream de Incidentes & Chamados Críticos
-  const nocStreamTickets = [...tickets]
-    .sort((a, b) => {
-      const aOverdue = isTicketOverdue(a) ? 1 : 0;
-      const bOverdue = isTicketOverdue(b) ? 1 : 0;
-      if (aOverdue !== bOverdue) return bOverdue - aOverdue;
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    })
-    .slice(0, 4);
+  // Stream 100% REAL de Incidentes & Chamados ordenados estritamente por PRIORIDADE
+  const nocStreamTickets = useMemo(() => {
+    const priorityMap: Record<string, number> = {
+      urgent: 4,
+      critical: 4,
+      high: 3,
+      medium: 2,
+      low: 1,
+    };
+
+    return [...tickets]
+      .filter((t) => !['closed', 'resolved'].includes(t.status))
+      .sort((a, b) => {
+        const pA = priorityMap[a.priority] || 2;
+        const pB = priorityMap[b.priority] || 2;
+
+        // 1. Maior prioridade primeiro (Urgente/Crítico > Alta > Média > Baixa)
+        if (pA !== pB) return pB - pA;
+
+        // 2. Estourados em primeiro lugar dentro da mesma prioridade
+        const aOverdue = isTicketOverdue(a) ? 1 : 0;
+        const bOverdue = isTicketOverdue(b) ? 1 : 0;
+        if (aOverdue !== bOverdue) return bOverdue - aOverdue;
+
+        // 3. Mais recente primeiro
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      })
+      .slice(0, 4);
+  }, [tickets]);
 
   return (
     <div className="fixed inset-0 w-screen h-screen bg-[#060a12] text-slate-100 flex flex-col justify-between p-6 overflow-hidden select-none">
@@ -356,14 +376,16 @@ export default function TvNocStandalonePage() {
         </div>
       </div>
 
-      {/* ── PAINEL DE INCIDENTES AO VIVO NOC ── */}
+      {/* ── PAINEL DE INCIDENTES AO VIVO NOC (ORDENADO POR PRIORIDADE) ── */}
       <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-5 shadow-2xl space-y-3">
         <div className="flex items-center justify-between border-b border-slate-800 pb-3">
           <h3 className="text-sm font-extrabold uppercase tracking-wider text-slate-200 flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 text-amber-400 animate-bounce" />
-            Feed de Chamados Críticos & Incidentes ao Vivo (TV NOC Stream)
+            Feed de Chamados Críticos & Incidentes (Stream NOC por Prioridade)
           </h3>
-          <span className="text-xs text-slate-400 font-mono">{nocStreamTickets.length} Chamados Principais</span>
+          <span className="text-xs text-amber-400 font-mono font-bold bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded-full">
+            {nocStreamTickets.length} Chamados Prioritários
+          </span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -380,33 +402,49 @@ export default function TvNocStandalonePage() {
                 timeAgo = formatDistanceToNow(new Date(t.createdAt), { addSuffix: true, locale: ptBR });
               } catch (e) {}
 
+              const priorityConfig = {
+                urgent: { label: '🔥 URGENTE', color: 'bg-red-500/20 text-red-400 border-red-500/40 font-black animate-pulse' },
+                critical: { label: '🔥 CRÍTICO', color: 'bg-red-500/20 text-red-400 border-red-500/40 font-black animate-pulse' },
+                high: { label: '⚡ ALTA', color: 'bg-orange-500/20 text-orange-300 border-orange-500/40 font-bold' },
+                medium: { label: 'MÉDIA', color: 'bg-blue-500/20 text-blue-300 border-blue-500/40 font-medium' },
+                low: { label: 'BAIXA', color: 'bg-slate-800 text-slate-400 border-slate-700' }
+              }[t.priority] || { label: 'ALTA', color: 'bg-orange-500/20 text-orange-300 border-orange-500/40 font-bold' };
+
               return (
                 <div
                   key={t.id}
-                  className={`p-3.5 rounded-2xl border transition-all space-y-2 ${
-                    isOverdue || t.priority === 'critical'
+                  className={`p-3.5 rounded-2xl border transition-all space-y-2 flex flex-col justify-between ${
+                    isOverdue || (t.priority as string) === 'critical' || (t.priority as string) === 'urgent'
                       ? 'bg-rose-950/40 border-rose-600/60 shadow-lg shadow-rose-950/50'
-                      : 'bg-slate-950 border-slate-800'
+                      : 'bg-slate-950 border-slate-800 hover:border-slate-700'
                   }`}
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-xs font-bold text-blue-400">
-                      {formattedNum}
-                    </span>
-                    <span
-                      className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
-                        isOverdue || t.priority === 'critical'
-                          ? 'bg-rose-500 text-white animate-pulse'
-                          : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                      }`}
-                    >
-                      {isOverdue ? 'ESTOURADO' : t.priority || 'NORMAL'}
-                    </span>
+                  <div>
+                    <div className="flex items-center justify-between gap-1.5 mb-1.5">
+                      <span className="font-mono text-xs font-black text-blue-400">
+                        {formattedNum}
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded border ${priorityConfig.color}`}>
+                          {priorityConfig.label}
+                        </span>
+                        {isOverdue && (
+                          <span className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-rose-600 text-white animate-pulse">
+                            ESTOURADO
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <p className="text-xs font-extrabold text-white line-clamp-2" title={t.title}>
+                      {t.title}
+                    </p>
                   </div>
-                  <p className="text-xs font-extrabold text-white line-clamp-1">{t.title}</p>
-                  <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-slate-800/80">
-                    <span className="truncate max-w-[120px]">{(t as any).requesterName || (t as any).requester || t.requesterId || 'Solicitante'}</span>
-                    <span className="font-semibold">{timeAgo}</span>
+
+                  <div className="flex items-center justify-between text-[10px] text-slate-400 pt-2 border-t border-slate-800/80">
+                    <span className="truncate max-w-[120px]" title={(t as any).requesterName || (t as any).requester || t.requesterId}>
+                      {(t as any).requesterName || (t as any).requester || t.requesterId || 'Cliente'}
+                    </span>
+                    <span className="font-semibold text-slate-400">{timeAgo}</span>
                   </div>
                 </div>
               );
