@@ -10,6 +10,8 @@ import { useTickets } from '../../../hooks/use-tickets';
 import { auth } from '../../../lib/firebase';
 import { signInAnonymously } from 'firebase/auth';
 import { Link } from 'react-router-dom';
+import { TvDevicePairingScreen } from '../../../components/tv/TvDevicePairingScreen';
+import { getSavedTvDeviceToken } from '../../../lib/tv-device-auth';
 
 interface SupplyItem {
   id: string;
@@ -194,6 +196,7 @@ const DEFAULT_EXCHANGES: EquipmentExchange[] = [
 ];
 
 export default function TvSuppliesStandalonePage() {
+  const [isPaired, setIsPaired] = useState<boolean>(() => !!getSavedTvDeviceToken());
   const { tickets } = useTickets();
 
   const [timeString, setTimeString] = useState('');
@@ -337,6 +340,15 @@ export default function TvSuppliesStandalonePage() {
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     }).slice(0, 4);
   }, [hardwareTickets]);
+
+  if (!isPaired) {
+    return (
+      <TvDevicePairingScreen 
+        onPairedSuccess={() => setIsPaired(true)} 
+        panelTitle="Mesa de Suprimentos & Equipamentos" 
+      />
+    );
+  }
 
   return (
     <div className="fixed inset-0 w-screen h-screen bg-[#050811] text-slate-100 flex flex-col justify-between p-6 overflow-hidden select-none">

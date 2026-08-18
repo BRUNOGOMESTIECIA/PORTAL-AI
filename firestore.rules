@@ -86,5 +86,18 @@ service cloud.firestore {
     match /counters/{counterId} {
       allow read, write: if isAuthenticated();
     }
+
+    // 10. PAREAMENTO E DISPOSITIVOS DE EXIBIÇÃO SMART TV (VIDEOWALL NOC)
+    match /tv_pairing_requests/{code} {
+      // Leitura e criação permitidas para a TV gerar o código e escutar ativação
+      allow read, create, update: if true;
+      allow delete: if isStaff();
+    }
+
+    match /tv_authorized_devices/{deviceId} {
+      // Dispositivos autorizados pelo administrador
+      allow read: if true;
+      allow write: if isStaff();
+    }
   }
 }

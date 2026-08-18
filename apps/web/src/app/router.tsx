@@ -60,6 +60,7 @@ const AutomationBuilderPage = safeLazy(() => import('../portals/operational/page
 const AiUsageDashboardPage = safeLazy(() => import('../portals/operational/pages/admin/AiUsageDashboardPage'));
 const TvNocStandalonePage = safeLazy(() => import('../portals/operational/pages/TvNocStandalonePage'));
 const TvSuppliesStandalonePage = safeLazy(() => import('../portals/operational/pages/TvSuppliesStandalonePage'));
+const TvAuthorizePage = safeLazy(() => import('../portals/operational/pages/admin/TvAuthorizePage'));
 
 
 
@@ -94,6 +95,10 @@ export function AppRouter() {
         <Routes>
           <Route path="/" element={<RootRedirect />} />
           <Route path="/login" element={<NotFoundPage />} />
+
+          {/* Pareamento e Autorização de Smart TV / Videowall NOC */}
+          <Route path="/tv/autorizar" element={<TvAuthorizePage />} />
+          <Route path="/tv/pair" element={<TvAuthorizePage />} />
 
           {/* Link direto para Smart TV / Videowall NOC */}
           <Route path="/tv" element={<TvNocStandalonePage />} />

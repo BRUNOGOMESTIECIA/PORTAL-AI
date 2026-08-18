@@ -11,6 +11,8 @@ import { MOCK_TICKETS, MOCK_CHATS } from '../../../mocks/data';
 import { auth, instaPassoDb } from '../../../lib/firebase';
 import { signInAnonymously } from 'firebase/auth';
 import { collection, onSnapshot } from 'firebase/firestore';
+import { TvDevicePairingScreen } from '../../../components/tv/TvDevicePairingScreen';
+import { getSavedTvDeviceToken } from '../../../lib/tv-device-auth';
 
 interface TopAgent {
   id: string;
@@ -22,6 +24,7 @@ interface TopAgent {
 }
 
 export default function TvNocStandalonePage() {
+  const [isPaired, setIsPaired] = useState<boolean>(() => !!getSavedTvDeviceToken());
   const { tickets } = useTickets();
   const { chats } = useChats();
   const { theme, setTheme } = useTheme();
@@ -229,6 +232,15 @@ export default function TvNocStandalonePage() {
       })
       .slice(0, 4);
   }, [tickets]);
+
+  if (!isPaired) {
+    return (
+      <TvDevicePairingScreen 
+        onPairedSuccess={() => setIsPaired(true)} 
+        panelTitle="Painel de Monitoramento NOC / Suporte ao Vivo" 
+      />
+    );
+  }
 
   return (
     <div className="fixed inset-0 w-screen h-screen bg-[#060a12] text-slate-100 flex flex-col justify-between p-6 overflow-hidden select-none">
