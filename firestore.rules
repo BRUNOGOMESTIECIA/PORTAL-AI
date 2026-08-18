@@ -82,21 +82,38 @@ service cloud.firestore {
       allow update, delete: if false; // NUNCA podem ser alterados ou apagados
     }
 
+    match /audit_logs/{logId} {
+      allow create: if true; // Permite registrar logs do sistema e auditorias
+      allow read: if isStaff();
+      allow update, delete: if false; // Imutabilidade ISO 27001
+    }
+
     // 9. CONTADORES ATÔMICOS (#2026XXXX)
     match /counters/{counterId} {
       allow read, write: if isAuthenticated();
     }
 
-    // 10. PAREAMENTO E DISPOSITIVOS DE EXIBIÇÃO SMART TV (VIDEOWALL NOC)
+    // 10. PAREAMENTO E DISPOSITIVOS DE EXIBIÇÃO SMART TV (VIDEOWALL NOC PROTEGIDO)
     match /tv_pairing_requests/{code} {
-      // Leitura e criação permitidas para a TV gerar o código e escutar ativação
-      allow read, create, update: if true;
+      // A TV só pode criar a solicitação se o status for estritamente 'PENDING' e sem token
+      allow create: if request.resource.data.status == 'PENDING'
+                    && request.resource.data.code == code
+                    && !('deviceToken' in request.resource.data);
+      
+      // A TV pode escutar se o código dela foi autorizado
+      allow read: if true;
+      
+      // APENAS técnicos TIÉCIA autenticados podem AUTORIZAR a TV (alterar status/token)
+      allow update: if isStaff();
+      
+      // Apenas a equipe técnica pode remover solicitações
       allow delete: if isStaff();
     }
 
     match /tv_authorized_devices/{deviceId} {
-      // Dispositivos autorizados pelo administrador
+      // A TV pode validar se o token dela é válido
       allow read: if true;
+      // Apenas a equipe técnica pode registrar ou revogar TVs autorizadas
       allow write: if isStaff();
     }
   }

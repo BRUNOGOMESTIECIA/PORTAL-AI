@@ -79,39 +79,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    */
   const activateBridge = useCallback(async (firebaseUser: any): Promise<boolean> => {
     try {
-      if (!firebaseUser) return false;
+      if (!firebaseUser) {
+        setIsBridgeReady(false);
+        return false;
+      }
 
       // 1. Pegar o Token de ID do Firebase InstaPasso
       const idToken = await firebaseUser.getIdToken(true);
       const apiUrl = import.meta.env.VITE_API_URL || '';
 
-      try {
-        // 2. Chamar a API NestJS se estiver acessível
-        const endpointUrl = `${apiUrl.replace(/\/$/, '')}/auth/portal-token`;
-        const response = await fetch(endpointUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ idToken })
-        });
+      if (apiUrl) {
+        try {
+          // 2. Chamar a API NestJS se houver URL configurada
+          const endpointUrl = `${apiUrl.replace(/\/$/, '')}/auth/portal-token`;
+          const response = await fetch(endpointUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idToken })
+          });
 
-        if (response.ok) {
-          const { customToken } = await response.json();
-          // 3. Fazer login no Firebase Portal IA com o "Crachá Assinado"
-          await signInWithCustomToken(auth, customToken);
-          console.info('[Bridge] Ponte de segurança RBAC ativada com sucesso!');
-        } else {
-          console.info('[Bridge] API de backend em standby no ambiente Vercel. Sessão SSO ativa.');
+          if (response.ok) {
+            const { customToken } = await response.json();
+            // 3. Fazer login no Firebase Portal IA com o "Crachá Assinado" (RBAC Claims)
+            await signInWithCustomToken(auth, customToken);
+            console.info('[Bridge] Ponte de segurança RBAC ativada com sucesso!');
+            setIsBridgeReady(true);
+            return true;
+          } else {
+            console.warn('[Bridge] API NestJS retornou status de resposta não-OK:', response.status);
+          }
+        } catch (apiError) {
+          console.warn('[Bridge] API NestJS indisponível. Operando sob validação direta Zero-Trust do Firestore.');
         }
-      } catch (apiError) {
-        console.info('[Bridge] API NestJS offline no momento. Mantendo acesso via InstaPasso SSO.');
       }
 
       setIsBridgeReady(true);
       return true;
     } catch (e: any) {
       console.error('[Bridge] Falha ao sincronizar ponte:', e?.message || e);
-      setIsBridgeReady(true);
-      return true;
+      setIsBridgeReady(false);
+      return false;
     }
   }, []);
 

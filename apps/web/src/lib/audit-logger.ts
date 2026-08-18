@@ -1,4 +1,4 @@
-import { instaPassoDb } from './firebase';
+import { instaPassoDb, auth } from './firebase';
 import { collection, addDoc } from 'firebase/firestore';
 
 export interface SecurityAuditEntry {
@@ -69,15 +69,26 @@ export async function logSecurityAudit(entry: Omit<SecurityAuditEntry, 'createdA
 }
 
 /**
- * Alias para compatibilidade com chamadas logAuditEvent(action, details)
+ * Alias para compatibilidade com chamadas logAuditEvent(action, details, userOverride)
+ * Captura dinamicamente o usuário logado no Firebase Auth para garantir conformidade ISO 27001
  */
-export async function logAuditEvent(action: string, details: string) {
+export async function logAuditEvent(
+  action: string,
+  details: string,
+  userOverride?: { email?: string; name?: string; originPortal?: 'Portal do Cliente' | 'Portal Operacional' }
+) {
+  // Captura o usuário ativo dinamicamente do Firebase Auth
+  const currentUser = auth.currentUser;
+  const email = userOverride?.email || currentUser?.email || 'sistema@tiecia.com.br';
+  const name = userOverride?.name || currentUser?.displayName || (email.includes('@') ? email.split('@')[0] : 'Operador do Sistema');
+  const isStaff = email.endsWith('@tiecia.com.br');
+
   return logSecurityAudit({
     protocol: generateCorporateProtocol(),
     action,
-    originPortal: 'Portal Operacional',
-    userEmail: 'admin@empresa.com',
-    userName: 'Administrador',
+    originPortal: userOverride?.originPortal || (isStaff ? 'Portal Operacional' : 'Portal do Cliente'),
+    userEmail: email,
+    userName: name,
     details,
   });
 }
@@ -90,17 +101,20 @@ export async function logCrudAudit(
   entityName: string,
   entityId: string,
   details: string,
-  user?: { email: string; name: string }
+  user?: { email?: string; name?: string }
 ) {
   const protocol = generateCorporateProtocol();
   const actionText = `[ISO 27001 TRACE] ${operation} em ${entityName} (ID: ${entityId})`;
+  const currentUser = auth.currentUser;
+  const email = user?.email || currentUser?.email || 'operador@tiecia.com.br';
+  const name = user?.name || currentUser?.displayName || (email.includes('@') ? email.split('@')[0] : 'Operador do Sistema');
   
   return logSecurityAudit({
     protocol,
     action: actionText,
-    originPortal: 'Portal Operacional',
-    userEmail: user?.email || 'admin.operacional@empresa.com',
-    userName: user?.name || 'Administrador do Sistema',
+    originPortal: email.endsWith('@tiecia.com.br') ? 'Portal Operacional' : 'Portal do Cliente',
+    userEmail: email,
+    userName: name,
     details: `${details} | Cifra Imutável SHA-256 Validada`,
   });
 }

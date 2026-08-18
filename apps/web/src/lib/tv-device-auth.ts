@@ -146,7 +146,10 @@ export async function authorizeTvDevice(
     };
   }
 
-  const deviceToken = `tv_dev_token_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+  const secureEntropy = typeof crypto !== 'undefined' && crypto.randomUUID
+    ? crypto.randomUUID().replace(/-/g, '')
+    : Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+  const deviceToken = `tv_sec_${Date.now()}_${secureEntropy}`;
   const deviceId = `device_tv_${cleanCode}`;
   const nowIso = new Date().toISOString();
 
@@ -174,10 +177,11 @@ export async function authorizeTvDevice(
   };
   await setDoc(devRef, deviceRecord);
 
-  // 3. Log de Auditoria ISO 27001
+  // 3. Log de Auditoria ISO 27001 com identificação do operador real
   await logAuditEvent(
     'TV_DEVICE_PAIRED_AUTHORIZED',
-    `📺 [SMART TV NOC] Dispositivo '${customDeviceName}' (Código ${cleanCode}) autorizado com sucesso por ${adminUser.name} (${adminUser.email}). Exibição 24/7 liberada.`
+    `📺 [SMART TV NOC] Dispositivo '${customDeviceName}' (Código ${cleanCode}) autorizado com sucesso por ${adminUser.name} (${adminUser.email}). Exibição 24/7 liberada.`,
+    { email: adminUser.email, name: adminUser.name, originPortal: 'Portal Operacional' }
   );
 
   return {
