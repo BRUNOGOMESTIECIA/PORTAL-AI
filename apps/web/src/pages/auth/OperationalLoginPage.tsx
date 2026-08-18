@@ -61,33 +61,6 @@ export default function OperationalLoginPage() {
             Entrar com Google (Portal Operacional)
           </button>
 
-          {/* Botão de Biometria / Passkey FIDO2 (Condicionado à ativação pelo Admin - Item 009) */}
-          {(() => {
-            try {
-              const passkeyConfig = JSON.parse(localStorage.getItem('portal_passkeys_policy_config') || '{}');
-              if (passkeyConfig.enabled) {
-                return (
-                  <button
-                    onClick={async () => {
-                      const { authenticateWithPasskey } = await import('../../lib/passkeys-fido2');
-                      const res = await authenticateWithPasskey('bg@tiecia.com.br');
-                      if (res.success) {
-                        toast.success(res.message);
-                        navigate('/operacional/app');
-                      } else {
-                        toast.error(res.message);
-                      }
-                    }}
-                    className="w-full mt-3 flex items-center justify-center gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white py-3 text-xs font-bold transition-all shadow-md cursor-pointer"
-                  >
-                    🔑 Entrar com Biometria / Passkey (FIDO2)
-                  </button>
-                );
-              }
-            } catch (e) {}
-            return null;
-          })()}
-
           {/* Aviso de Privacidade LGPD (Art. 7º & Art. 6º) */}
           <div className="mt-8 pt-4 border-t border-slate-800 text-center">
             <p className="text-[11px] text-slate-400 leading-relaxed">

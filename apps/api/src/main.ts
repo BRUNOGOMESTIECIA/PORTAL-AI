@@ -9,6 +9,7 @@ import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './shared/filters/all-exceptions.filter';
 import { LoggingInterceptor } from './shared/interceptors/logging.interceptor';
+import { WafCorporateInterceptor } from './shared/interceptors/waf-corporate.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
@@ -48,9 +49,12 @@ async function bootstrap() {
     }),
   );
 
-  // Global filters & interceptors
+  // Global filters & interceptors (WAF Layer 7 + Auditoria)
   app.useGlobalFilters(new AllExceptionsFilter());
-  app.useGlobalInterceptors(new LoggingInterceptor());
+  app.useGlobalInterceptors(
+    new LoggingInterceptor(),
+    new WafCorporateInterceptor(),
+  );
 
   // API prefix
   app.setGlobalPrefix('api/v1');

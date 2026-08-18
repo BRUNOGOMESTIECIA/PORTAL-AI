@@ -11,54 +11,74 @@ service cloud.firestore {
     function isAuthenticated() {
       return request.auth != null;
     }
-    
-    function isEmailVerified() {
-      return request.auth.token.email_verified == true;
+
+    function isStaff() {
+      return isAuthenticated() && 
+             request.auth.token.email != null && 
+             request.auth.token.email.matches('.*@tiecia[.]com[.]br$');
     }
 
-    // 3. COLEÇÃO DE TICKETS (CHAMADOS)
-    match /tickets/{ticketId} {
-      // Leitura: Apenas usuários autenticados
-      allow read: if isAuthenticated();
-      
-      // Criação: Usuário autenticado
-      allow create: if isAuthenticated() && 
-        request.resource.data.keys().hasAll(['title', 'status', 'createdAt']);
+    function isOwner(email) {
+      return isAuthenticated() && 
+             request.auth.token.email != null && 
+             request.auth.token.email == email;
+    }
 
-      // Edição / Deleção: Apenas autenticados (ou apenas equipe interna)
-      allow update: if isAuthenticated();
-      allow delete: if isAuthenticated() && request.auth.token.email.matches('.*@tiecia[.]com[.]br$');
+    // 3. COLEÇÃO DE TICKETS (CHAMADOS COM ISOLAMENTO MULTI-TENANT)
+    match /tickets/{ticketId} {
+      // Leitura: Técnicos vêem tudo | Cliente só vê chamados do seu próprio e-mail
+      allow read: if isStaff() || (isAuthenticated() && isOwner(resource.data.requesterEmail));
+      
+      // Criação: Usuário autenticado criando chamado para si mesmo ou Técnico
+      allow create: if isStaff() || (
+        isAuthenticated() && 
+        request.resource.data.requesterEmail == request.auth.token.email &&
+        request.resource.data.keys().hasAll(['title', 'status', 'createdAt'])
+      );
+
+      // Edição: Técnico pode alterar tudo | Cliente só pode atualizar/comentar no seu próprio ticket
+      allow update: if isStaff() || (isAuthenticated() && isOwner(resource.data.requesterEmail));
+      
+      // Exclusão: Estritamente restrito à equipe interna
+      allow delete: if isStaff();
     }
 
     // 4. COLEÇÃO DE OPERADORES / USUÁRIOS INTERNOS
     match /operators/{operatorId} {
-      // Apenas quem é da equipe @tiecia.com.br autenticado pode ler ou criar
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated() && request.auth.token.email.matches('.*@tiecia[.]com[.]br$');
+      // Apenas a equipe técnica autenticada pode ler ou gerenciar operadores
+      allow read: if isStaff();
+      allow write: if isStaff();
     }
 
     // 5. DOMÍNIOS AUTORIZADOS B2B
     match /domains/{domainId} {
+      // Leitura permitida para validação de login SSO | Edição apenas por administradores
       allow read: if isAuthenticated();
-      allow write: if isAuthenticated() && request.auth.token.email.matches('.*@tiecia[.]com[.]br$');
+      allow write: if isStaff();
     }
 
-    // 6. SESSÕES ATIVAS
+    // 6. SESSÕES ATIVAS (SEGURANÇA CONTRA CONEXÕES DUPLICADAS)
     match /active_sessions/{userId} {
-      // O usuário só pode ler e gravar na sua PRÓPRIA sessão (UID correspondente)
+      // O usuário só acessa e grava na sua própria sessão
       allow read, write: if isAuthenticated() && request.auth.uid == userId;
     }
 
     // 7. SESSÕES DE CHAT EM TEMPO REAL
     match /chat_sessions/{chatId} {
-      allow read, create, update: if isAuthenticated();
-      allow delete: if isAuthenticated() && request.auth.token.email.matches('.*@tiecia[.]com[.]br$');
+      // Leitura e Mensagens: Apenas o cliente daquela conversa ou o atendente técnico
+      allow read, update: if isStaff() || (
+        isAuthenticated() && 
+        (resource.data.clientEmail == request.auth.token.email || resource.data.clientId == request.auth.uid)
+      );
+      
+      allow create: if isAuthenticated();
+      allow delete: if isStaff();
     }
 
     // 8. LOGS DE AUDITORIA (ISO 27001 - IMUTÁVEIS)
     match /security_audit_logs/{logId} {
-      allow create: if true; // Permite registrar inclusive tentativas de login com falha
-      allow read: if isAuthenticated() && request.auth.token.email.matches('.*@tiecia[.]com[.]br$');
+      allow create: if isAuthenticated();
+      allow read: if isStaff();
       allow update, delete: if false; // NUNCA podem ser alterados ou apagados
     }
 
